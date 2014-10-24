@@ -488,7 +488,8 @@ class Gui_Manager {
     g.setYAxisTickSpacing(1);
     g.setYAxisMinorTicks(0);
     g.setYAxisLabelAccuracy(0);
-    g.setYAxisLabel("EEG Amplitude (uV/sqrt(Hz))");
+    //g.setYAxisLabel("EEG Amplitude (uV/sqrt(Hz))");  // Some people prefer this...but you'll have to change the normalization in OpenBCI_GUI\processNewData()
+    g.setYAxisLabel("EEG Amplitude (uVrms/bin)");  // CHIP 2014-10-24...currently, this matches the normalization in OpenBCI_GUI\processNewData()
     g.setYAxisLabelFont(fontInfo.fontName,fontInfo.axisLabel_size, false);
     g.setYAxisTickFont(fontInfo.fontName,fontInfo.tickLabel_size, false);
   
