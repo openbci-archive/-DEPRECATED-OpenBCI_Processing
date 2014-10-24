@@ -7,6 +7,7 @@ class EEG_Processing_User {
   //add your own variables here
   float[] alpha_band_Hz = {7.5f, 11.5f};
   float[] alpha_uVrms;
+  float[][] guard_band_Hz = {{3.0, 6.5},{13.0, 18.0}};
   float[] guard_uVrms;
   boolean[] isAlphaDetected;
  
@@ -31,30 +32,32 @@ class EEG_Processing_User {
 
     //for example, you could loop over each EEG channel to do some sort of time-domain processing 
     //using the sample values that have already been filtered, as will be plotted on the display
-    float EEG_value_uV;
-    for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each NEW sample
-      int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
-      for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
-        EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
-        
-        //add your processing here...
-        
-        
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
-      }
-    }
-        
-    //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
+//    float EEG_value_uV;
+//    for (int Ichan=0;Ichan < nchan; Ichan++) {
+//      //loop over each NEW sample
+//      int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
+//      for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
+//        EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
+//        
+//        //add your processing here...
+//        
+//        
+//        //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
+//      }
+//    }
+
+   //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
     float FFT_freq_Hz, FFT_value_uV;
     for (int Ichan=0;Ichan < nchan; Ichan++) {
        //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
       
        //reset previous value in preparation for new value...added by CHIP 2014-10-24
        alpha_uVrms[Ichan] = 0.0f;
+       guard_uVrms[Ichan] = 0;
+       int guard_count_bins = 0;
       
       //loop over frequency bin
-      for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++){
+      for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++) {
         FFT_freq_Hz = fftData[Ichan].indexToFreq(Ibin);
         FFT_value_uV = fftData[Ichan].getBand(Ibin);
         
@@ -66,15 +69,24 @@ class EEG_Processing_User {
         }
         
         //get the mean of the guard band
+        for (int Iband=0; Iband < 2; Iband++) {
+          if ((FFT_freq_Hz >= guard_band_Hz[Iband][0]) && (FFT_freq_Hz <= guard_band_Hz[Iband][0])) {
+            guard_count_bins++;
+            guard_uVrms[Ichan] += FFT_value_uV;  //sum, as first step to computing the mean
+          }
+        }
         
-        
-        /////// End of added processing
-        
+        /////// End of added by CHIP 2014-10-24
  
-      }
-    }  
-  }
-}
+      } // close loop over bins
+      
+      /// added by CHIP 2014-10-24...finsih computing the mean for the guard
+     guard_uVrms[Ichan] /= guard_count_bins; 
+      
+      
+    } //close loop over channels 
+  } // close process() method
+} //close class definition
    
 
 
