@@ -5,12 +5,20 @@ class EEG_Processing_User {
   private int nchan;  
   
   //add your own variables here
-  
+  float[] alpha_band_Hz = {7.5f, 11.5f};
+  float[] alpha_uVrms;
+  float[] guard_uVrms;
+  boolean[] isAlphaDetected;
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
       nchan = NCHAN;
     fs_Hz = sample_rate_Hz;
+    
+    //create the arrays
+    alpha_uVrms = new float[nchan];
+    guard_uVrms = new float[nchan];
+    isAlphaDetected = new boolean[nchan];
   }
   
   //add some functions here...if you'd like
@@ -40,16 +48,29 @@ class EEG_Processing_User {
     //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
     float FFT_freq_Hz, FFT_value_uV;
     for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each new sample
+       //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
+      
+       //reset previous value in preparation for new value...added by CHIP 2014-10-24
+       alpha_uVrms[Ichan] = 0.0f;
+      
+      //loop over frequency bin
       for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++){
         FFT_freq_Hz = fftData[Ichan].indexToFreq(Ibin);
         FFT_value_uV = fftData[Ichan].getBand(Ibin);
         
-        //add your processing here...
+        //////// add your processing here...added by CHIP 2014-10-24
+        
+        //detect the peak in the Alpha band
+        if ((FFT_freq_Hz >= alpha_band_Hz[0]) && (FFT_freq_Hz <= alpha_band_Hz[1])) {
+          if (FFT_value_uV > alpha_uVrms[Ichan]) alpha_uVrms[Ichan] = FFT_value_uV;
+        }
+        
+        //get the mean of the guard band
         
         
+        /////// End of added processing
         
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
+ 
       }
     }  
   }
