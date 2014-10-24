@@ -7,9 +7,12 @@ class EEG_Processing_User {
   //add your own variables here
   float[] alpha_band_Hz = {7.5f, 11.5f};
   float[] alpha_uVrms;
+  float[] max_alpha_freq_Hz;
   float[][] guard_band_Hz = {{3.0, 6.5},{13.0, 18.0}};
   float[] guard_uVrms;
   boolean[] isAlphaDetected;
+  float alpha_detection_threshold_uV = 3.8;
+  float guard_rejection_threshold_uV = 1.6; 
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
@@ -18,6 +21,7 @@ class EEG_Processing_User {
     
     //create the arrays
     alpha_uVrms = new float[nchan];
+    max_alpha_freq_Hz = new float[nchan];
     guard_uVrms = new float[nchan];
     isAlphaDetected = new boolean[nchan];
   }
@@ -46,31 +50,39 @@ class EEG_Processing_User {
 //      }
 //    }
 
-   //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
+    //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
     float FFT_freq_Hz, FFT_value_uV;
     for (int Ichan=0;Ichan < nchan; Ichan++) {
-       //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
       
-       //reset previous value in preparation for new value...added by CHIP 2014-10-24
-       alpha_uVrms[Ichan] = 0.0f;
-       guard_uVrms[Ichan] = 0;
-       int guard_count_bins = 0;
+      //reset previous value in preparation for new value...added by CHIP 2014-10-24
+      alpha_uVrms[Ichan] = 0.0f;
+      max_alpha_freq_Hz[Ichan] = 0.0f;
+      guard_uVrms[Ichan] = 0.0f;
+      int guard_count_bins = 0;
       
       //loop over frequency bin
       for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++) {
         FFT_freq_Hz = fftData[Ichan].indexToFreq(Ibin);
         FFT_value_uV = fftData[Ichan].getBand(Ibin);
         
+        //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");      
+        
         //////// add your processing here...added by CHIP 2014-10-24
         
         //detect the peak in the Alpha band
-        if ((FFT_freq_Hz >= alpha_band_Hz[0]) && (FFT_freq_Hz <= alpha_band_Hz[1])) {
-          if (FFT_value_uV > alpha_uVrms[Ichan]) alpha_uVrms[Ichan] = FFT_value_uV;
+        if ((FFT_freq_Hz >= alpha_band_Hz[0]) & (FFT_freq_Hz <= alpha_band_Hz[1])) {
+          if (Ichan == (2-1)) println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin"); 
+          //this bin is indeed inside the alpha band.  Decide if this is the max value...
+          if (FFT_value_uV > alpha_uVrms[Ichan]) {
+            //the current FFT bin is bigger, so hold onto it!
+            alpha_uVrms[Ichan] = FFT_value_uV;
+            max_alpha_freq_Hz[Ichan] = FFT_freq_Hz;
+          }
         }
         
         //get the mean of the guard band
         for (int Iband=0; Iband < 2; Iband++) {
-          if ((FFT_freq_Hz >= guard_band_Hz[Iband][0]) && (FFT_freq_Hz <= guard_band_Hz[Iband][0])) {
+          if ((FFT_freq_Hz >= guard_band_Hz[Iband][0]) & (FFT_freq_Hz <= guard_band_Hz[Iband][0])) {
             guard_count_bins++;
             guard_uVrms[Ichan] += FFT_value_uV;  //sum, as first step to computing the mean
           }
@@ -78,14 +90,33 @@ class EEG_Processing_User {
         
         /////// End of added by CHIP 2014-10-24
  
-      } // close loop over bins
+      } // close loop over frequency bins
       
-      /// added by CHIP 2014-10-24...finsih computing the mean for the guard
+     ///// more code added by CHIP 2014-10-24
+     
+     //finish computing the mean EEG level acrossr the guard bands
      guard_uVrms[Ichan] /= guard_count_bins; 
       
+     //decide if there has been an alpha detection
+     isAlphaDetected[Ichan]=applyDetectionRules(alpha_uVrms[Ichan],guard_uVrms[Ichan]);
+     if (Ichan == 2-1) {
+       println("EEG_Processing: process: Ichan = " + Ichan + ", alpha_uVrms = " + alpha_uVrms[Ichan] + ", guard_uVrms = " + guard_uVrms[Ichan]);
+     }
       
     } //close loop over channels 
   } // close process() method
+  
+  boolean applyDetectionRules(float alpha_uVrms, float guard_uVrms) {
+    if ((alpha_uVrms >= alpha_detection_threshold_uV) && (guard_uVrms < guard_rejection_threshold_uV)) {
+      println("EEG_Processing: applyDetectionRules: ALPHA DETECTED!!!");
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+  
+  
 } //close class definition
    
 
