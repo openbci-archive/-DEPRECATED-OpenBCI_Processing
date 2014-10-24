@@ -1,12 +1,15 @@
 ///////////////////////////////////////////////
 //
-// GUI for controlling the ADS1299-based OpenBCI Shield
+// GUI for controlling the ADS1299-based OpenBCI
 //
 // Created: Chip Audette, Oct 2013 - May 2014
 // Modified: Conor Russomanno, Sept 2014 - Oct 2014
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/
+//
+// Requires ControlP5 library, but an older one.  This will only work
+// with the ControlP5 library that is included with this GitHub repository
 //
 // No warranty.  Use at your own risk.  Use for whatever you'd like.
 // 
