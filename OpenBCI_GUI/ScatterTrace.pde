@@ -283,9 +283,11 @@ class ScatterTrace_FFT extends Blank2DTrace {
           prev_x = new_x;
           prev_y = new_y;
           x_val = fftData[Ichan].indexToFreq(i);
+          //only plot those points that are within the frequency limits of the plot
           if ( (Float.isNaN(plotXlim[0])) || ((x_val >= plotXlim[0]) && (x_val <= plotXlim[1])) ) {
             new_x = pr.valToX(x_val);
-            spec_value = fftData[Ichan].getBand(i)/fftData[Ichan].specSize();
+            //spec_value = fftData[Ichan].getBand(i)/fftData[Ichan].specSize();  //uV_per_bin...this normalization is now done elsewhere
+            spec_value = fftData[Ichan].getBand(i);
             new_y = pr.valToY(spec_value+plotYOffset[Ichan]);
             pr.canvas.line(prev_x, prev_y, new_x, new_y);
           } else {

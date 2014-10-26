@@ -1,12 +1,15 @@
 ///////////////////////////////////////////////
 //
-// GUI for controlling the ADS1299-based OpenBCI Shield
+// GUI for controlling the ADS1299-based OpenBCI
 //
 // Created: Chip Audette, Oct 2013 - May 2014
 // Modified: Conor Russomanno, Sept 2014 - Oct 2014
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/
+//
+// Requires ControlP5 library, but an older one.  This will only work
+// with the ControlP5 library that is included with this GitHub repository
 //
 // No warranty.  Use at your own risk.  Use for whatever you'd like.
 // 
@@ -628,15 +631,26 @@ void processNewData() {
     //compute the FFT
     fftBuff[Ichan].forward(fooData_raw); //compute FFT on this channel of data
     
-//    //convert fft data to uV_per_sqrtHz
-//    //final float mean_winpow_sqr = 0.3966;  //account for power lost when windowing...mean(hamming(N).^2) = 0.3966
-//    final float mean_winpow = 1.0f/sqrt(2.0f);  //account for power lost when windowing...mean(hamming(N).^2) = 0.3966
-//    final float scale_raw_to_rtHz = pow((float)fftBuff[0].specSize(),1)*fs_Hz*mean_winpow; //normalize the amplitude by the number of bins to get the correct scaling to uV/sqrt(Hz)???
-//    double foo;
-//    for (int I=0; I < fftBuff[Ichan].specSize(); I++) {  //loop over each FFT bin
-//      foo = sqrt(pow(fftBuff[Ichan].getBand(I),2)/scale_raw_to_rtHz);
-//      fftBuff[Ichan].setBand(I,(float)foo);
-//      //if ((Ichan==0) & (I > 5) & (I < 15)) println("processFreqDomain: uV/rtHz = " + I + " " + foo);
+    
+    
+//    //convert units on fft data
+//    if (false) {
+//      //convert units to uV_per_sqrtHz...is this still correct?? CHIP 2014-10-24
+//      //final float mean_winpow_sqr = 0.3966;  //account for power lost when windowing...mean(hamming(N).^2) = 0.3966
+//      final float mean_winpow = 1.0f/sqrt(2.0f);  //account for power lost when windowing...mean(hamming(N).^2) = 0.3966
+//      final float scale_raw_to_rtHz = pow((float)fftBuff[0].specSize(),1)*fs_Hz*mean_winpow; //normalize the amplitude by the number of bins to get the correct scaling to uV/sqrt(Hz)???
+//      double foo;
+//      for (int I=0; I < fftBuff[Ichan].specSize(); I++) {  //loop over each FFT bin
+//        foo = sqrt(pow(fftBuff[Ichan].getBand(I),2)/scale_raw_to_rtHz);
+//        fftBuff[Ichan].setBand(I,(float)foo);
+//        //if ((Ichan==0) & (I > 5) & (I < 15)) println("processFreqDomain: uV/rtHz = " + I + " " + foo);
+//      }
+//    } else {
+      //convert to uV_per_bin...still need to confirm the accuracy of this code.  
+      //Do we need to account for the power lost in the windowing function?   CHIP  2014-10-24
+        for (int I=0; I < fftBuff[Ichan].specSize(); I++) {  //loop over each FFT bin
+          fftBuff[Ichan].setBand(I,(float)(fftBuff[Ichan].getBand(I) / fftBuff[Ichan].specSize()));
+        }       
 //    }
     
     //average the FFT with previous FFT data so that it makes it smoother in time
@@ -665,6 +679,9 @@ void processNewData() {
   eegProcessing.process(yLittleBuff_uV,dataBuffY_uV,dataBuffY_filtY_uV,fftBuff);
   
   //apply user processing
+  // ...yLittleBuff_uV[Ichan] is the most recent raw data since the last call to this processing routine
+  // ...dataBuffY_filtY_uV[Ichan] is the full set of filtered data as shown in the time-domain plot in the GUI
+  // ...fftBuff[Ichan] is the FFT data structure holding the frequency spectrum as shown in the freq-domain plot in the GUI
   eegProcessing_user.process(yLittleBuff_uV,dataBuffY_uV,dataBuffY_filtY_uV,fftBuff);
   
   //look to see if the latest data is railed so that we can notify the user on the GUI
@@ -673,13 +690,6 @@ void processNewData() {
   //compute the electrode impedance. Do it in a very simple way [rms to amplitude, then uVolt to Volt, then Volt/Amp to Ohm]
   for (int Ichan=0;Ichan < nchan; Ichan++) data_elec_imp_ohm[Ichan] = (sqrt(2.0)*eegProcessing.data_std_uV[Ichan]*1.0e-6) / openBCI.leadOffDrive_amps;     
       
-  //add your own processing steps here!
-  //for (int Ichan=0;Ichan < nchan; Ichan++) { 
-  // ...yLittleBuff_uV[Ichan] is the most recent raw data since the last call to this processing routine
-  // ...dataBuffY_filtY_uV[Ichan] is the full set of filtered data as shown in the time-domain plot in the GUI
-  // ...fftBuff[Ichan] is the FFT data structure holding the frequency spectrum as shown in the freq-domain plot in the GUI
-  //}
-
 }
 
 //here is the routine that listens to the serial port.

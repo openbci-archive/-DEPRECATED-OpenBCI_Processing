@@ -166,7 +166,7 @@ class Gui_Manager {
     stopButton = new Button(x,y,w,h,stopButton_pressToStop_txt,fontInfo.buttonLabel_size);
     
     //setup the gui page button
-    w = 80; //button width
+    w = 55; //button width
     x = (int)(3*gutter_between_buttons*win_x);
     // x = int(float(win_x)*0.3f);
     guiPageButton = new Button(x,y,w,h,"Page\n" + (guiPage+1) + " of " + N_GUI_PAGES,fontInfo.buttonLabel_size);
@@ -178,7 +178,7 @@ class Gui_Manager {
     // int xoffset = x + w + (int)(2*gutter_between_buttons*win_x);
     int xoffset = (int)(float(win_x)*gutter_left);
 
-    w = w;   //button width
+    w = 80;   //button width
     int w_orig = w;
     //if (nchan > 10) w -= (nchan-8)*2; //make the buttons skinnier
     int nChanBut = min(nchan,8);
@@ -488,7 +488,8 @@ class Gui_Manager {
     g.setYAxisTickSpacing(1);
     g.setYAxisMinorTicks(0);
     g.setYAxisLabelAccuracy(0);
-    g.setYAxisLabel("EEG Amplitude (uV/sqrt(Hz))");
+    //g.setYAxisLabel("EEG Amplitude (uV/sqrt(Hz))");  // Some people prefer this...but you'll have to change the normalization in OpenBCI_GUI\processNewData()
+    g.setYAxisLabel("EEG Amplitude (uV per bin)");  // CHIP 2014-10-24...currently, this matches the normalization in OpenBCI_GUI\processNewData()
     g.setYAxisLabelFont(fontInfo.fontName,fontInfo.axisLabel_size, false);
     g.setYAxisTickFont(fontInfo.fontName,fontInfo.tickLabel_size, false);
   
@@ -771,7 +772,7 @@ class Gui_Manager {
     stopButton.draw();
 
     //commented out because pages 1-2 are being moved to the left of the EEG montage
-    // guiPageButton.draw();
+    guiPageButton.draw();
 
     switch (guiPage) {  //the rest of the elements depend upon what GUI page we're on
       //note: GUI_PAGE_CHANNEL_ON_OFF is the default at the end

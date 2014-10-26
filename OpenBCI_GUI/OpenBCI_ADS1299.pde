@@ -12,9 +12,7 @@
 // Modified: through April 2014
 // Modified again: Conor Russomanno Sept-Oct 2014
 //
-// Note: this class does not care whether you are using V1 or V2 of the OpenBCI
-// board because the Arduino itself handles the differences between the two.  The
-// command format to the Arduino and the data format from the Arduino are the same.
+// Note: this class now expects the data format produced by OpenBCI V3.
 //
 /////////////////////////////////////////////////////////////////////////////
 
