@@ -24,6 +24,8 @@ import java.awt.event.*; //to allow for event listener on screen resize
 
 boolean isVerbose = false; //set true if you want more verbosity in console
 
+int nothing;
+
 long timeOfLastFrame = 0;
 int newPacketCounter = 0;
 
