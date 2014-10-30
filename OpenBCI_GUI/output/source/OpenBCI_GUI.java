@@ -40,6 +40,7 @@ import java.io.IOException;
 
 public class OpenBCI_GUI extends PApplet {
 
+
 ///////////////////////////////////////////////
 //
 // GUI for controlling the ADS1299-based OpenBCI Shield
@@ -64,7 +65,7 @@ public class OpenBCI_GUI extends PApplet {
   //for serial communication to Arduino/OpenBCI
  //to allow for event listener on screen resize
 
-boolean isVerbose = false; //set true if you want more verbosity in console
+boolean isVerbose = true; //set true if you want more verbosity in console
 
 long timeOfLastFrame = 0;
 int newPacketCounter = 0;
@@ -1084,6 +1085,10 @@ public void mousePressed() {
     //limit interactivity of main GUI if control panel is open
     if(controlPanel.isOpen == false){
       //was the stopButton pressed?
+
+      gui.mousePressed(); // trigger mousePressed function in GUI
+      //most of the logic below should be migrated into the Gui_manager specific function above
+
       if (gui.stopButton.isMouseHere()) { 
         gui.stopButton.setIsActive(true);
         stopButtonWasPressed(); 
@@ -1232,40 +1237,14 @@ public void mouseReleased() {
   //interacting with control panel
   if(controlPanel.isOpen){
     //if clicked in panel
-
-      controlPanel.CPmouseReleased();
-
-    // if(mouseX > 0 && mouseX < controlPanel.w && mouseY > 0 && mouseY < controlPanel.h){
-    //   println("CP mouse released");
-    //   controlPanel.CPmouseReleased();
-    // }
-    // //if clicked out of panel
-    // else{
-    //   println("outside of CP released");
-    //   controlPanel.isOpen = false;
-    //   controlPanelCollapser.setIsActive(false);
-    // }
+    controlPanel.CPmouseReleased();
   }
 
   if(systemMode >= 10){
-    gui.stopButton.setIsActive(false);
-    gui.guiPageButton.setIsActive(false);
-    gui.intensityFactorButton.setIsActive(false);
-    gui.loglinPlotButton.setIsActive(false);
-    gui.filtBPButton.setIsActive(false);
-    gui.smoothingButton.setIsActive(false);
-    gui.showPolarityButton.setIsActive(false);
-    gui.maxDisplayFreqButton.setIsActive(false);
-    gui.biasButton.setIsActive(false);
+
+    gui.mouseReleased();
     redrawScreenNow = true;  //command a redraw of the GUI whenever the mouse is released
   }
-
-
-  // if(systemMode == 0){
-  //   println("system mode = 10");
-  //   initSystem();
-  //   systemMode = 10; 
-  // }
 
   if(screenHasBeenResized){
     println("screen has been resized...");
@@ -1734,6 +1713,82 @@ class Button {
 };
 
 
+
+class ChannelController {
+
+	public float x, y, w, h;
+	public int montage_w, montage_h;
+	public int rowHeight;
+	public int buttonSpacing;
+	boolean showFullController = false;
+
+	// [Number of Channels] x 6 array of buttons for channel settings
+	Button[][] channelSettingButtons = new Button [nchan][6];  // [channel#][Button#]
+	int[][] channelSettingValues = new int [nchan][6]; // [channel#][Button#-value] ... this will incfluence text of button
+
+	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
+	int[] previousSRB2 = new int [nchan];
+	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
+	int[] previousBIAS = new int [nchan];
+
+	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
+		x = _xPos;
+		y = _yPos;
+		w = _width;
+		h = _height;
+
+		montage_w = _montage_w; //keep track of gMontage width
+		montage_h = _montage_h;	//keep track of gMontage height
+
+		// channelSettingButtons = new Button
+	}
+
+	public void update(){
+
+	}
+
+	public void draw(){
+
+		pushStyle();
+		noStroke();
+
+		//draw phantom rectangle to cover up random crap from Graph2D... we are replacing this stuff with the Montage Controller
+		fill(25);
+		rect(x, y-(height*0.01f), w, h+(height*0.02f));
+
+		//BG of montage controller (for debugging mainly)
+		fill(255,255,255,123);
+		rect(x, y, w, h);
+
+		if(showFullController){
+			fill(0,0,255,123);
+			rect(x + w, y, montage_w, montage_h);
+		}
+
+		popStyle();
+
+	}
+
+	public void fillValuesBasedOnDefault(){
+		//interpret incoming HEX value (from OpenBCI) and pass into all default channelSettingValues
+	}
+
+	public void writeChannelSettings(int _numChannel){
+		//after clicking any button, write the new settings for that channel to OpenBCI
+	}
+
+	public void createChannelSettingButtons(){
+		//the size and space of these buttons are dependendant on the size of the screen and full ChannelController
+		//create all activate/deactivate buttons (left-most button in widget left of EEG graph). These buttons are always visible
+
+		//create all (P)ositive impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
+
+		//create all (N)egative impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
+
+		//create all other channel setting buttons... these are only visible when the user toggles to "showFullController = true"
+
+	}
+};
 
 
 
@@ -2794,6 +2849,12 @@ class Gui_Manager {
   Button smoothingButton;
   Button maxDisplayFreqButton;
   Button showPolarityButton;
+
+  //these two buttons toggle between EEG graph state (they are mutually exclusive states)
+  Button showMontageButton; // to show uV time graph as opposed to channel controller
+  Button showChannelControllerButton; //to drawChannelController on top of gMontage
+  boolean isChannelControllerVisible;
+
   TextBox titleMontage, titleFFT,titleSpectrogram;
   TextBox[] chanValuesMontage;
   TextBox[] impValuesMontage;
@@ -2805,7 +2866,7 @@ class Gui_Manager {
   int whichChannelForSpectrogram;
 
   // MontageController mc;
-  MontageController mc;
+  ChannelController cc;
   
   private float fftYOffset[];
   private float default_vertScale_uV=200.0f; //this defines the Y-scale on the montage plots...this is the vertical space between traces
@@ -2848,10 +2909,10 @@ class Gui_Manager {
     fontInfo = new PlotFontInfo();
 
     //montage control panel variables
-    float x_mc = PApplet.parseFloat(win_x)*(left_right_split+gutter_right);
-    float y_mc = PApplet.parseFloat(win_y)*(gutter_topbot+title_gutter+spacer_top);
-    float w_mc = PApplet.parseFloat(win_x)*(0.08f-gutter_right); //width of montage controls (on left of montage)
-    float h_mc = PApplet.parseFloat(win_y)*(available_top2bot-title_gutter-spacer_top); //height of montage controls (on left of montage)
+    float x_cc = PApplet.parseFloat(win_x)*(left_right_split+gutter_right);
+    float y_cc = PApplet.parseFloat(win_y)*(gutter_topbot+title_gutter+spacer_top);
+    float w_cc = PApplet.parseFloat(win_x)*(0.08f-gutter_right); //width of montage controls (on left of montage)
+    float h_cc = PApplet.parseFloat(win_y)*(available_top2bot-title_gutter-spacer_top); //height of montage controls (on left of montage)
   
     //setup the montage plot...the right side 
     default_vertScale_uV = default_yScale_uV;  //here is the vertical scaling of the traces
@@ -2867,7 +2928,14 @@ class Gui_Manager {
     setupMontagePlot(gMontage, win_x, win_y, axisMontage_relPos,displayTime_sec,fontInfo,filterDescription);
   
     //setup montage controller
-    mc = new MontageController(x_mc, y_mc, w_mc, h_mc);
+    cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
+
+    println("Buttons: " + PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]) + ", " + (PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-40));
+
+    showMontageButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]), PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 100, 20, "Graph", 14); 
+    showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+100, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 100, 20, "Channel Settings", 14);
+    showMontageButton.setIsActive(true);
+    showChannelControllerButton.setIsActive(false);
 
 
     //setup the FFT plot...bottom on left side
@@ -3485,9 +3553,12 @@ class Gui_Manager {
     
     //draw montage or spectrogram
     if (showSpectrogram == false) {
-      //show time-domain montage
-      gMontage.draw(); 
-      titleMontage.draw();
+
+      //show time-domain montage, only if full channel controller is not visible, to save some processing
+      if(cc.showFullController == false){
+        gMontage.draw(); 
+        titleMontage.draw();
+      }
     
       //add annotations
       if (showMontageValues) {
@@ -3563,9 +3634,47 @@ class Gui_Manager {
     // }
     // controlPanelCollapser.draw();
 
+    cc.draw();
+    showMontageButton.draw();
+    showChannelControllerButton.draw();
 
-    mc.draw();
+  }
 
+  public void mousePressed(){
+    verbosePrint("gui.mousePressed();");
+    //if showMontage button pressed
+    if(showMontageButton.isMouseHere()){
+      //turn off visibility of channel full controller
+      cc.showFullController = false;
+      showMontageButton.setIsActive(true);
+      showChannelControllerButton.setIsActive(false);
+    }
+    //if showChannelController is pressed
+    if(showChannelControllerButton.isMouseHere()){
+      cc.showFullController = true;
+      showMontageButton.setIsActive(false);
+      showChannelControllerButton.setIsActive(true);
+    }
+
+    //turn off visibility of graph
+    // turn on drawing and interactivity of channel controller
+
+    //however, the on/off & impedance values must show to the right at all times ... so it should change a boolean in ChannelController
+
+  }
+
+  public void mouseReleased(){
+    verbosePrint("gui.mouseReleased();");
+
+    stopButton.setIsActive(false);
+    guiPageButton.setIsActive(false);
+    intensityFactorButton.setIsActive(false);
+    loglinPlotButton.setIsActive(false);
+    filtBPButton.setIsActive(false);
+    smoothingButton.setIsActive(false);
+    showPolarityButton.setIsActive(false);
+    maxDisplayFreqButton.setIsActive(false);
+    biasButton.setIsActive(false);
   }
  
 };
@@ -4835,44 +4944,6 @@ public class MenuList extends Controller {
   }
 };
 
-
-class MontageController {
-
-	public float mc_xPos, mc_yPos, mc_width, mc_height;
-
-	MontageController(float _xPos, float _yPos, float _width, float _height){
-		mc_xPos = _xPos;
-		mc_yPos = _yPos;
-		mc_width = _width;
-		mc_height = _height;
-
-		println(mc_xPos);
-		println(mc_yPos);
-		println(mc_width);
-		println(mc_height);
-	}
-
-	public void update(){
-
-	}
-
-	public void draw(){
-
-		pushStyle();
-		noStroke();
-
-		//draw phantom rectangle to cover up random crap from Graph2D... we are replacing this stuff with the Montage Controller
-		fill(25);
-		rect(mc_xPos, mc_yPos-(height*0.01f), mc_width, mc_height+(height*0.02f));
-
-		//BG of montage controller (for debugging mainly)
-		fill(255,255,255,123);
-		rect(mc_xPos, mc_yPos, mc_width, mc_height);
-
-		popStyle();
-
-	}
-};
 
 
 ///////////////////////////////////////////////////////////////////////////////
