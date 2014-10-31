@@ -3,6 +3,7 @@
 # Ignore these OpenBCI files
 SavedData/*.txt
 output/*.*
+*.bak
 
 
 #### Added as part of defualt GitHub .getattributes
