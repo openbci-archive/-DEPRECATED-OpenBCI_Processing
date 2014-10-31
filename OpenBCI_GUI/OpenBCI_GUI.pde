@@ -478,7 +478,7 @@ void systemUpdate(){ // for updating data values and variables
 void systemDraw(){ //for drawing to the screen
     
   //redraw the screen...not every time, get paced by when data is being plotted    
-  background(25);  //clear the screen
+  background(31,69,110);  //clear the screen
 
   if(systemMode == 10){
     int drawLoopCounter_thresh = 100;
@@ -1052,11 +1052,11 @@ void mousePressed() {
         stopButtonWasPressed(); 
       }
       
-      //was the gui page button pressed?
-      if (gui.guiPageButton.isMouseHere()) {
-        gui.guiPageButton.setIsActive(true);
-        gui.incrementGUIpage();
-      }
+      // //was the gui page button pressed?
+      // if (gui.guiPageButton.isMouseHere()) {
+      //   gui.guiPageButton.setIsActive(true);
+      //   gui.incrementGUIpage();
+      // }
 
       //check the buttons
       switch (gui.guiPage) {

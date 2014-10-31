@@ -520,7 +520,7 @@ public void systemUpdate(){ // for updating data values and variables
 public void systemDraw(){ //for drawing to the screen
     
   //redraw the screen...not every time, get paced by when data is being plotted    
-  background(25);  //clear the screen
+  background(31,69,110);  //clear the screen
 
   if(systemMode == 10){
     int drawLoopCounter_thresh = 100;
@@ -1094,11 +1094,11 @@ public void mousePressed() {
         stopButtonWasPressed(); 
       }
       
-      //was the gui page button pressed?
-      if (gui.guiPageButton.isMouseHere()) {
-        gui.guiPageButton.setIsActive(true);
-        gui.incrementGUIpage();
-      }
+      // //was the gui page button pressed?
+      // if (gui.guiPageButton.isMouseHere()) {
+      //   gui.guiPageButton.setIsActive(true);
+      //   gui.incrementGUIpage();
+      // }
 
       //check the buttons
       switch (gui.guiPage) {
@@ -1627,6 +1627,13 @@ class Button {
     }
   }
 
+  public void setColorPressed(int _color){
+    color_pressed = _color;
+  }
+  public void setColorNotPressed(int _color){
+    color_notPressed = _color;
+  }
+
   public boolean overRect(int x, int y, int width, int height) {
     if (mouseX >= x && mouseX <= x+width && 
       mouseY >= y && mouseY <= y+height) {
@@ -1645,7 +1652,7 @@ class Button {
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(255);
+    fill(0);
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);
@@ -1716,15 +1723,22 @@ class Button {
 
 class ChannelController {
 
-	public float x, y, w, h;
+	public float x1, y1, w1, h1, x2, y2, w2, h2; //all 1 values refer to the left panel that is always visible ... al 2 values refer to the right panel that is only visible when showFullController = true
 	public int montage_w, montage_h;
 	public int rowHeight;
 	public int buttonSpacing;
 	boolean showFullController = false;
 
+	int spacer1 = 3;
+	int spacer2 = 5; //space between buttons
+
 	// [Number of Channels] x 6 array of buttons for channel settings
 	Button[][] channelSettingButtons = new Button [nchan][6];  // [channel#][Button#]
 	int[][] channelSettingValues = new int [nchan][6]; // [channel#][Button#-value] ... this will incfluence text of button
+
+	//buttons just to the left of 
+	Button[][] impedanceCheckButtons = new Button [nchan][2];
+	int [][] impedanceCheckValues = new int [nchan][2];
 
 	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
 	int[] previousSRB2 = new int [nchan];
@@ -1732,15 +1746,19 @@ class ChannelController {
 	int[] previousBIAS = new int [nchan];
 
 	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
-		x = _xPos;
-		y = _yPos;
-		w = _width;
-		h = _height;
+		//positioning values for left panel (that is always visible)
+		x1 = _xPos;
+		y1 = _yPos;
+		w1 = _width;
+		h1 = _height;
 
-		montage_w = _montage_w; //keep track of gMontage width
-		montage_h = _montage_h;	//keep track of gMontage height
+		//positioning values for right panel that is only visible when showFullController = true (behind the graph)
+		x2 = x1 + w1;
+		y2 = y1;
+		w2 = _montage_w;
+		h2 = h1;
 
-		// channelSettingButtons = new Button
+		createChannelSettingButtons();
 	}
 
 	public void update(){
@@ -1753,16 +1771,36 @@ class ChannelController {
 		noStroke();
 
 		//draw phantom rectangle to cover up random crap from Graph2D... we are replacing this stuff with the Montage Controller
-		fill(25);
-		rect(x, y-(height*0.01f), w, h+(height*0.02f));
+		fill(31,69,110);
+		rect(x1 - 2, y1-(height*0.01f), w1, h1+(height*0.02f));
 
 		//BG of montage controller (for debugging mainly)
-		fill(255,255,255,123);
-		rect(x, y, w, h);
+		// fill(255,255,255,123);
+		// rect(x1, y1 - 1, w1, h1);
+
+		for(int i = 0; i < nchan; i++){
+			channelSettingButtons[i][0].draw(); //draw on/off channel buttons
+			//draw impedance buttons
+			for(int j = 0; j < 2; j++){
+				impedanceCheckButtons[i][j].draw();
+			}
+		}
 
 		if(showFullController){
-			fill(0,0,255,123);
-			rect(x + w, y, montage_w, montage_h);
+			//background
+			noStroke();
+			fill(0,0,0,100);
+			rect(x1 + w1, y1, w2, h2);
+
+			// [numChan] x 5 ... all channel setting buttons (other than on/off) 
+			for(int i = 0; i < nchan; i++){
+				for(int j = 1; j < 6; j++){
+					// println("drawing button " + i + "," + j);
+					// println("Button: " + channelSettingButtons[i][j]);
+					channelSettingButtons[i][j].draw();
+				}
+			}
+
 		}
 
 		popStyle();
@@ -1779,14 +1817,52 @@ class ChannelController {
 
 	public void createChannelSettingButtons(){
 		//the size and space of these buttons are dependendant on the size of the screen and full ChannelController
+		
+		verbosePrint("creating channel setting buttons...");
+		int buttonW = 0;
+		int buttonX = 0;
+		int buttonH = 0;
+		int buttonY = 0; //variables to be used for button creation below
+		String buttonString = "";
+		Button tempButton;
+
 		//create all activate/deactivate buttons (left-most button in widget left of EEG graph). These buttons are always visible
-
+		for(int i = 0; i < nchan; i++){
+			buttonW = PApplet.parseInt((w1 - (spacer1 *4)) / 3);
+			buttonX = PApplet.parseInt(x1 + (spacer1));
+			// buttonH = int((h1 / (nchan + 1)) - (spacer1/2));
+			buttonH = buttonW;
+			buttonY = PApplet.parseInt(y1 + ((h1/(nchan+1))*(i+1)) - (buttonH/2));
+			buttonString = str(i+1);
+			tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
+			channelSettingButtons[i][0] = tempButton;
+		}
 		//create all (P)ositive impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
-
 		//create all (N)egative impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
+		for(int i = 0; i < nchan; i++){
+			for(int j = 1; j < 3; j++){
+				buttonW = PApplet.parseInt((w1 - (spacer1 *4)) / 3);
+				buttonX = PApplet.parseInt(x1 + j*(buttonW) + (j+1)*(spacer1));
+				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
+				buttonY = PApplet.parseInt(y1 + ((h1/(nchan+1))*(i+1)) - (buttonH/2));
+				buttonString = "0";
+				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
+				impedanceCheckButtons[i][j-1] = tempButton;
+			}
+		}	
 
 		//create all other channel setting buttons... these are only visible when the user toggles to "showFullController = true"
-
+		for(int i = 0; i < nchan; i++){
+			for(int j = 1; j < 6; j++){
+				buttonW = PApplet.parseInt((w2 - (spacer2*6)) / 5);
+				buttonX = PApplet.parseInt((x2 + (spacer2 * (j))) + ((j-1) * buttonW));
+				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
+				buttonY = PApplet.parseInt(y2 + ((h2/(nchan+1))*(i+1)) - (buttonH/2));
+				buttonString = "N/A";
+				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
+				channelSettingButtons[i][j] = tempButton;
+			}
+		}
 	}
 };
 
@@ -2837,7 +2913,7 @@ class Gui_Manager {
   PlotFontInfo fontInfo;
   HeadPlot headPlot1;
   Button[] chanButtons;
-  Button guiPageButton;
+  // Button guiPageButton;
   //boolean showImpedanceButtons;
   Button[] impedanceButtonsP;
   Button[] impedanceButtonsN;
@@ -2865,6 +2941,13 @@ class Gui_Manager {
   boolean showSpectrogram;
   int whichChannelForSpectrogram;
 
+  //define some color variables
+  int bgColorGraphs = 255;
+  int gridColor = 200;
+  int borderColor = 50;
+  int axisColor = 50;
+  int fontColor = 255;
+
   // MontageController mc;
   ChannelController cc;
   
@@ -2890,12 +2973,12 @@ class Gui_Manager {
     String filterDescription, float smooth_fac) {  
 //  Gui_Manager(PApplet parent,int win_x, int win_y,int nchan,float displayTime_sec, float yScale_uV, float fs_Hz,
 //      String montageFilterText, String detectName) {
-      showSpectrogram = false;  
-      whichChannelForSpectrogram = 0; //assume
+    showSpectrogram = false;  
+    whichChannelForSpectrogram = 0; //assume
     
      //define some layout parameters
     int axes_x, axes_y;
-    float spacer_bottom = 30/PApplet.parseFloat(win_y); //want this to be a fixed 50 pixels
+    float spacer_bottom = 30/PApplet.parseFloat(win_y); //want this to be a fixed 30 pixels
     float spacer_top = PApplet.parseFloat(controlPanelCollapser.but_dy)/PApplet.parseFloat(win_y);
     float gutter_topbot = 0.03f;
     float gutter_left = 0.08f;  //edge around the GUI
@@ -2903,22 +2986,32 @@ class Gui_Manager {
     float height_UI_tray = 0.1f + spacer_bottom; //0.1f;//0.10f;  //empty space along bottom for UI elements
     float left_right_split = 0.45f;  //notional dividing line between left and right plots, measured from left
     float available_top2bot = 1.0f - 2*gutter_topbot - height_UI_tray;
-    float up_down_split = 0.55f;   //notional dividing line between top and bottom plots, measured from top
+    float up_down_split = 0.5f;   //notional dividing line between top and bottom plots, measured from top
     float gutter_between_buttons = 0.005f; //space between buttons
     float title_gutter = 0.02f;
+    float headPlot_fromTop = 0.12f;
     fontInfo = new PlotFontInfo();
 
     //montage control panel variables
-    float x_cc = PApplet.parseFloat(win_x)*(left_right_split+gutter_right);
-    float y_cc = PApplet.parseFloat(win_y)*(gutter_topbot+title_gutter+spacer_top);
-    float w_cc = PApplet.parseFloat(win_x)*(0.08f-gutter_right); //width of montage controls (on left of montage)
+    // float x_cc = float(win_x)*(left_right_split+gutter_right - 0.01f);
+    float x_cc = 5;
+    // float y_cc = float(win_y)*(gutter_topbot+title_gutter+spacer_top);
+    float y_cc = PApplet.parseFloat(win_y)*(height_UI_tray);
+    float w_cc = PApplet.parseFloat(win_x)*(0.09f-gutter_right); //width of montage controls (on left of montage)
     float h_cc = PApplet.parseFloat(win_y)*(available_top2bot-title_gutter-spacer_top); //height of montage controls (on left of montage)
   
     //setup the montage plot...the right side 
     default_vertScale_uV = default_yScale_uV;  //here is the vertical scaling of the traces
-    float[] axisMontage_relPos = { 
-      left_right_split+gutter_left, 
-      gutter_topbot+title_gutter+spacer_top, 
+    // float[] axisMontage_relPos = { 
+    //   left_right_split+gutter_left, 
+    //   gutter_topbot+title_gutter+spacer_top, 
+    //   (1.0f-left_right_split)-gutter_left-gutter_right, 
+    //   available_top2bot-title_gutter-spacer_top
+    // }; //from left, from top, width, height
+
+    float[] axisMontage_relPos = {  
+      gutter_left, 
+      height_UI_tray, 
       (1.0f-left_right_split)-gutter_left-gutter_right, 
       available_top2bot-title_gutter-spacer_top
     }; //from left, from top, width, height
@@ -2932,17 +3025,23 @@ class Gui_Manager {
 
     println("Buttons: " + PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]) + ", " + (PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-40));
 
-    showMontageButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]), PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 100, 20, "Graph", 14); 
-    showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+100, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 100, 20, "Channel Settings", 14);
+    showMontageButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]), PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 120, 20, "Graph", 14); 
+    showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+120, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 120, 20, "Channel Settings", 14);
     showMontageButton.setIsActive(true);
     showChannelControllerButton.setIsActive(false);
 
 
     //setup the FFT plot...bottom on left side
     //float height_subplot = 0.5f*(available_top2bot-2*gutter_topbot);
+    // float[] axisFFT_relPos = { 
+    //   gutter_left, 
+    //   gutter_topbot+ up_down_split*available_top2bot + gutter_topbot+title_gutter + spacer_top, 
+    //   left_right_split-gutter_left-gutter_right, 
+    //   available_top2bot*(1.0f-up_down_split) - gutter_topbot-title_gutter - spacer_top
+    // }; //from left, from top, width, height
     float[] axisFFT_relPos = { 
-      gutter_left, 
-      gutter_topbot+ up_down_split*available_top2bot + gutter_topbot+title_gutter + spacer_top, 
+      gutter_left + left_right_split + 0.1f, 
+      up_down_split*available_top2bot + height_UI_tray + gutter_topbot, 
       left_right_split-gutter_left-gutter_right, 
       available_top2bot*(1.0f-up_down_split) - gutter_topbot-title_gutter - spacer_top
     }; //from left, from top, width, height
@@ -2966,7 +3065,8 @@ class Gui_Manager {
     
     //setup the head plot...top on the left side
     float[] axisHead_relPos = axisFFT_relPos.clone();
-    axisHead_relPos[1] = gutter_topbot + spacer_top;  //set y position to be at top of left side
+    // axisHead_relPos[1] = gutter_topbot + spacer_top;  //set y position to be at top of left side
+    axisHead_relPos[1] = headPlot_fromTop;  //set y position to be at top of right side
     axisHead_relPos[3] = available_top2bot*up_down_split  - gutter_topbot;
     headPlot1 = new HeadPlot(axisHead_relPos[0],axisHead_relPos[1],axisHead_relPos[2],axisHead_relPos[3],win_x,win_y,nchan);
     setSmoothFac(smooth_fac);
@@ -2977,24 +3077,26 @@ class Gui_Manager {
     //setup stop button
     w = 120;    //button width
     h = 35;     //button height, was 25
-    x = win_x - PApplet.parseInt(gutter_right*PApplet.parseFloat(win_x)) - w;
-    y = win_y - PApplet.parseInt(0.5f*gutter_topbot*PApplet.parseFloat(win_y)) - h - PApplet.parseInt(spacer_bottom*(PApplet.parseFloat(win_y)));
-    // y = int(0.5*gutter_topbot*float(win_y));
+    // x = win_x - int(gutter_right*float(win_x)) - w;
+    x = PApplet.parseInt(PApplet.parseFloat(win_x) * 0.3f);
+    // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
+    y = PApplet.parseInt(0.5f*gutter_topbot*PApplet.parseFloat(win_y));
     //int y = win_y - h;
     stopButton = new Button(x,y,w,h,stopButton_pressToStop_txt,fontInfo.buttonLabel_size);
     
     //setup the gui page button
     w = 80; //button width
-    x = (int)(3*gutter_between_buttons*win_x);
+    x = (int)((3*gutter_between_buttons + left_right_split) * win_x);
     // x = int(float(win_x)*0.3f);
-    guiPageButton = new Button(x,y,w,h,"Page\n" + (guiPage+1) + " of " + N_GUI_PAGES,fontInfo.buttonLabel_size);
+    // guiPageButton = new Button(x,y,w,h,"Page\n" + (guiPage+1) + " of " + N_GUI_PAGES,fontInfo.buttonLabel_size);
         
     //setup the channel on/off buttons...only plot 8 buttons, even if there are more channels
     //because as of 4/3/2014, you can only turn on/off the higher channels (the ones above chan 8)
     //by also turning off the corresponding lower channel.  So, deactiving channel 9 must also
     //deactivate channel 1, therefore, we might as well use just the 1 button.
     // int xoffset = x + w + (int)(2*gutter_between_buttons*win_x);
-    int xoffset = (int)(PApplet.parseFloat(win_x)*gutter_left);
+    // int xoffset = (int)(float(win_x)*gutter_left);
+    int xoffset = (int)(PApplet.parseFloat(win_x)*0.5f);
 
     w = w;   //button width
     int w_orig = w;
@@ -3198,8 +3300,8 @@ class Gui_Manager {
     
   public void setupMontagePlot(Graph2D g, int win_x, int win_y, float[] axis_relPos,float displayTime_sec, PlotFontInfo fontInfo,String filterDescription) {
   
-    g.setAxisColour(200, 200, 200);
-    g.setFontColour(255, 255, 255);
+    g.setAxisColour(axisColor, axisColor, axisColor);
+    g.setFontColour(fontColor, fontColor, fontColor);
   
     int x1,y1;
     x1 = PApplet.parseInt(axis_relPos[0]*PApplet.parseFloat(win_x));
@@ -3227,11 +3329,11 @@ class Gui_Manager {
     g.setXAxisTickFont(fontInfo.fontName,fontInfo.tickLabel_size, false);
   
     // switching on Grid, with different colours for X and Y lines
-    gbMontage = new  GridBackground(new GWColour(0));
-    gbMontage.setGridColour(50, 50, 50, 50, 50, 50);
+    gbMontage = new  GridBackground(new GWColour(bgColorGraphs));
+    gbMontage.setGridColour(gridColor, gridColor, gridColor, gridColor, gridColor, gridColor);
     g.setBackground(gbMontage);
 
-    g.setBorderColour(200,200,200);
+    g.setBorderColour(borderColor,borderColor,borderColor);
     
     // add title
     titleMontage = new TextBox("EEG Data (" + filterDescription + ")",0,0);
@@ -3290,8 +3392,8 @@ class Gui_Manager {
   
   public void setupFFTPlot(Graph2D g, int win_x, int win_y, float[] axis_relPos,PlotFontInfo fontInfo) {
   
-    g.setAxisColour(200, 200, 200);
-    g.setFontColour(255, 255, 255);
+    g.setAxisColour(axisColor, axisColor, axisColor);
+    g.setFontColour(fontColor, fontColor, fontColor);
   
     int x1,y1;
     x1 = PApplet.parseInt(axis_relPos[0]*PApplet.parseFloat(win_x));
@@ -3326,11 +3428,11 @@ class Gui_Manager {
   
   
     // switching on Grid, with differetn colours for X and Y lines
-    gbFFT = new  GridBackground(new GWColour(0));
-    gbFFT.setGridColour(50, 50, 50, 50, 50, 50);
+    gbFFT = new  GridBackground(new GWColour(bgColorGraphs));
+    gbFFT.setGridColour(gridColor, gridColor, gridColor, gridColor, gridColor, gridColor);
     g.setBackground(gbFFT);
 
-    g.setBorderColour(200,200,200);
+    g.setBorderColour(borderColor,borderColor,borderColor);
     
     // add title
     titleFFT = new TextBox("EEG Data (As Received)",0,0);
@@ -3457,7 +3559,7 @@ class Gui_Manager {
       guiPage = 0;
     }
     //update the text on the button
-    guiPageButton.setString("Page\n" + (guiPage+1) + " of " + N_GUI_PAGES);
+    // guiPageButton.setString("Page\n" + (guiPage+1) + " of " + N_GUI_PAGES);
   }
   
   public void incrementGUIpage() {
@@ -3555,8 +3657,9 @@ class Gui_Manager {
     if (showSpectrogram == false) {
 
       //show time-domain montage, only if full channel controller is not visible, to save some processing
+      gMontage.draw(); 
       if(cc.showFullController == false){
-        gMontage.draw(); 
+        // gMontage.draw(); 
         titleMontage.draw();
       }
     
@@ -3667,7 +3770,7 @@ class Gui_Manager {
     verbosePrint("gui.mouseReleased();");
 
     stopButton.setIsActive(false);
-    guiPageButton.setIsActive(false);
+    // guiPageButton.setIsActive(false);
     intensityFactorButton.setIsActive(false);
     loglinPlotButton.setIsActive(false);
     filtBPButton.setIsActive(false);
