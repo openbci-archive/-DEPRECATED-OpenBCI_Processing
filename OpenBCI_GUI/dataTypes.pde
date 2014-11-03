@@ -10,19 +10,24 @@
 class DataPacket_ADS1299 {
   int sampleIndex;
   int[] values;
+  int[] auxValues;
 
   //constructor, give it "nValues", which should match the number of values in the
   //data payload in each data packet from the Arduino.  This is likely to be at least
   //the number of EEG channels in the OpenBCI system (ie, 8 channels if a single OpenBCI
   //board) plus whatever auxiliary data the Arduino is sending. 
-  DataPacket_ADS1299(int nValues) {
+  DataPacket_ADS1299(int nValues, int nAuxValues) {
     values = new int[nValues];
+    auxValues = new int[nAuxValues];
   }
   int printToConsole() {
     print("printToConsole: DataPacket = ");
     print(sampleIndex);
     for (int i=0; i < values.length; i++) {
       print(", " + values[i]);
+    }
+    for (int i=0; i < auxValues.length; i++) {
+      print(", " + auxValues[i]);
     }
     println();
     return 0;
@@ -33,6 +38,10 @@ class DataPacket_ADS1299 {
     int nvalues = values.length;
     for (int i=0; i < nvalues; i++) {
       target.values[i] = values[i];
+    }
+    int nvalues = auxValues.length;
+    for (int i=0; i < nvalues; i++) {
+      target.auxValues[i] = auxValues[i];
     }
     return 0;
   }

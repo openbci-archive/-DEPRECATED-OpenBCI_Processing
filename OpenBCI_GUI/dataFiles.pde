@@ -64,33 +64,27 @@ public class OutputFile_rawtxt {
   }
 
 
-  public void writeRawData_dataPacket(DataPacket_ADS1299 data, float scale_to_uV) {
-    writeRawData_dataPacket(data, scale_to_uV, data.values.length);
-  }
-  public void writeRawData_dataPacket(DataPacket_ADS1299 data, float scale_to_uV, int nValsUsingScaleFactor) {
-    int nVal = data.values.length;
-
-    // for(int i = 0; i < nVal; i++){
-    //   println("data.values["+ i + "] = [" + data.values[i] + "]");
-    // }
-
+//  public void writeRawData_dataPacket(DataPacket_ADS1299 data, float scale_to_uV, float scale_for_aux) {
+//    writeRawData_dataPacket(data, scale_to_uV, data.values.length);
+//  }
+  public void writeRawData_dataPacket(DataPacket_ADS1299 data, float scale_to_uV, float scale_for_aux) {
     if (output != null) {
-      output.print(Integer.toString(data.sampleIndex));
-      for (int Ival = 0; Ival < nVal; Ival++) {
-        output.print(", ");
-        if ((Ival >= nValsUsingScaleFactor) || (abs(scale_to_uV-1.0) < 1e-6)) {
-          //do not scale the data
-          output.print(Integer.toString(data.values[Ival]));
-        } 
-        else {
-          //apply the scale factor
-          output.print(String.format("%.2f", scale_to_uV * float(data.values[Ival])));
-        }
-      }
+      writeValues(data.values,scale_to_uV);
+      writeValues(data.auxValues,scale_for_aux);
       output.println(); rowsWritten++;
       //output.flush();
     }
   }
+  
+  private writeValues(float[] values, float scale_fac) {          
+    int nVal = values.length;
+    output.print(Integer.toString(data.sampleIndex));
+    for (int Ival = 0; Ival < nVal; Ival++) {
+      output.print(", ");
+      output.print(String.format("%.2f", scale_to_uV * float(data.values[Ival])));
+    }
+  }
+
 
 
   public void closeFile() {
