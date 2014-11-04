@@ -72,8 +72,9 @@ class OpenBCI_ADS1299 {
   final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
   float ADS1299_gain = 24;  //assumed gain setting for ADS1299.  set by its Arduino code
   float scale_fac_uVolts_per_count = ADS1299_Vref / (pow(2,23)-1) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
-  float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
-  final float scale_fac_accel_G_per_count = 0.002;  //data sheet, 2 mg per "digit", which I assume is per "count"
+  //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
+  //final float scale_fac_accel_G_per_count = 0.002;  //data sheet, 2 mg per "digit", which I assume is per "count"
+  final float scale_fac_accel_G_per_count = 1.0;
   final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
   
   boolean isBiasAuto = true;
