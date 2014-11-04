@@ -35,10 +35,10 @@ int newPacketCounter = 0;
 int systemMode = 0; /* Modes: 0 = system stopped/control panel setings / 10 = gui / 20 = help guide */
 
 //choose where to get the EEG data
-final int DATASOURCE_NORMAL = 0;  //default... looking for signal from OpenBCI board via Serial/COM port
+final int DATASOURCE_NORMAL = 3;  //looking for signal from OpenBCI board via Serial/COM port, no Aux data
 final int DATASOURCE_PLAYBACKFILE = 1;  //playback from a pre-recorded text file
 final int DATASOURCE_SYNTHETIC = 2;  //Synthetically generated data
-final int DATASOURCE_NORMAL_W_AUX = 3; // probably going to drop this soon and always include aux with normal
+final int DATASOURCE_NORMAL_W_AUX = 0; // new default, data from serial with Accel data CHIP 2014-11-03
 public int eegDataSource = -1; //default to none of the options
 
 //Serial communications constants
@@ -72,8 +72,8 @@ String sdSettingString = "Do not write to SD";
 
 int nchan = 8; //normally, nchan = OpenBCI_Nchannels.  Choose a smaller number to show fewer on the GUI
 // int nchan_active_at_startup = nchan;  //how many channels to be LIVE at startup
+int n_aux_ifEnabled = 3;  // this is the accelerometer data CHIP 2014-11-03
 
-int n_aux_ifEnabled = 1;  //if DATASOURCE_NORMAL_W_AUX then this is how many aux channels there will be
 int prev_time_millis = 0;
 final int nPointsPerUpdate = 50; //update screen after this many data points.  
 float yLittleBuff[] = new float[nPointsPerUpdate];
@@ -253,7 +253,7 @@ void initSystem(){
   for (int i=0; i<nDataBackBuff;i++) { 
     //dataPacketBuff[i] = new DataPacket_ADS1299(nchan+n_aux_ifEnabled);
     // dataPacketBuff[i] = new DataPacket_ADS1299(OpenBCI_Nchannels+n_aux_ifEnabled);
-    dataPacketBuff[i] = new DataPacket_ADS1299(nchan+n_aux_ifEnabled);
+    dataPacketBuff[i] = new DataPacket_ADS1299(nchan,n_aux_ifEnabled);
   }
   eegProcessing = new EEG_Processing(nchan,openBCI.fs_Hz);
   eegProcessing_user = new EEG_Processing_User(nchan,openBCI.fs_Hz);
@@ -281,9 +281,10 @@ void initSystem(){
     case DATASOURCE_NORMAL: case DATASOURCE_NORMAL_W_AUX:
       
       // int nDataValuesPerPacket = OpenBCI_Nchannels;
-      int nDataValuesPerPacket = nchan;
-      if (eegDataSource == DATASOURCE_NORMAL_W_AUX) nDataValuesPerPacket += n_aux_ifEnabled;
-      openBCI = new OpenBCI_ADS1299(this, openBCI_portName, openBCI_baud, nDataValuesPerPacket); //this also starts the data transfer after XX seconds
+      int nEEDataValuesPerPacket = nchan;
+      boolean useAux = false;
+      if (eegDataSource == DATASOURCE_NORMAL_W_AUX) useAux = true;  //switch this back to true CHIP 2014-11-04
+      openBCI = new OpenBCI_ADS1299(this, openBCI_portName, openBCI_baud, nEEDataValuesPerPacket, useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
       break;
     case DATASOURCE_SYNTHETIC:
       //do nothing
@@ -715,7 +716,7 @@ void serialEvent(Serial port) {
       // println("nchan = " + nchan);
       newPacketCounter++;
 
-      fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.scale_fac_uVolts_per_count,nchan);
+      fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.scale_fac_uVolts_per_count,openBCI.scale_fac_accel_G_per_count);
     }
   } 
   else {
@@ -1237,7 +1238,7 @@ void startRunning() {
     // println("OpenBCI_GUI: eegDataSource = " + eegDataSource);
     // println("OpenBCI_GUI: isRunning = true");
     // if (openBCI != null) openBCI.startDataTransfer(); //use whatever was the previous data transfer mode (TXT vs BINARY)
-    if(eegDataSource == DATASOURCE_NORMAL){
+    if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
       if (openBCI != null) openBCI.startDataTransfer();
     }
     isRunning = true;
