@@ -39,7 +39,7 @@ class DataPacket_ADS1299 {
     for (int i=0; i < nvalues; i++) {
       target.values[i] = values[i];
     }
-    int nvalues = auxValues.length;
+    nvalues = auxValues.length;
     for (int i=0; i < nvalues; i++) {
       target.auxValues[i] = auxValues[i];
     }

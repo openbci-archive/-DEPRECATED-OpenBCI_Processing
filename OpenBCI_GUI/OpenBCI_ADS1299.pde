@@ -38,8 +38,8 @@ final String command_biasFixed = "~";
 class OpenBCI_ADS1299 {
   
   //final static int DATAMODE_TXT = 0;
-  final static int DATAMODE_BIN = 1;
-  final static int DATAMODE_BIN_WAUX = 2;
+  final static int DATAMODE_BIN = 2;
+  final static int DATAMODE_BIN_WAUX = 1;  //switched to this value so that receiving Accel data is now the default
   //final static int DATAMODE_BIN_4CHAN = 4;
   
   final static int STATE_NOCOM = 0;
@@ -54,7 +54,7 @@ class OpenBCI_ADS1299 {
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
   
-  int prefered_datamode = DATAMODE_BIN;
+  int prefered_datamode = DATAMODE_BIN_WAUX;
   
   int state = STATE_NOCOM;
   int dataMode = -1;
@@ -62,6 +62,7 @@ class OpenBCI_ADS1299 {
   //byte[] serialBuff;
   //int curBuffIndex = 0;
   DataPacket_ADS1299 dataPacket;
+  int nAuxValues;
   boolean isNewDataPacketAvailable = false;
   OutputStream output; //for debugging  WEA 2014-01-26
   int prevSampleIndex = 0;
@@ -80,13 +81,15 @@ class OpenBCI_ADS1299 {
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerPacket, boolean useAux, int nAuxValuesPerPacket) {
+    nAuxValues=nAuxValuesPerPacket;
     
     //choose data mode
-    //println("OpenBCI_ADS1299: prefered_datamode = " + prefered_datamode + ", nValuesPerPacket%8 = " + (nValuesPerPacket % 8));
-    if (prefered_datamode == DATAMODE_BIN) {
-      if (useAux) {
+    println("OpenBCI_ADS1299: prefered_datamode = " + prefered_datamode + ", nValuesPerPacket = " + nEEGValuesPerPacket);
+    if (prefered_datamode == DATAMODE_BIN_WAUX) {
+      if (!useAux) {
         //must be requesting the aux data, so change the referred data mode
-        prefered_datamode = DATAMODE_BIN_WAUX;
+        prefered_datamode = DATAMODE_BIN;
+        nAuxValues = 0;
         //println("OpenBCI_ADS1299: nAuxValuesPerPacket = " + nAuxValuesPerPacket + " so setting prefered_datamode to " + prefered_datamode);
       }
     }
@@ -264,7 +267,7 @@ class OpenBCI_ADS1299 {
   int PACKET_readstate = 0;
   // byte[] localByteBuffer = {0,0,0,0};
   byte[] localAdsByteBuffer = {0,0,0};
-  //byte[] localAccelByteBuffer = {0,0};
+  byte[] localAccelByteBuffer = {0,0};
 
   void interpretBinaryStream(byte actbyte)
   { 
@@ -305,7 +308,7 @@ class OpenBCI_ADS1299 {
             // all ADS channels arrived !
             //println("OpenBCI_ADS1299: interpretBinaryStream: localChannelCounter = " + localChannelCounter);
             PACKET_readstate++;
-            if (prefered_datamode==DATAMODE_BIN_WAUX) PACKET_readstate++;  //if not using AUX, skip the next readstate
+            if (prefered_datamode != DATAMODE_BIN_WAUX) PACKET_readstate++;  //if not using AUX, skip over the next readstate
             localByteCounter = 0;
             localChannelCounter = 0;
             //isNewDataPacketAvailable = true;  //tell the rest of the code that the data packet is complete
@@ -318,14 +321,14 @@ class OpenBCI_ADS1299 {
       case 3:
         // get LIS3DH channel values 2 bytes times 3 axes
         // println("case 3");
-        localAuxByteBuffer[localByteCounter] = actbyte;
+        localAccelByteBuffer[localByteCounter] = actbyte;
         localByteCounter++;
         if (localByteCounter==2) {
-          dataPacket.aux_values[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
+          dataPacket.auxValues[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
           localChannelCounter++;
-          if (localChannelCounter==3) { //number of accelerometer axis) {  
+          if (localChannelCounter==nAuxValues) { //number of accelerometer axis) {  
             // all Accelerometer channels arrived !
-            //println("OpenBCI_ADS1299: interpretBinaryStream: localChannelCounter = " + localChannelCounter);
+            //println("OpenBCI_ADS1299: interpretBinaryStream: Accel Data: " + dataPacket.auxValues[0] + ", " + dataPacket.auxValues[1] + ", " + dataPacket.auxValues[2]);
             PACKET_readstate++;
             localByteCounter = 0;
             //isNewDataPacketAvailable = true;  //tell the rest of the code that the data packet is complete

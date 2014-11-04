@@ -69,6 +69,7 @@ public class OutputFile_rawtxt {
 //  }
   public void writeRawData_dataPacket(DataPacket_ADS1299 data, float scale_to_uV, float scale_for_aux) {
     if (output != null) {
+      output.print(Integer.toString(data.sampleIndex));
       writeValues(data.values,scale_to_uV);
       writeValues(data.auxValues,scale_for_aux);
       output.println(); rowsWritten++;
@@ -76,12 +77,11 @@ public class OutputFile_rawtxt {
     }
   }
   
-  private writeValues(float[] values, float scale_fac) {          
+  private void writeValues(int[] values, float scale_fac) {          
     int nVal = values.length;
-    output.print(Integer.toString(data.sampleIndex));
     for (int Ival = 0; Ival < nVal; Ival++) {
       output.print(", ");
-      output.print(String.format("%.2f", scale_to_uV * float(data.values[Ival])));
+      output.print(String.format("%.2f", scale_fac * float(values[Ival])));
     }
   }
 
