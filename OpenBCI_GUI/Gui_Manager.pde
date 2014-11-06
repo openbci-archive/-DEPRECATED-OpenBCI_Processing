@@ -201,7 +201,7 @@ class Gui_Manager {
     // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
     y = int(0.5*gutter_topbot*float(win_y));
     //int y = win_y - h;
-    stopButton = new Button(x,y,w,h,stopButton_pressToStop_txt,fontInfo.buttonLabel_size);
+    stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
     
     //setup the gui page button
     w = 80; //button width
@@ -731,6 +731,7 @@ class Gui_Manager {
     montageTrace.generate();  //graph doesn't update without this
     fftTrace.generate(); //graph doesn't update without this
     headPlot1.update();
+    cc.update();
 
     //update the text strings
     String fmt; float val;
@@ -878,6 +879,13 @@ class Gui_Manager {
       showChannelControllerButton.setIsActive(true);
     }
 
+    //if cursor inside channel controller
+    // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
+      verbosePrint("Channel Controller mouse pressed...");
+      cc.mousePressed();
+    // }
+    
+
     //turn off visibility of graph
     // turn on drawing and interactivity of channel controller
 
@@ -887,6 +895,11 @@ class Gui_Manager {
 
   public void mouseReleased(){
     verbosePrint("gui.mouseReleased();");
+
+    // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
+    verbosePrint("Channel Controller mouse released...");
+    cc.mouseReleased();
+
 
     stopButton.setIsActive(false);
     // guiPageButton.setIsActive(false);

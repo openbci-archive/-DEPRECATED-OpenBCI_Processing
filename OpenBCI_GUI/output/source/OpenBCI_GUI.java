@@ -46,7 +46,7 @@ public class OpenBCI_GUI extends PApplet {
 // GUI for controlling the ADS1299-based OpenBCI Shield
 //
 // Created: Chip Audette, Oct 2013 - May 2014
-// Modified: Conor Russomanno, Sept 2014 - Oct 2014
+// Modified: Conor Russomanno & Joel Murphy, August 2014 - Oct 2014
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/
@@ -96,6 +96,8 @@ float playback_speed_fac = 1.0f;  //make 1.0 for real-time.  larger for faster p
 int currentTableRowIndex = 0;
 Table_CSV playbackData_table;
 int nextPlayback_millis = -100; //any negative number
+
+// boolean printingRegisters = false;
 
 //other data fields
 float dataBuffX[];
@@ -270,18 +272,11 @@ int drawLoop_counter = 0;
 
 //used to init system based on initial settings
 public void initSystem(){
-  
-  println("Starting setup...");
 
-    //get playback file name, if necessary  
-  if (eegDataSource == DATASOURCE_PLAYBACKFILE) {
-      if ((playbackData_fname==null) || (playbackData_fname.length() == 0)) selectInput("Select an OpenBCI TXT file: ", "fileSelected");
-      while ((playbackData_fname==null) || (playbackData_fname.length() == 0)) { delay(100); /* wait until selection is complete */ }
-  }
-
-  println("0");
+  verbosePrint("-- Init 0 --");
   
   //prepare data variables
+  verbosePrint("Preparing data variables...");
   dataBuffX = new float[(int)(dataBuff_len_sec * openBCI.fs_Hz)];
   dataBuffY_uV = new float[nchan][dataBuffX.length];
   dataBuffY_filtY_uV = new float[nchan][dataBuffX.length];
@@ -300,7 +295,7 @@ public void initSystem(){
   //initialize the data
   prepareData(dataBuffX, dataBuffY_uV,openBCI.fs_Hz);
 
-  println("1");
+  verbosePrint("-- Init 1 --");
 
   //initialize the FFT objects
   for (int Ichan=0; Ichan < nchan; Ichan++) { 
@@ -313,7 +308,7 @@ public void initSystem(){
   //prepare some signal processing stuff
   //for (int Ichan=0; Ichan < nchan; Ichan++) { detData_freqDomain[Ichan] = new DetectionData_FreqDomain(); }
 
-  println("2");
+  verbosePrint("-- Init 2 --");
 
   //prepare the source of the input data
   switch (eegDataSource) {
@@ -345,42 +340,154 @@ public void initSystem(){
     default: 
   }
 
-  println("3");
+  verbosePrint("-- Init 3 --");
 
   //initilize the GUI
   initializeGUI();
-
-  //show the FFT-based signal detection
-  //gui.setGoodFFTBand(inband_Hz); gui.setBadFFTBand(guard_Hz);
-  //gui.showFFTFilteringData(showFFTFilteringData);
-
-  //initialize the on/off state of the different channels...only if the user has specified fewer channels
-  //than is on the OpenBCI board
-  //for (int Ichan=0; Ichan<OpenBCI_Nchannels;Ichan++) {  //what will happen here for the 16-channel board???
-  //  if (Ichan < nchan_active_at_startup) { activateChannel(Ichan); } else { deactivateChannel(Ichan);  }
-  //}
-  // for (int Ichan=nchan_active_at_startup; Ichan<OpenBCI_Nchannels;Ichan++) deactivateChannel(Ichan);  //deactivate unused channels
-  
-  // for (int Ichan=nchan_active_at_startup; Ichan<nchan;Ichan++){
-  //   deactivateChannel(Ichan);  //deactivate unused channels
-  // }
-
-  // for (int Ichan=nchan; Ichan<nchan;Ichan++) deactivateChannel(Ichan);  //deactivate unused channels
   
   //final config
   setBiasState(openBCI.isBiasAuto);
+  verbosePrint("-- Init 4 --");
 
-  println("4");
-
-  //open data file ... this was in start running but I pulled it out (CDR)
+  //open data file
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) openNewLogFile(fileName);  //open a new log file
 
-  //start
-  startRunning();
   nextPlayback_millis = millis(); //used for synthesizeData and readFromFile.  This restarts the clock that keeps the playback at the right pace.
-  systemMode = 10;
+  
+  if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+    systemMode = 10; //tell system it's ok to leave control panel and start interfacing GUI
+  }
+  //sync GUI default settings with OpenBCI's default settings...
+  // syncWithHardware(); //this starts the sequence off ... read in OpenBCI_ADS1299 iterates through the rest based on the ASCII trigger "$$$"
+  // verbosePrint("-- Init 5 [COMPLETE] --");
+}
 
-  println("setup: Setup complete...");
+int hardwareSyncStep = 0; //start this at 0...
+boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+boolean currentlySyncing = false;
+long timeOfLastCommand = 0;
+
+public void syncWithHardware(){
+  // switch (hardwareSyncStep) {
+  //   case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+  //     // serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     println("Sending channel count (" + nchan + ") to OpenBCI...");
+  //     hardwareSyncStep = 2; print("Reseting OpenBCI registers to default... "); println("writing \'d\'");
+  //     break;
+  //   case 2: //reset hardware to default registers 
+  //     serial_openBCI.write("d");
+  //     // delay(5); //must delay 5ms between write commands
+  //     hardwareSyncStep = 3; print("Retrieving OpenBCI's channel settings to sync with GUI..."); println("writing \'D\'... waiting for $$$");
+  //     break;
+  //   case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+  //     serial_openBCI.write("D"); 
+  //     // delay(5); //must delay 5ms between write commands
+  //     //waiting for $$$
+  //     break;
+  //   case 4: //check existing registers
+  //     // print("Retrieving OpenBCI's full register map for verification..."); println("writing \'?\'... waiting for $$$");
+  //     serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     break;
+  //   case 5:
+  //     // print("Writing selected SD setting (" + "5 min"+ ") to OpenBCI...");
+  //     // serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+  //     break;
+  // }
+
+
+  switch (hardwareSyncStep) {
+    case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+      println("[1] Sending channel count (" + nchan + ") to OpenBCI...");
+      if(nchan == 8){
+        serial_openBCI.write('c');
+      }
+      if(nchan == 16){
+        serial_openBCI.write('C');
+      }
+      // serial_openBCI.write('????');
+      // delay(5); //must delay 5ms between write commands
+      break;
+    case 2: //reset hardware to default registers 
+      println("[2] Reseting OpenBCI registers to default... writing \'d\'...");
+      serial_openBCI.write("d"); 
+      break;
+    case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+      println("[3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
+      readyToSend = false;
+      serial_openBCI.write("D"); 
+      break;
+    case 4: //check existing registers
+      println("[4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
+      readyToSend = false;
+      serial_openBCI.write("?"); 
+      break;
+    case 5:
+      switch (sdSetting){
+        case 0: //"Do not write to SD"
+          //do nothing
+          break;
+        case 1: //"5 min max"
+          serial_openBCI.write("A");
+          break;
+        case 2: //"5 min max"
+          serial_openBCI.write("S");
+          break;
+        case 3: //"5 min max"
+          serial_openBCI.write("F");
+          break;
+        case 4: //"5 min max"
+          serial_openBCI.write("G");
+          break;
+        case 5: //"5 min max"
+          serial_openBCI.write("H");
+          break;
+        case 6: //"5 min max"
+          serial_openBCI.write("J");
+          break;
+        case 7: //"5 min max"
+          serial_openBCI.write("K");
+          break;
+        case 8: //"5 min max"
+          serial_openBCI.write("L");
+          break;
+      }
+      println("[5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
+      break;
+    case 6:
+      output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+      openBCI.changeState(openBCI.STATE_NORMAL);
+      systemMode = 10;
+      break; 
+  }
+
+  // if(millis() - timeOfSyncStart > 0){
+  //   println("Sending channel count (" + nchan + ") to OpenBCI...");
+  //   // serial_openBCI.write('????');
+  //   // delay(5); //must delay 5ms between write commands
+  // }
+
+  // println("Reseting OpenBCI registers to default... writing \'d\'...");
+  // serial_openBCI.write("d"); 
+  // delay(5);
+
+  // println("Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'...");
+  // serial_openBCI.write("D"); 
+  // delay(5);
+
+  // println("Retrieving OpenBCI's full register map for verification... writing \'?\'...");
+  // serial_openBCI.write("?"); 
+  // delay(5);
+
+    // println("Writing selected SD setting (" + "5 min" + ") to OpenBCI...");
+  // serial_openBCI.write("?")
+  //write 'b'
+
+  // openBCI.changeState(openBCI.STATE_NORMAL);
+
 }
 
 public void haltSystem(){
@@ -404,6 +511,8 @@ public void haltSystem(){
     closeLogFile();  //close log file
     if (serial_openBCI != null){
       openBCI.closeSerialPort();   //disconnect from serial port
+      openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
+      hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
     }
   }
   systemMode = 0;
@@ -437,6 +546,21 @@ public void draw() {
 }
 
 public void systemUpdate(){ // for updating data values and variables
+
+  //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
+  if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
+    openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
+    timeOfLastCommand = millis();
+  }
+
+  //if we are in SYNC WITH HARDWARE state ... trigger a command
+  if(openBCI.state == openBCI.STATE_SYNCWITHHARDWARE && currentlySyncing == false){
+    if(millis() - timeOfLastCommand > 100 && readyToSend == true){
+      timeOfLastCommand = millis();
+      hardwareSyncStep++;
+      syncWithHardware();
+    }
+  }
   
   win_x = width;
   win_y = height;
@@ -569,6 +693,16 @@ public void systemDraw(){ //for drawing to the screen
   controlPanelCollapser.draw();
   helpWidget.draw();
 
+  if(openBCI.state == openBCI.STATE_COMINIT && systemMode == 0){
+    //make out blink the text "Initalizing GUI..."
+    if(millis()%1000 < 500){
+      output("Iniitializing communication w/ your OpenBCI board...");
+    }
+    else{
+      output("");
+    }
+  }
+
   // use commented code below to verify frameRate and check latency
   // println("Time since start: " + millis() + " || Time since last frame: " + str(millis()-timeOfLastFrame));
   // timeOfLastFrame = millis();
@@ -581,7 +715,7 @@ public int getDataIfAvailable(int pointCounter) {
     //get data from serial port as it streams in
 
       //first, get the new data (if any is available)
-      openBCI.updateState(); //this is trying to listen to the openBCI hardware.  New data is put into dataPacketBuff and increments curDataPacketInd.
+      // openBCI.finalizeCOMINIT(); //this is trying to listen to the openBCI hardware.  New data is put into dataPacketBuff and increments curDataPacketInd.
       
       //next, gather any new data into the "little buffer"
       while ( (curDataPacketInd != lastReadDataPacketInd) && (pointCounter < nPointsPerUpdate)) {
@@ -720,7 +854,6 @@ public void processNewData() {
   // ...dataBuffY_filtY_uV[Ichan] is the full set of filtered data as shown in the time-domain plot in the GUI
   // ...fftBuff[Ichan] is the FFT data structure holding the frequency spectrum as shown in the freq-domain plot in the GUI
   //}
-
 }
 
 //here is the routine that listens to the serial port.
@@ -729,8 +862,17 @@ public void processNewData() {
 public void serialEvent(Serial port) {
   //check to see which serial port it is
   // if (port == openBCI.serial_openBCI) {
+  // println("SE " + millis());
   if (port == serial_openBCI) {
-    boolean echoBytes = !openBCI.isStateNormal(); 
+    // boolean echoBytes = !openBCI.isStateNormal(); 
+    boolean echoBytes;
+
+    if(openBCI.isStateNormal() != true){  // || printingRegisters == true){
+      echoBytes = true;
+    } else{
+      echoBytes = false;
+    }
+
     // openBCI.read(true);
     openBCI.read(echoBytes);
     openBCI_byteCount++;
@@ -832,6 +974,13 @@ public void parseKey(char val) {
       println("case b...");
       startRunning();
       // stopButtonWasPressed();
+      break;
+    case 'n':
+      println(openBCI.state);
+      break;
+
+    case '?':
+      printRegisters();
       break;
       
     //change the state of the impedance measurements...activate the P-channels
@@ -1220,6 +1369,7 @@ public void mousePressed() {
         println("outside of CP clicked");
         controlPanel.isOpen = false;
         controlPanelCollapser.setIsActive(false);
+        output("Press the \"Press to Start\" button to initialize the data stream.");
       }
     }
   }
@@ -1252,12 +1402,23 @@ public void mouseReleased() {
   }
 }
 
+public void printRegisters(){
+  if (serial_openBCI != null) {
+    println("Writing ? to OpenBCI...");
+    serial_openBCI.write('?');
+  }
+  // printingRegisters = true;
+}
+
 public void stopRunning() {
+    // openBCI.changeState(0); //make sure it's no longer interpretting as binary
+
     if (openBCI != null) {
       openBCI.stopDataTransfer();
     }
 
     isRunning = false;
+    // openBCI.changeState(0); //make sure it's no longer interpretting as binary
     // systemMode = 0;
 
     // closeLogFile();
@@ -1269,10 +1430,14 @@ public void startRunning() {
     // println("OpenBCI_GUI: eegDataSource = " + eegDataSource);
     // println("OpenBCI_GUI: isRunning = true");
     // if (openBCI != null) openBCI.startDataTransfer(); //use whatever was the previous data transfer mode (TXT vs BINARY)
+    println("startRunning...");
+
     if(eegDataSource == DATASOURCE_NORMAL){
+
       if (openBCI != null) openBCI.startDataTransfer();
     }
     isRunning = true;
+    // openBCI.changeState(2);  // make sure it's now interpretting as binary
     // systemMode = 10;
 }
 
@@ -1521,6 +1686,12 @@ public void verbosePrint(String _string){
   }
 }
 
+public void delay(int delay)
+{
+  int time = millis();
+  while(millis() - time <= delay);
+}
+
 // here's a function to catch whenever the window is being closed, so that
 // it stops OpenBCI
 // from: http://forum.processing.org/one/topic/run-code-on-exit.html
@@ -1572,6 +1743,7 @@ class Button {
   boolean isActive = false;
   boolean isDropdownButton = false;
   boolean drawHand = false;
+  boolean wasPressed = false;
   public String but_txt;
   // PFont font;
 
@@ -1732,18 +1904,31 @@ class ChannelController {
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
 
+	int numSettingsPerChannel = 6; //each channel has 6 different settings
+
 	// [Number of Channels] x 6 array of buttons for channel settings
-	Button[][] channelSettingButtons = new Button [nchan][6];  // [channel#][Button#]
-	int[][] channelSettingValues = new int [nchan][6]; // [channel#][Button#-value] ... this will incfluence text of button
+	Button[][] channelSettingButtons = new Button [nchan][numSettingsPerChannel];  // [channel#][Button#]
+	char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
 
 	//buttons just to the left of 
 	Button[][] impedanceCheckButtons = new Button [nchan][2];
-	int [][] impedanceCheckValues = new int [nchan][2];
+	char [][] impedanceCheckValues = new char [nchan][2];
 
 	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
-	int[] previousSRB2 = new int [nchan];
+	char[] previousSRB2 = new char [nchan];
 	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
-	int[] previousBIAS = new int [nchan];
+	char[] previousBIAS = new char [nchan];
+
+	//maximum different values for the different settings (Power Down, Gain, Input Type, BIAS, SRB2, SRB1) of 
+	//refer to page 44 of ADS1299 Datasheet: http://www.ti.com/lit/ds/symlink/ads1299.pdf
+	char[] maxValuesPerSetting = {
+		'1', // Power Down :: (0)ON, (1)OFF
+		'6', // Gain :: (0) x1, (1) x2, (2) x4, (3) x6, (4) x8, (5) x12, (6) x24 ... default
+		'7', // Channel Input :: (0)Normal Electrode Input, (1)Input Shorted, (2)Used in conjunction with BIAS_MEAS, (3)MVDD for supply measurement, (4)Temperature Sensor, (5)Test Signal, (6)BIAS_DRP ... positive electrode is driver, (7)BIAS_DRN ... negative electrode is driver
+		'1', // BIAS :: (0) Yes, (1) No
+		'1', // SRB2 :: (0) Open, (1) Closed
+		'1'}; // SRB1 :: (0) Yes, (1) No ... this setting affects all channels ... either all on or all off
+
 
 	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
 		//positioning values for left panel (that is always visible)
@@ -1761,8 +1946,84 @@ class ChannelController {
 		createChannelSettingButtons();
 	}
 
-	public void update(){
+	public void loadDefaultChannelSettings(){
+		verbosePrint("loading default channel settings to GUI's channel controller...");
+		for(int i = 0; i < nchan; i++){
+			for(int j = 0; j < numSettingsPerChannel; j++){ //channel setting values
+				channelSettingValues[i][j] = PApplet.parseChar(openBCI.defaultChannelSettings.toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
+				if(j == numSettingsPerChannel - 1){
+					println(PApplet.parseChar(openBCI.defaultChannelSettings.toCharArray()[j]));
+				} else{
+					print(PApplet.parseChar(openBCI.defaultChannelSettings.toCharArray()[j]) + ",");
+				}
+			}
+			for(int k = 0; k < 2; k++){ //impedance setting values
+				impedanceCheckValues[i][k] = '0';
+			}
+		}
+		update(); //update 1 time to refresh button values based on new loaded settings
+	}
 
+	public void update(){
+		for(int i = 0; i < nchan; i++){ //for every channel
+			//update buttons based on channelSettingValues[i][j]
+			for(int j = 0; j < numSettingsPerChannel; j++){		
+				switch(j){  //what setting are we looking at
+					case 0: //on/off ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(color(255));// power down == false, set color to vibrant
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
+					case 1: //GAIN ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
+						if(channelSettingValues[i][j] == '2') channelSettingButtons[i][1].setString("x4");
+						if(channelSettingValues[i][j] == '3') channelSettingButtons[i][1].setString("x6");
+						if(channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
+						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
+						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
+					case 2: //input type ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
+						if(channelSettingValues[i][j] == '2') channelSettingButtons[i][2].setString("BIAS_MEAS");
+						if(channelSettingValues[i][j] == '3') channelSettingButtons[i][2].setString("MVDD");
+						if(channelSettingValues[i][j] == '4') channelSettingButtons[i][2].setString("Temp.");
+						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
+						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
+						if(channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
+					case 3: //BIAS ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("No");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Yes");
+					case 4: // SRB2 ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("No");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("Yes");
+					case 5: // SRB1 ??
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
+				}
+			}
+			for(int k = 0; k < 2; k++){
+				switch(k){
+					case 0: // P Imp Buttons
+						if(impedanceCheckValues[i][k] == '0'){
+							impedanceCheckButtons[i][0].setColorNotPressed(color(75));
+							impedanceCheckButtons[i][0].setString("0");
+						}
+						if(impedanceCheckValues[i][k] == '1'){
+							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][0].setString("1");
+						}
+					case 1: // N Imp Buttons
+						if(impedanceCheckValues[i][k] == '0'){
+							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
+							impedanceCheckButtons[i][1].setString("0");
+						}
+						if(impedanceCheckValues[i][k] == '1'){
+							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][1].setString("1");
+						}
+				}
+			}
+		}
+		//then reset to 1
 	}
 
 	public void draw(){
@@ -1778,6 +2039,7 @@ class ChannelController {
 		// fill(255,255,255,123);
 		// rect(x1, y1 - 1, w1, h1);
 
+		//channel buttons
 		for(int i = 0; i < nchan; i++){
 			channelSettingButtons[i][0].draw(); //draw on/off channel buttons
 			//draw impedance buttons
@@ -1800,19 +2062,214 @@ class ChannelController {
 					channelSettingButtons[i][j].draw();
 				}
 			}
-
 		}
-
 		popStyle();
 
 	}
 
-	public void fillValuesBasedOnDefault(){
+	public void mousePressed(){
+		//if fullChannelController and one of the buttons (other than ON/OFF) is clicked
+		if(showFullController){
+			for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
+				for(int j = 1; j < numSettingsPerChannel; j++){		
+					if(channelSettingButtons[i][j].isMouseHere()){
+						//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+						channelSettingButtons[i][j].wasPressed = true;
+						channelSettingButtons[i][j].isActive = true;
+					}
+				}
+			}	
+		}
+		//on/off button and Imp buttons can always be clicked/released
+		for(int i = 0; i < nchan; i++){
+			if(channelSettingButtons[i][0].isMouseHere()){
+				channelSettingButtons[i][0].wasPressed = true;
+				channelSettingButtons[i][0].isActive = true;
+			}
+			if(impedanceCheckButtons[i][0].isMouseHere()){
+				impedanceCheckButtons[i][0].wasPressed = true;
+				impedanceCheckButtons[i][0].isActive = true;
+			}
+			if(impedanceCheckButtons[i][1].isMouseHere()){
+				impedanceCheckButtons[i][1].wasPressed = true;
+				impedanceCheckButtons[i][1].isActive = true;
+			}
+		}
+	}
+
+	public void mouseReleased(){
+		//if fullChannelController and one of the buttons (other than ON/OFF) is released
+		if(showFullController){
+			for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
+				for(int j = 1; j < numSettingsPerChannel; j++){		
+					if(channelSettingButtons[i][j].isMouseHere() && channelSettingButtons[i][j].wasPressed == true){
+						if(channelSettingValues[i][j] < maxValuesPerSetting[j]){
+							channelSettingValues[i][j]++;	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+						} else {
+							channelSettingValues[i][j] = '0';
+						}
+						writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
+
+					}
+					channelSettingButtons[i][j].isActive = false;
+					channelSettingButtons[i][j].wasPressed = false;
+				}
+			}
+		}
+		//ON/OFF button can always be clicked/released
+		for(int i = 0; i < nchan; i++){
+			//was on/off clicked?
+			if(channelSettingButtons[i][0].isMouseHere() && channelSettingButtons[i][0].wasPressed == true){
+				if(channelSettingValues[i][0] < maxValuesPerSetting[0]){
+					channelSettingValues[i][0] = '1';	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+					// channelSettingButtons[i][0].setColorNotPressed(color(25,25,25));
+					powerDownChannel(i);
+				} else {
+					channelSettingValues[i][0] = '0';
+					// channelSettingButtons[i][0].setColorNotPressed(color(255));
+					powerUpChannel(i);
+				}
+				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
+			}
+
+			//was P imp check button clicked?
+			if(impedanceCheckButtons[i][0].isMouseHere() && impedanceCheckButtons[i][0].wasPressed == true){
+				if(impedanceCheckValues[i][0] < '1'){
+					impedanceCheckValues[i][0] = '1';	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+					// channelSettingButtons[i][0].setColorNotPressed(color(25,25,25));
+					writeImpedanceSettings(i);
+					verbosePrint("a");
+				} else {
+					impedanceCheckValues[i][0] = '0';
+					// channelSettingButtons[i][0].setColorNotPressed(color(255));
+					writeImpedanceSettings(i);
+					verbosePrint("b");
+				}
+				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
+			}
+
+			//was N imp check button clicked?
+			if(impedanceCheckButtons[i][1].isMouseHere() && impedanceCheckButtons[i][1].wasPressed == true){
+				if(impedanceCheckValues[i][1] < '1'){
+					impedanceCheckValues[i][1] = '1';	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+					// channelSettingButtons[i][0].setColorNotPressed(color(25,25,25));
+					writeImpedanceSettings(i);
+					verbosePrint("c");
+				} else {
+					impedanceCheckValues[i][1] = '0';
+					// channelSettingButtons[i][0].setColorNotPressed(color(255));
+					writeImpedanceSettings(i);
+					verbosePrint("d");
+				}
+				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
+			}
+
+			channelSettingButtons[i][0].isActive = false;
+			channelSettingButtons[i][0].wasPressed = false;
+			impedanceCheckButtons[i][0].isActive = false;
+			impedanceCheckButtons[i][0].wasPressed = false;
+			impedanceCheckButtons[i][1].isActive = false;
+			impedanceCheckButtons[i][1].wasPressed = false;
+		}
+
+		update(); //update once to refresh button values
+	}
+
+	public void fillValuesBasedOnDefault(byte _defaultValues){
 		//interpret incoming HEX value (from OpenBCI) and pass into all default channelSettingValues
+		//decode byte from OpenBCI and break it apart into the channelSettingValues[][] array
+	}
+
+	public void powerDownChannel(int _numChannel){
+		verbosePrint("Powering down channel " + _numChannel);
+		//save SRB2 and BIAS settings in 2D history array (to turn back on when channel is reactivated)
+		previousBIAS[_numChannel] = channelSettingValues[_numChannel][3];
+		previousSRB2[_numChannel] = channelSettingValues[_numChannel][4];
+		channelSettingValues[_numChannel][3] = '0'; //make sure to disconnect from BIAS
+		channelSettingValues[_numChannel][4] = '0'; //make sure to disconnect from SRB2
+
+		//writeChannelSettings
+		writeChannelSettings(_numChannel);//writeChannelSettings
+	}
+
+	public void powerUpChannel(int _numChannel){
+		verbosePrint("Powering up channel " + _numChannel);
+		//replace SRB2 and BIAS settings with values from 2D history array
+		channelSettingValues[_numChannel][3] = previousBIAS[_numChannel];
+		channelSettingValues[_numChannel][4] = previousSRB2[_numChannel];
+
+		writeChannelSettings(_numChannel);//writeChannelSettings
 	}
 
 	public void writeChannelSettings(int _numChannel){
 		//after clicking any button, write the new settings for that channel to OpenBCI
+		verbosePrint("Writing channel settings " + _numChannel + " to OpenBCI!");
+		//write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
+		int tempCounter = 0;
+		boolean writingChannel = true;
+		long timeOfLastWrite = millis();
+		while(writingChannel){
+			if(millis() - timeOfLastWrite >= 5){
+				if(tempCounter == 0){ //send 'x' to indicate start of channel packet
+					verbosePrint("x" + " :: " + millis());
+					serial_openBCI.write('x');
+				}
+				if(tempCounter == 1){
+					verbosePrint(str(_numChannel+1) + " :: " + millis());
+					serial_openBCI.write((char) ('0'+(_numChannel+1)));
+				}
+				if(tempCounter > 1 && tempCounter < numSettingsPerChannel + 2){
+					verbosePrint(channelSettingValues[_numChannel][tempCounter-2] + " :: " + millis());
+					serial_openBCI.write(channelSettingValues[_numChannel][tempCounter-2]);
+				}
+				if(tempCounter == numSettingsPerChannel + 2){
+					verbosePrint("X" + " :: " + millis());
+					serial_openBCI.write('X');
+				}
+				timeOfLastWrite = millis();
+				tempCounter++;
+			}
+			if(tempCounter == numSettingsPerChannel+3){
+				verbosePrint("done writing channel.");
+				writingChannel = false;
+			}
+		}
+	}
+
+	public void writeImpedanceSettings(int _numChannel){
+		//after clicking an impedance button, write the new impedance settings for that channel to OpenBCI
+			//after clicking any button, write the new settings for that channel to OpenBCI
+		verbosePrint("Writing impedance settings for channel " + _numChannel + " to OpenBCI!");
+		//write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
+		int tempCounter = 0;
+		boolean writingImpedance = true;
+		long timeOfLastWrite = millis();
+		while(writingImpedance){
+			if(millis() - timeOfLastWrite >= 5){
+				if(tempCounter == 0){ //send 'x' to indicate start of channel packet
+					verbosePrint("z" + " :: " + millis());
+					// serial_openBCI.write('x');
+				}
+				if(tempCounter == 1){
+					verbosePrint(str(_numChannel) + " :: " + millis());
+					// serial_openBCI.write(tempCounter);
+				}
+				if(tempCounter > 1 && tempCounter < 2 + 2){
+					verbosePrint(impedanceCheckValues[_numChannel][tempCounter-2] + " :: " + millis());
+					// serial_openBCI.write(channelSettingValues[_numChannel][tempCounter]);
+				}
+				if(tempCounter == 2 + 2){ //2 impedance settings per channel + 2 for 'z' & numChan
+					verbosePrint("Z" + " :: " + millis());
+					// serial_openBCI.write('X');
+				}
+				timeOfLastWrite = millis();
+				tempCounter++;
+			}
+			if(tempCounter == numSettingsPerChannel+3){
+				verbosePrint("Done writing impedance settings for channel " + _numChannel);
+				writingImpedance = false;
+			}
+		}
 	}
 
 	public void createChannelSettingButtons(){
@@ -2266,6 +2723,7 @@ public void controlEvent(ControlEvent theEvent) {
 		} else{
 			output("OpenBCI microSD Setting = " + sdSettingString);
 		}
+		verbosePrint("SD setting = " + sdSetting);
 	}
 }
 
@@ -3082,7 +3540,7 @@ class Gui_Manager {
     // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
     y = PApplet.parseInt(0.5f*gutter_topbot*PApplet.parseFloat(win_y));
     //int y = win_y - h;
-    stopButton = new Button(x,y,w,h,stopButton_pressToStop_txt,fontInfo.buttonLabel_size);
+    stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
     
     //setup the gui page button
     w = 80; //button width
@@ -3612,6 +4070,7 @@ class Gui_Manager {
     montageTrace.generate();  //graph doesn't update without this
     fftTrace.generate(); //graph doesn't update without this
     headPlot1.update();
+    cc.update();
 
     //update the text strings
     String fmt; float val;
@@ -3759,6 +4218,13 @@ class Gui_Manager {
       showChannelControllerButton.setIsActive(true);
     }
 
+    //if cursor inside channel controller
+    // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
+      verbosePrint("Channel Controller mouse pressed...");
+      cc.mousePressed();
+    // }
+    
+
     //turn off visibility of graph
     // turn on drawing and interactivity of channel controller
 
@@ -3768,6 +4234,11 @@ class Gui_Manager {
 
   public void mouseReleased(){
     verbosePrint("gui.mouseReleased();");
+
+    // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
+    verbosePrint("Channel Controller mouse released...");
+    cc.mouseReleased();
+
 
     stopButton.setIsActive(false);
     // guiPageButton.setIsActive(false);
@@ -5087,6 +5558,8 @@ final String[] command_deactivate_leadoffN_channel = {"Z", "X", "C", "V", "B", "
 final String command_biasAuto = "`";
 final String command_biasFixed = "~";
 
+// ArrayList defaultChannelSettings;
+
 class OpenBCI_ADS1299 {
   
   //final static int DATAMODE_TXT = 0;
@@ -5096,8 +5569,10 @@ class OpenBCI_ADS1299 {
   
   final static int STATE_NOCOM = 0;
   final static int STATE_COMINIT = 1;
-  final static int STATE_NORMAL = 2;
-  final static int COM_INIT_MSEC = 5000; //you may need to vary this for your computer or your Arduino
+  final static int STATE_SYNCWITHHARDWARE = 2;
+  final static int STATE_NORMAL = 3;
+  final static int STATE_STOPPED = 4;
+  final static int COM_INIT_MSEC = 3000; //you may need to vary this for your computer or your Arduino
   
   int[] measured_packet_length = {0,0,0,0,0};
   int measured_packet_length_ind = 0;
@@ -5126,6 +5601,10 @@ class OpenBCI_ADS1299 {
   final float leadOffDrive_amps = 6.0e-9f;  //6 nA, set by its Arduino code
   
   boolean isBiasAuto = true;
+
+  final char[] EOT = {'$','$','$'};
+  char[] prev3chars = {'#','#','#'};
+  String defaultChannelSettings = "";
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -5191,18 +5670,17 @@ class OpenBCI_ADS1299 {
     return 0;
   }
 
-  public int updateState() {
-    //wait specified time for COM/serial port to initialize
-    if (state == STATE_COMINIT) {
-      // println("Initializing Serial: millis() = " + millis());
-      if ((millis() - prevState_millis) > COM_INIT_MSEC) {
-        //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
-        println("OpenBCI_ADS1299: State = Normal");
-        
+  public int finalizeCOMINIT() {
+    // //wait specified time for COM/serial port to initialize
+    // if (state == STATE_COMINIT) {
+    //   // println("Initializing Serial: millis() = " + millis());
+    //   if ((millis() - prevState_millis) > COM_INIT_MSEC) {
+    //     //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
+    //     println("OpenBCI_ADS1299: State = NORMAL");
         changeState(STATE_NORMAL);
-        startRunning();
-      }
-    }
+    //     // startRunning();
+    //   }
+    // }
     return 0;
   }    
 
@@ -5255,8 +5733,9 @@ class OpenBCI_ADS1299 {
 
   public void startDataTransfer(){
     if (serial_openBCI != null) {
-      // serial_openBCI.clear(); // clear anything in the com port's buffer
+      serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
+      openBCI.changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
       println("writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
@@ -5264,18 +5743,49 @@ class OpenBCI_ADS1299 {
   
   public void stopDataTransfer() {
     if (serial_openBCI != null) {
+      serial_openBCI.clear(); // clear anything in the com port's buffer
+      openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
       println("writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
-      serial_openBCI.clear(); // clear anything in the com port's buffer
     }
   }
   
   //read from the serial port
   public int read() {  return read(false); }
   public int read(boolean echoChar) {
+    // print("State: " + state);
     //get the byte
     byte inByte = PApplet.parseByte(serial_openBCI.read());
-    if (echoChar) print(PApplet.parseChar(inByte));
+
+    //write the most recent char to the console
+    if (echoChar){  //if not in interpret binary (NORMAL) mode
+      // print(".");
+      char inASCII = PApplet.parseChar(inByte); 
+      print(PApplet.parseChar(inByte));
+
+      //keep track of previous three chars coming from OpenBCI
+      prev3chars[0] = prev3chars[1];
+      prev3chars[1] = prev3chars[2];
+      prev3chars[2] = inASCII;
+
+      if(hardwareSyncStep == 3 && inASCII != '$'){ //if we're retrieving channel settings from OpenBCI
+        defaultChannelSettings+=inASCII;
+      }
+
+      //if the last three chars are $$$, it means we are moving on to the next stage of initialization
+      if(prev3chars[0] == EOT[0] && prev3chars[1] == EOT[1] && prev3chars[2] == EOT[2]){
+        verbosePrint(" > EOT detected...");
+        // hardwareSyncStep++;
+        prev3chars[2] = '#';
+        if(hardwareSyncStep == 3){
+          println(defaultChannelSettings);
+          gui.cc.loadDefaultChannelSettings();
+        }
+        readyToSend = true; 
+        // println(hardwareSyncStep);
+        // syncWithHardware(); //haha, I'm getting very verbose with my naming... it's late...
+      }  
+    }
     
     //write raw unprocessed bytes to a binary data dump file
     if (output != null) {
@@ -5323,7 +5833,7 @@ class OpenBCI_ADS1299 {
       case 0:  
          //look for header byte  
          if (actbyte == PApplet.parseByte(0xA0)) {          // look for start indicator
-          //println("OpenBCI_ADS1299: interpretBinaryStream: found 0xA0");
+          // println("OpenBCI_ADS1299: interpretBinaryStream: found 0xA0");
           PACKET_readstate++;
          } 
          break;

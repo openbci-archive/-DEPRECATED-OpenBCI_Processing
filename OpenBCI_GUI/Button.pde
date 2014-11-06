@@ -22,6 +22,7 @@ class Button {
   boolean isActive = false;
   boolean isDropdownButton = false;
   boolean drawHand = false;
+  boolean wasPressed = false;
   public String but_txt;
   // PFont font;
 

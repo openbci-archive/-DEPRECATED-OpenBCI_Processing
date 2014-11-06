@@ -4,7 +4,7 @@
 // GUI for controlling the ADS1299-based OpenBCI Shield
 //
 // Created: Chip Audette, Oct 2013 - May 2014
-// Modified: Conor Russomanno, Sept 2014 - Oct 2014
+// Modified: Conor Russomanno & Joel Murphy, August 2014 - Oct 2014
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/
@@ -54,6 +54,8 @@ float playback_speed_fac = 1.0f;  //make 1.0 for real-time.  larger for faster p
 int currentTableRowIndex = 0;
 Table_CSV playbackData_table;
 int nextPlayback_millis = -100; //any negative number
+
+// boolean printingRegisters = false;
 
 //other data fields
 float dataBuffX[];
@@ -228,18 +230,11 @@ int drawLoop_counter = 0;
 
 //used to init system based on initial settings
 void initSystem(){
-  
-  println("Starting setup...");
 
-    //get playback file name, if necessary  
-  if (eegDataSource == DATASOURCE_PLAYBACKFILE) {
-      if ((playbackData_fname==null) || (playbackData_fname.length() == 0)) selectInput("Select an OpenBCI TXT file: ", "fileSelected");
-      while ((playbackData_fname==null) || (playbackData_fname.length() == 0)) { delay(100); /* wait until selection is complete */ }
-  }
-
-  println("0");
+  verbosePrint("-- Init 0 --");
   
   //prepare data variables
+  verbosePrint("Preparing data variables...");
   dataBuffX = new float[(int)(dataBuff_len_sec * openBCI.fs_Hz)];
   dataBuffY_uV = new float[nchan][dataBuffX.length];
   dataBuffY_filtY_uV = new float[nchan][dataBuffX.length];
@@ -258,7 +253,7 @@ void initSystem(){
   //initialize the data
   prepareData(dataBuffX, dataBuffY_uV,openBCI.fs_Hz);
 
-  println("1");
+  verbosePrint("-- Init 1 --");
 
   //initialize the FFT objects
   for (int Ichan=0; Ichan < nchan; Ichan++) { 
@@ -271,7 +266,7 @@ void initSystem(){
   //prepare some signal processing stuff
   //for (int Ichan=0; Ichan < nchan; Ichan++) { detData_freqDomain[Ichan] = new DetectionData_FreqDomain(); }
 
-  println("2");
+  verbosePrint("-- Init 2 --");
 
   //prepare the source of the input data
   switch (eegDataSource) {
@@ -303,42 +298,154 @@ void initSystem(){
     default: 
   }
 
-  println("3");
+  verbosePrint("-- Init 3 --");
 
   //initilize the GUI
   initializeGUI();
-
-  //show the FFT-based signal detection
-  //gui.setGoodFFTBand(inband_Hz); gui.setBadFFTBand(guard_Hz);
-  //gui.showFFTFilteringData(showFFTFilteringData);
-
-  //initialize the on/off state of the different channels...only if the user has specified fewer channels
-  //than is on the OpenBCI board
-  //for (int Ichan=0; Ichan<OpenBCI_Nchannels;Ichan++) {  //what will happen here for the 16-channel board???
-  //  if (Ichan < nchan_active_at_startup) { activateChannel(Ichan); } else { deactivateChannel(Ichan);  }
-  //}
-  // for (int Ichan=nchan_active_at_startup; Ichan<OpenBCI_Nchannels;Ichan++) deactivateChannel(Ichan);  //deactivate unused channels
-  
-  // for (int Ichan=nchan_active_at_startup; Ichan<nchan;Ichan++){
-  //   deactivateChannel(Ichan);  //deactivate unused channels
-  // }
-
-  // for (int Ichan=nchan; Ichan<nchan;Ichan++) deactivateChannel(Ichan);  //deactivate unused channels
   
   //final config
   setBiasState(openBCI.isBiasAuto);
+  verbosePrint("-- Init 4 --");
 
-  println("4");
-
-  //open data file ... this was in start running but I pulled it out (CDR)
+  //open data file
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) openNewLogFile(fileName);  //open a new log file
 
-  //start
-  startRunning();
   nextPlayback_millis = millis(); //used for synthesizeData and readFromFile.  This restarts the clock that keeps the playback at the right pace.
-  systemMode = 10;
+  
+  if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+    systemMode = 10; //tell system it's ok to leave control panel and start interfacing GUI
+  }
+  //sync GUI default settings with OpenBCI's default settings...
+  // syncWithHardware(); //this starts the sequence off ... read in OpenBCI_ADS1299 iterates through the rest based on the ASCII trigger "$$$"
+  // verbosePrint("-- Init 5 [COMPLETE] --");
+}
 
-  println("setup: Setup complete...");
+int hardwareSyncStep = 0; //start this at 0...
+boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+boolean currentlySyncing = false;
+long timeOfLastCommand = 0;
+
+void syncWithHardware(){
+  // switch (hardwareSyncStep) {
+  //   case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+  //     // serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     println("Sending channel count (" + nchan + ") to OpenBCI...");
+  //     hardwareSyncStep = 2; print("Reseting OpenBCI registers to default... "); println("writing \'d\'");
+  //     break;
+  //   case 2: //reset hardware to default registers 
+  //     serial_openBCI.write("d");
+  //     // delay(5); //must delay 5ms between write commands
+  //     hardwareSyncStep = 3; print("Retrieving OpenBCI's channel settings to sync with GUI..."); println("writing \'D\'... waiting for $$$");
+  //     break;
+  //   case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+  //     serial_openBCI.write("D"); 
+  //     // delay(5); //must delay 5ms between write commands
+  //     //waiting for $$$
+  //     break;
+  //   case 4: //check existing registers
+  //     // print("Retrieving OpenBCI's full register map for verification..."); println("writing \'?\'... waiting for $$$");
+  //     serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     break;
+  //   case 5:
+  //     // print("Writing selected SD setting (" + "5 min"+ ") to OpenBCI...");
+  //     // serial_openBCI.write('?');
+  //     // delay(5); //must delay 5ms between write commands
+  //     output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+  //     break;
+  // }
+
+
+  switch (hardwareSyncStep) {
+    case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+      println("[1] Sending channel count (" + nchan + ") to OpenBCI...");
+      if(nchan == 8){
+        serial_openBCI.write('c');
+      }
+      if(nchan == 16){
+        serial_openBCI.write('C');
+      }
+      // serial_openBCI.write('????');
+      // delay(5); //must delay 5ms between write commands
+      break;
+    case 2: //reset hardware to default registers 
+      println("[2] Reseting OpenBCI registers to default... writing \'d\'...");
+      serial_openBCI.write("d"); 
+      break;
+    case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+      println("[3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
+      readyToSend = false;
+      serial_openBCI.write("D"); 
+      break;
+    case 4: //check existing registers
+      println("[4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
+      readyToSend = false;
+      serial_openBCI.write("?"); 
+      break;
+    case 5:
+      switch (sdSetting){
+        case 0: //"Do not write to SD"
+          //do nothing
+          break;
+        case 1: //"5 min max"
+          serial_openBCI.write("A");
+          break;
+        case 2: //"5 min max"
+          serial_openBCI.write("S");
+          break;
+        case 3: //"5 min max"
+          serial_openBCI.write("F");
+          break;
+        case 4: //"5 min max"
+          serial_openBCI.write("G");
+          break;
+        case 5: //"5 min max"
+          serial_openBCI.write("H");
+          break;
+        case 6: //"5 min max"
+          serial_openBCI.write("J");
+          break;
+        case 7: //"5 min max"
+          serial_openBCI.write("K");
+          break;
+        case 8: //"5 min max"
+          serial_openBCI.write("L");
+          break;
+      }
+      println("[5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
+      break;
+    case 6:
+      output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+      openBCI.changeState(openBCI.STATE_NORMAL);
+      systemMode = 10;
+      break; 
+  }
+
+  // if(millis() - timeOfSyncStart > 0){
+  //   println("Sending channel count (" + nchan + ") to OpenBCI...");
+  //   // serial_openBCI.write('????');
+  //   // delay(5); //must delay 5ms between write commands
+  // }
+
+  // println("Reseting OpenBCI registers to default... writing \'d\'...");
+  // serial_openBCI.write("d"); 
+  // delay(5);
+
+  // println("Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'...");
+  // serial_openBCI.write("D"); 
+  // delay(5);
+
+  // println("Retrieving OpenBCI's full register map for verification... writing \'?\'...");
+  // serial_openBCI.write("?"); 
+  // delay(5);
+
+    // println("Writing selected SD setting (" + "5 min" + ") to OpenBCI...");
+  // serial_openBCI.write("?")
+  //write 'b'
+
+  // openBCI.changeState(openBCI.STATE_NORMAL);
+
 }
 
 void haltSystem(){
@@ -362,6 +469,8 @@ void haltSystem(){
     closeLogFile();  //close log file
     if (serial_openBCI != null){
       openBCI.closeSerialPort();   //disconnect from serial port
+      openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
+      hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
     }
   }
   systemMode = 0;
@@ -395,6 +504,21 @@ void draw() {
 }
 
 void systemUpdate(){ // for updating data values and variables
+
+  //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
+  if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
+    openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
+    timeOfLastCommand = millis();
+  }
+
+  //if we are in SYNC WITH HARDWARE state ... trigger a command
+  if(openBCI.state == openBCI.STATE_SYNCWITHHARDWARE && currentlySyncing == false){
+    if(millis() - timeOfLastCommand > 100 && readyToSend == true){
+      timeOfLastCommand = millis();
+      hardwareSyncStep++;
+      syncWithHardware();
+    }
+  }
   
   win_x = width;
   win_y = height;
@@ -527,6 +651,16 @@ void systemDraw(){ //for drawing to the screen
   controlPanelCollapser.draw();
   helpWidget.draw();
 
+  if(openBCI.state == openBCI.STATE_COMINIT && systemMode == 0){
+    //make out blink the text "Initalizing GUI..."
+    if(millis()%1000 < 500){
+      output("Iniitializing communication w/ your OpenBCI board...");
+    }
+    else{
+      output("");
+    }
+  }
+
   // use commented code below to verify frameRate and check latency
   // println("Time since start: " + millis() + " || Time since last frame: " + str(millis()-timeOfLastFrame));
   // timeOfLastFrame = millis();
@@ -539,7 +673,7 @@ int getDataIfAvailable(int pointCounter) {
     //get data from serial port as it streams in
 
       //first, get the new data (if any is available)
-      openBCI.updateState(); //this is trying to listen to the openBCI hardware.  New data is put into dataPacketBuff and increments curDataPacketInd.
+      // openBCI.finalizeCOMINIT(); //this is trying to listen to the openBCI hardware.  New data is put into dataPacketBuff and increments curDataPacketInd.
       
       //next, gather any new data into the "little buffer"
       while ( (curDataPacketInd != lastReadDataPacketInd) && (pointCounter < nPointsPerUpdate)) {
@@ -678,7 +812,6 @@ void processNewData() {
   // ...dataBuffY_filtY_uV[Ichan] is the full set of filtered data as shown in the time-domain plot in the GUI
   // ...fftBuff[Ichan] is the FFT data structure holding the frequency spectrum as shown in the freq-domain plot in the GUI
   //}
-
 }
 
 //here is the routine that listens to the serial port.
@@ -687,8 +820,17 @@ void processNewData() {
 void serialEvent(Serial port) {
   //check to see which serial port it is
   // if (port == openBCI.serial_openBCI) {
+  // println("SE " + millis());
   if (port == serial_openBCI) {
-    boolean echoBytes = !openBCI.isStateNormal(); 
+    // boolean echoBytes = !openBCI.isStateNormal(); 
+    boolean echoBytes;
+
+    if(openBCI.isStateNormal() != true){  // || printingRegisters == true){
+      echoBytes = true;
+    } else{
+      echoBytes = false;
+    }
+
     // openBCI.read(true);
     openBCI.read(echoBytes);
     openBCI_byteCount++;
@@ -790,6 +932,13 @@ void parseKey(char val) {
       println("case b...");
       startRunning();
       // stopButtonWasPressed();
+      break;
+    case 'n':
+      println(openBCI.state);
+      break;
+
+    case '?':
+      printRegisters();
       break;
       
     //change the state of the impedance measurements...activate the P-channels
@@ -1178,6 +1327,7 @@ void mousePressed() {
         println("outside of CP clicked");
         controlPanel.isOpen = false;
         controlPanelCollapser.setIsActive(false);
+        output("Press the \"Press to Start\" button to initialize the data stream.");
       }
     }
   }
@@ -1210,12 +1360,23 @@ void mouseReleased() {
   }
 }
 
+void printRegisters(){
+  if (serial_openBCI != null) {
+    println("Writing ? to OpenBCI...");
+    serial_openBCI.write('?');
+  }
+  // printingRegisters = true;
+}
+
 void stopRunning() {
+    // openBCI.changeState(0); //make sure it's no longer interpretting as binary
+
     if (openBCI != null) {
       openBCI.stopDataTransfer();
     }
 
     isRunning = false;
+    // openBCI.changeState(0); //make sure it's no longer interpretting as binary
     // systemMode = 0;
 
     // closeLogFile();
@@ -1227,10 +1388,14 @@ void startRunning() {
     // println("OpenBCI_GUI: eegDataSource = " + eegDataSource);
     // println("OpenBCI_GUI: isRunning = true");
     // if (openBCI != null) openBCI.startDataTransfer(); //use whatever was the previous data transfer mode (TXT vs BINARY)
+    println("startRunning...");
+
     if(eegDataSource == DATASOURCE_NORMAL){
+
       if (openBCI != null) openBCI.startDataTransfer();
     }
     isRunning = true;
+    // openBCI.changeState(2);  // make sure it's now interpretting as binary
     // systemMode = 10;
 }
 
@@ -1477,6 +1642,12 @@ void verbosePrint(String _string){
   if(isVerbose){
     println(_string);
   }
+}
+
+void delay(int delay)
+{
+  int time = millis();
+  while(millis() - time <= delay);
 }
 
 // here's a function to catch whenever the window is being closed, so that

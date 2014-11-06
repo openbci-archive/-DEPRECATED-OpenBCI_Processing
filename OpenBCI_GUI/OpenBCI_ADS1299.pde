@@ -37,6 +37,8 @@ final String[] command_deactivate_leadoffN_channel = {"Z", "X", "C", "V", "B", "
 final String command_biasAuto = "`";
 final String command_biasFixed = "~";
 
+// ArrayList defaultChannelSettings;
+
 class OpenBCI_ADS1299 {
   
   //final static int DATAMODE_TXT = 0;
@@ -46,8 +48,10 @@ class OpenBCI_ADS1299 {
   
   final static int STATE_NOCOM = 0;
   final static int STATE_COMINIT = 1;
-  final static int STATE_NORMAL = 2;
-  final static int COM_INIT_MSEC = 5000; //you may need to vary this for your computer or your Arduino
+  final static int STATE_SYNCWITHHARDWARE = 2;
+  final static int STATE_NORMAL = 3;
+  final static int STATE_STOPPED = 4;
+  final static int COM_INIT_MSEC = 3000; //you may need to vary this for your computer or your Arduino
   
   int[] measured_packet_length = {0,0,0,0,0};
   int measured_packet_length_ind = 0;
@@ -76,6 +80,10 @@ class OpenBCI_ADS1299 {
   final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
   
   boolean isBiasAuto = true;
+
+  final char[] EOT = {'$','$','$'};
+  char[] prev3chars = {'#','#','#'};
+  String defaultChannelSettings = "";
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -141,18 +149,17 @@ class OpenBCI_ADS1299 {
     return 0;
   }
 
-  int updateState() {
-    //wait specified time for COM/serial port to initialize
-    if (state == STATE_COMINIT) {
-      // println("Initializing Serial: millis() = " + millis());
-      if ((millis() - prevState_millis) > COM_INIT_MSEC) {
-        //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
-        println("OpenBCI_ADS1299: State = Normal");
-        
+  int finalizeCOMINIT() {
+    // //wait specified time for COM/serial port to initialize
+    // if (state == STATE_COMINIT) {
+    //   // println("Initializing Serial: millis() = " + millis());
+    //   if ((millis() - prevState_millis) > COM_INIT_MSEC) {
+    //     //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
+    //     println("OpenBCI_ADS1299: State = NORMAL");
         changeState(STATE_NORMAL);
-        startRunning();
-      }
-    }
+    //     // startRunning();
+    //   }
+    // }
     return 0;
   }    
 
@@ -205,8 +212,9 @@ class OpenBCI_ADS1299 {
 
   void startDataTransfer(){
     if (serial_openBCI != null) {
-      // serial_openBCI.clear(); // clear anything in the com port's buffer
+      serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
+      openBCI.changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
       println("writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
@@ -214,18 +222,49 @@ class OpenBCI_ADS1299 {
   
   void stopDataTransfer() {
     if (serial_openBCI != null) {
+      serial_openBCI.clear(); // clear anything in the com port's buffer
+      openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
       println("writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
-      serial_openBCI.clear(); // clear anything in the com port's buffer
     }
   }
   
   //read from the serial port
   int read() {  return read(false); }
   int read(boolean echoChar) {
+    // print("State: " + state);
     //get the byte
     byte inByte = byte(serial_openBCI.read());
-    if (echoChar) print(char(inByte));
+
+    //write the most recent char to the console
+    if (echoChar){  //if not in interpret binary (NORMAL) mode
+      // print(".");
+      char inASCII = char(inByte); 
+      print(char(inByte));
+
+      //keep track of previous three chars coming from OpenBCI
+      prev3chars[0] = prev3chars[1];
+      prev3chars[1] = prev3chars[2];
+      prev3chars[2] = inASCII;
+
+      if(hardwareSyncStep == 3 && inASCII != '$'){ //if we're retrieving channel settings from OpenBCI
+        defaultChannelSettings+=inASCII;
+      }
+
+      //if the last three chars are $$$, it means we are moving on to the next stage of initialization
+      if(prev3chars[0] == EOT[0] && prev3chars[1] == EOT[1] && prev3chars[2] == EOT[2]){
+        verbosePrint(" > EOT detected...");
+        // hardwareSyncStep++;
+        prev3chars[2] = '#';
+        if(hardwareSyncStep == 3){
+          println(defaultChannelSettings);
+          gui.cc.loadDefaultChannelSettings();
+        }
+        readyToSend = true; 
+        // println(hardwareSyncStep);
+        // syncWithHardware(); //haha, I'm getting very verbose with my naming... it's late...
+      }  
+    }
     
     //write raw unprocessed bytes to a binary data dump file
     if (output != null) {
@@ -273,7 +312,7 @@ class OpenBCI_ADS1299 {
       case 0:  
          //look for header byte  
          if (actbyte == byte(0xA0)) {          // look for start indicator
-          //println("OpenBCI_ADS1299: interpretBinaryStream: found 0xA0");
+          // println("OpenBCI_ADS1299: interpretBinaryStream: found 0xA0");
           PACKET_readstate++;
          } 
          break;
