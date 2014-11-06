@@ -22,6 +22,7 @@ class Button {
   boolean isActive = false;
   boolean isDropdownButton = false;
   boolean drawHand = false;
+  boolean wasPressed = false;
   public String but_txt;
   // PFont font;
 
@@ -77,6 +78,13 @@ class Button {
     }
   }
 
+  public void setColorPressed(color _color){
+    color_pressed = _color;
+  }
+  public void setColorNotPressed(color _color){
+    color_notPressed = _color;
+  }
+
   boolean overRect(int x, int y, int width, int height) {
     if (mouseX >= x && mouseX <= x+width && 
       mouseY >= y && mouseY <= y+height) {
@@ -95,7 +103,7 @@ class Button {
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(255);
+    fill(0);
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);

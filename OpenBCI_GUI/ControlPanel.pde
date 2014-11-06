@@ -398,6 +398,7 @@ public void controlEvent(ControlEvent theEvent) {
 		} else{
 			output("OpenBCI microSD Setting = " + sdSettingString);
 		}
+		verbosePrint("SD setting = " + sdSetting);
 	}
 }
 
