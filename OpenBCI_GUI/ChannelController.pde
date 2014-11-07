@@ -34,6 +34,14 @@ class ChannelController {
 		'1', // SRB2 :: (0) Open, (1) Closed
 		'1'}; // SRB1 :: (0) Yes, (1) No ... this setting affects all channels ... either all on or all off
 
+	//variables used for channel write timing in writeChannelSettings()
+	long timeOfLastWrite = 0;
+	boolean isWritingChannel = false;
+	int channelToWrite = -1;
+	int writeCounter = 0;
+
+	boolean rewriteWhenDoneWriting = false;
+	int channelToWriteWhenDoneWriting = 0;
 
 	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
 		//positioning values for left panel (that is always visible)
@@ -95,11 +103,11 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
 						if(channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
 					case 3: //BIAS ??
-						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("No");
-						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Yes");
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
 					case 4: // SRB2 ??
-						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("No");
-						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("Yes");
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
+						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
 					case 5: // SRB1 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
@@ -129,6 +137,16 @@ class ChannelController {
 			}
 		}
 		//then reset to 1
+
+		//
+		if(isWritingChannel){
+			writeChannelSettings(channelToWrite);
+		}
+
+		if(rewriteWhenDoneWriting && isWritingChannel == false){
+			initChannelWrite(channelToWriteWhenDoneWriting);
+			rewriteWhenDoneWriting = false;
+		}
 	}
 
 	public void draw(){
@@ -167,6 +185,15 @@ class ChannelController {
 					channelSettingButtons[i][j].draw();
 				}
 			}
+
+			//draw column headers for channel settings behind EEG graph
+			fill(255);
+			text("PGA Gain", x2 + (w2/10)*1, y1 - 12);
+			text("Input Type", x2 + (w2/10)*3, y1 - 12);
+			text("BIAS", x2 + (w2/10)*5, y1 - 12);
+			text("SRB2", x2 + (w2/10)*7, y1 - 12);
+			text("SRB1", x2 + (w2/10)*9, y1 - 12);
+
 		}
 		popStyle();
 
@@ -174,32 +201,34 @@ class ChannelController {
 
 	public void mousePressed(){
 		//if fullChannelController and one of the buttons (other than ON/OFF) is clicked
-		if(showFullController){
-			for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
-				for(int j = 1; j < numSettingsPerChannel; j++){		
-					if(channelSettingButtons[i][j].isMouseHere()){
-						//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
-						channelSettingButtons[i][j].wasPressed = true;
-						channelSettingButtons[i][j].isActive = true;
+		// if(!isWritingChannel){
+			if(showFullController){
+				for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
+					for(int j = 1; j < numSettingsPerChannel; j++){		
+						if(channelSettingButtons[i][j].isMouseHere()){
+							//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
+							channelSettingButtons[i][j].wasPressed = true;
+							channelSettingButtons[i][j].isActive = true;
+						}
 					}
+				}	
+			}
+			//on/off button and Imp buttons can always be clicked/released
+			for(int i = 0; i < nchan; i++){
+				if(channelSettingButtons[i][0].isMouseHere()){
+					channelSettingButtons[i][0].wasPressed = true;
+					channelSettingButtons[i][0].isActive = true;
 				}
-			}	
-		}
-		//on/off button and Imp buttons can always be clicked/released
-		for(int i = 0; i < nchan; i++){
-			if(channelSettingButtons[i][0].isMouseHere()){
-				channelSettingButtons[i][0].wasPressed = true;
-				channelSettingButtons[i][0].isActive = true;
+				if(impedanceCheckButtons[i][0].isMouseHere()){
+					impedanceCheckButtons[i][0].wasPressed = true;
+					impedanceCheckButtons[i][0].isActive = true;
+				}
+				if(impedanceCheckButtons[i][1].isMouseHere()){
+					impedanceCheckButtons[i][1].wasPressed = true;
+					impedanceCheckButtons[i][1].isActive = true;
+				}
 			}
-			if(impedanceCheckButtons[i][0].isMouseHere()){
-				impedanceCheckButtons[i][0].wasPressed = true;
-				impedanceCheckButtons[i][0].isActive = true;
-			}
-			if(impedanceCheckButtons[i][1].isMouseHere()){
-				impedanceCheckButtons[i][1].wasPressed = true;
-				impedanceCheckButtons[i][1].isActive = true;
-			}
-		}
+		// }
 	}
 
 	public void mouseReleased(){
@@ -212,12 +241,23 @@ class ChannelController {
 							channelSettingValues[i][j]++;	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
 						} else {
 							channelSettingValues[i][j] = '0';
+						}	
+						// if you're not currently writing a channel and not waiting to rewrite after you've finished mashing the button
+						if(!isWritingChannel && rewriteWhenDoneWriting == false){
+							initChannelWrite(i);//write new ADS1299 channel row values to OpenBCI
 						}
-						writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
+						else{ //else wait until a the current write has finished and then write again ... this is to not overwrite the wrong values while writing a channel
+							verbosePrint("CONGRATULATIONS, YOU'RE MASHING BUTTONS!");
+							rewriteWhenDoneWriting = true;
+							channelToWriteWhenDoneWriting = i;
+						}
 
 					}
+
+					// if(!channelSettingButtons[i][j].isMouseHere()){
 					channelSettingButtons[i][j].isActive = false;
 					channelSettingButtons[i][j].wasPressed = false;
+					// }
 				}
 			}
 		}
@@ -269,6 +309,7 @@ class ChannelController {
 				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
 			}
 
+
 			channelSettingButtons[i][0].isActive = false;
 			channelSettingButtons[i][0].wasPressed = false;
 			impedanceCheckButtons[i][0].isActive = false;
@@ -294,7 +335,7 @@ class ChannelController {
 		channelSettingValues[_numChannel][4] = '0'; //make sure to disconnect from SRB2
 
 		//writeChannelSettings
-		writeChannelSettings(_numChannel);//writeChannelSettings
+		initChannelWrite(_numChannel);//writeChannelSettings
 	}
 
 	public void powerUpChannel(int _numChannel){
@@ -303,41 +344,69 @@ class ChannelController {
 		channelSettingValues[_numChannel][3] = previousBIAS[_numChannel];
 		channelSettingValues[_numChannel][4] = previousSRB2[_numChannel];
 
-		writeChannelSettings(_numChannel);//writeChannelSettings
+		initChannelWrite(_numChannel);//writeChannelSettings
+	}
+
+	public void initChannelWrite(int _numChannel){
+		//after clicking any button, write the new settings for that channel to OpenBCI
+		verbosePrint("Writing channel settings " + _numChannel + " to OpenBCI!");
+		timeOfLastWrite = millis();
+		isWritingChannel = true;
+		channelToWrite = _numChannel;
 	}
 
 	public void writeChannelSettings(int _numChannel){
-		//after clicking any button, write the new settings for that channel to OpenBCI
-		verbosePrint("Writing channel settings " + _numChannel + " to OpenBCI!");
-		//write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
-		int tempCounter = 0;
-		boolean writingChannel = true;
-		long timeOfLastWrite = millis();
-		while(writingChannel){
-			if(millis() - timeOfLastWrite >= 5){
-				if(tempCounter == 0){ //send 'x' to indicate start of channel packet
+		if(millis() - timeOfLastWrite >= 50){
+			verbosePrint("---");
+			switch (writeCounter){
+				case 0: //start sequence by send 'x'
 					verbosePrint("x" + " :: " + millis());
 					serial_openBCI.write('x');
-				}
-				if(tempCounter == 1){
+					break;
+				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
 					serial_openBCI.write((char) ('0'+(_numChannel+1)));
-				}
-				if(tempCounter > 1 && tempCounter < numSettingsPerChannel + 2){
-					verbosePrint(channelSettingValues[_numChannel][tempCounter-2] + " :: " + millis());
-					serial_openBCI.write(channelSettingValues[_numChannel][tempCounter-2]);
-				}
-				if(tempCounter == numSettingsPerChannel + 2){
+					break;
+				case 2: case 3: case 4: case 5: case 6: case 7:
+					verbosePrint(channelSettingValues[_numChannel][writeCounter-2] + " :: " + millis());
+					serial_openBCI.write(channelSettingValues[_numChannel][writeCounter-2]);
+					//value for ON/OF
+					break;
+				// case 3:
+				// 	//value for PGA Gain
+				// 	break;
+				// case 4:
+				// 	//value for input type
+				// 	break;
+				// case 5:
+				// 	//value for BIAS
+				// 	break;
+				// case 6:
+				// 	//value for SRB2
+				// 	break;
+				// case 7:
+				// 	//value for SRB1
+				// 	break;
+				case 8:
 					verbosePrint("X" + " :: " + millis());
-					serial_openBCI.write('X');
-				}
-				timeOfLastWrite = millis();
-				tempCounter++;
+					serial_openBCI.write('X'); // send 'X' to end message sequence
+					break;
+				case 9:
+					verbosePrint("done writing channel.");
+					isWritingChannel = false;
+					writeCounter = -1;
+
+					// //unclick buttons
+					// for(int i = 0; i < nchan; i++){
+					// 	for(int j = 1; j < numSettingsPerChannel; j++){		
+					// 		channelSettingButtons[i][j].isActive = false;
+					// 		channelSettingButtons[i][j].wasPressed = false;
+					// 	}
+					// }
+					break;
 			}
-			if(tempCounter == numSettingsPerChannel+3){
-				verbosePrint("done writing channel.");
-				writingChannel = false;
-			}
+			timeOfLastWrite = millis();
+			writeCounter++;
 		}
 	}
 

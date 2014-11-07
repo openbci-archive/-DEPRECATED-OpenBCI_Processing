@@ -379,12 +379,12 @@ void syncWithHardware(){
       break;
     case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
       println("[3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
-      readyToSend = false;
+      readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
       serial_openBCI.write("D"); 
       break;
     case 4: //check existing registers
       println("[4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
-      readyToSend = false;
+      readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
       serial_openBCI.write("?"); 
       break;
     case 5:
@@ -418,10 +418,13 @@ void syncWithHardware(){
           break;
       }
       println("[5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
+      if(sdSetting != 0){
+        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+      }
       break;
     case 6:
       output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
-      openBCI.changeState(openBCI.STATE_NORMAL);
+      openBCI.changeState(openBCI.STATE_STOPPED);
       systemMode = 10;
       break; 
   }
@@ -517,7 +520,7 @@ void systemUpdate(){ // for updating data values and variables
 
   //if we are in SYNC WITH HARDWARE state ... trigger a command
   if(openBCI.state == openBCI.STATE_SYNCWITHHARDWARE && currentlySyncing == false){
-    if(millis() - timeOfLastCommand > 100 && readyToSend == true){
+    if(millis() - timeOfLastCommand > 200 && readyToSend == true){
       timeOfLastCommand = millis();
       hardwareSyncStep++;
       syncWithHardware();
@@ -534,7 +537,7 @@ void systemUpdate(){ // for updating data values and variables
   }
   
   if(systemMode == 10){
-    if (isRunning) {
+    // if (isRunning) {
       //get the data, if it is available
 
       pointCounter = getDataIfAvailable(pointCounter);
@@ -542,7 +545,7 @@ void systemUpdate(){ // for updating data values and variables
       //has enough data arrived to process it and update the GUI?
       if (pointCounter >= nPointsPerUpdate) {
         pointCounter = 0;  //reset for next time
-        
+  
         //process the data
         processNewData();
   
@@ -586,9 +589,10 @@ void systemUpdate(){ // for updating data values and variables
         redrawScreenNow=true;
       } 
       else {
-        //not enough data has arrived yet.  do nothing more
+        //not enough data has arrived yet... only update the channel controller
+        gui.cc.update(); //
       }
-    }
+    // }
     //make sure all system buttons are up to date
     updateButtons();
 
@@ -600,6 +604,9 @@ void systemUpdate(){ // for updating data values and variables
       initializeGUI();
     }
   }
+
+
+  // gui.cc.update();  
   controlPanel.update();
 }
 
