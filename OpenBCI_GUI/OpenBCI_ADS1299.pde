@@ -287,10 +287,8 @@ class OpenBCI_ADS1299 {
   /* **** Borrowed from Chris Viegl from his OpenBCI parser for BrainBay
   Modified by Joel Murphy and Conor Russomanno to read OpenBCI data
   Packet Parser for OpenBCI (1-N channel binary format):
-
   3-byte data values are stored in 'little endian' formant in AVRs
   so this protocol parser expects the lower bytes first.
-
   Start Indicator: 0xA0
   EXPECTING STANDARD PACKET LENGTH DON'T NEED: Packet_length  : 1 byte  (length = 4 bytes framenumber + 4 bytes per active channel + (optional) 4 bytes for 1 Aux value)
   Framenumber     : 1 byte (Sequential counter of packets)
@@ -501,6 +499,7 @@ class OpenBCI_ADS1299 {
     dataPacket.copyTo(target);
     return 0;
   }
+};
   
 //  int measurePacketLength() {
 //    
@@ -523,9 +522,3 @@ class OpenBCI_ADS1299 {
 //      //println("OpenBCI_ADS1299: measurePacketLength = " + (endInd-startInd+1));
 //      return endInd-startInd+1;
 //    }
-//  }
-      
-    
-};
-
-

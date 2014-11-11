@@ -194,6 +194,14 @@ class ChannelController {
 			text("SRB2", x2 + (w2/10)*7, y1 - 12);
 			text("SRB1", x2 + (w2/10)*9, y1 - 12);
 
+			//if mode is not from OpenBCI, draw a dark overlay to indicate that you cannot edit these settings
+			if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+				fill(0,0,0,200);
+				rect(x2,y2,w2,h2);
+				fill(255);
+				textSize(24);
+				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
+			}
 		}
 		popStyle();
 
@@ -201,7 +209,9 @@ class ChannelController {
 
 	public void mousePressed(){
 		//if fullChannelController and one of the buttons (other than ON/OFF) is clicked
-		// if(!isWritingChannel){
+
+		//if dataSource is coming from OpenBCI, allow user to interact with channel controller
+		if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
 			if(showFullController){
 				for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
 					for(int j = 1; j < numSettingsPerChannel; j++){		
@@ -213,12 +223,16 @@ class ChannelController {
 					}
 				}	
 			}
-			//on/off button and Imp buttons can always be clicked/released
-			for(int i = 0; i < nchan; i++){
-				if(channelSettingButtons[i][0].isMouseHere()){
-					channelSettingButtons[i][0].wasPressed = true;
-					channelSettingButtons[i][0].isActive = true;
-				}
+		}
+		//on/off button and Imp buttons can always be clicked/released
+		for(int i = 0; i < nchan; i++){
+			if(channelSettingButtons[i][0].isMouseHere()){
+				channelSettingButtons[i][0].wasPressed = true;
+				channelSettingButtons[i][0].isActive = true;
+			}
+
+			//only allow editing of impedance if dataSource == from OpenBCI
+			if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
 				if(impedanceCheckButtons[i][0].isMouseHere()){
 					impedanceCheckButtons[i][0].wasPressed = true;
 					impedanceCheckButtons[i][0].isActive = true;
@@ -228,7 +242,8 @@ class ChannelController {
 					impedanceCheckButtons[i][1].isActive = true;
 				}
 			}
-		// }
+		}
+
 	}
 
 	public void mouseReleased(){

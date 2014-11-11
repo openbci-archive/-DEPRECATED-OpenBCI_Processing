@@ -96,27 +96,43 @@ class ScatterTrace extends Blank2DTrace {
 
       //draw all the individual segments
       for (int Ichan = 0; Ichan < dataY.length; Ichan++) {
-        // switch (Ichan % 4) {
-        // case 0:
-        //   pr.canvas.stroke(0, 0, 255);  //set the new line's color;
-        //   break;
-        // case 1:
-        //   pr.canvas.stroke(255, 0, 0);  //set the new line's color;
-        //   break;
-        // case 2:
-        //   pr.canvas.stroke(0, 255, 0);  //set the new line's color;
-        //   break;
-        // case 3:
-        //   pr.canvas.stroke(64, 64, 64);  //set the new line's color;
-        //   break;
-        // }
+        
+        //if colorMode == 1 ...
+        switch (Ichan % 8) {
+        case 0:
+          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          break;
+        case 1:
+          pr.canvas.stroke(124, 75, 141);  //set the new line's color;
+          break;
+        case 2:
+          pr.canvas.stroke(54, 87, 158);  //set the new line's color;
+          break;
+        case 3:
+          pr.canvas.stroke(49, 113, 89);  //set the new line's color;
+          break;
+        case 4:
+          pr.canvas.stroke(221, 178, 13);  //set the new line's color;
+          break;
+        case 5:
+          pr.canvas.stroke(253, 94, 52);  //set the new line's color;
+          break;
+        case 6:
+          pr.canvas.stroke(224, 56, 45);  //set the new line's color;
+          break;
+        case 7:
+          pr.canvas.stroke(162, 82, 49);  //set the new line's color;
+          break;
+        }
+
+        //if colorMode == 2 ... for future dev work ... want to be able to edit colors of EEG montage traces
 
         // color _RGB = Color.HSBtoRGB(float((255/OpenBCI_Nchannels)*Ichan), 100.0f, 100.0f);
         // println("_RGB: " + _RGB);
         // pr.canvas.stroke(_RGB);
 
         // pr.canvas.stroke((int((255/OpenBCI_Nchannels)*Ichan)), 125-(int(((255/OpenBCI_Nchannels)*Ichan)/2)), 255-(int((255/OpenBCI_Nchannels)*Ichan)));
-        pr.canvas.stroke((int((255/nchan)*Ichan)), 125-(int(((255/nchan)*Ichan)/2)), 255-(int((255/nchan)*Ichan)));
+        // pr.canvas.stroke((int((255/nchan)*Ichan)), 125-(int(((255/nchan)*Ichan)/2)), 255-(int((255/nchan)*Ichan)));
 
         float new_x = pr.valToX(dataX[0]);  //first point, convert from data coordinates to pixel coordinates
         float new_y = pr.valToY(dataY[Ichan][0]*plotYScale+plotYOffset[Ichan]);  //first point, convert from data coordinates to pixel coordinate
@@ -257,23 +273,37 @@ class ScatterTrace_FFT extends Blank2DTrace {
 
         //draw all the individual segments
       for (int Ichan=0; Ichan < fftData.length; Ichan++) {
-        // switch (Ichan % 4) {
-        // case 0:
-        //   pr.canvas.stroke(0, 0, 255);  //set the new line's color;
-        //   break;
-        // case 1:
-        //   pr.canvas.stroke(255, 0, 0);  //set the new line's color;
-        //   break;
-        // case 2:
-        //   pr.canvas.stroke(0, 255, 0);  //set the new line's color;
-        //   break;
-        // case 3:
-        //   pr.canvas.stroke(64, 64, 64);  //set the new line's color;
-        //   break;
-        // }
+        //if colorMode == 1 ...
+        switch (Ichan % 8) {
+        case 0:
+          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          break;
+        case 1:
+          pr.canvas.stroke(124, 75, 141);  //set the new line's color;
+          break;
+        case 2:
+          pr.canvas.stroke(54, 87, 158);  //set the new line's color;
+          break;
+        case 3:
+          pr.canvas.stroke(49, 113, 89);  //set the new line's color;
+          break;
+        case 4:
+          pr.canvas.stroke(221, 178, 13);  //set the new line's color;
+          break;
+        case 5:
+          pr.canvas.stroke(253, 94, 52);  //set the new line's color;
+          break;
+        case 6:
+          pr.canvas.stroke(224, 56, 45);  //set the new line's color;
+          break;
+        case 7:
+          pr.canvas.stroke(162, 82, 49);  //set the new line's color;
+          break;
+        }
 
-        // pr.canvas.stroke((int((255/OpenBCI_Nchannels)*Ichan)), 125-(int(((255/OpenBCI_Nchannels)*Ichan)/2)), 255-(int((255/OpenBCI_Nchannels)*Ichan)));
-        pr.canvas.stroke((int((255/nchan)*Ichan)), 125-(int(((255/nchan)*Ichan)/2)), 255-(int((255/nchan)*Ichan)));
+        // //if colorMode == 2...
+        // // pr.canvas.stroke((int((255/OpenBCI_Nchannels)*Ichan)), 125-(int(((255/OpenBCI_Nchannels)*Ichan)/2)), 255-(int((255/OpenBCI_Nchannels)*Ichan)));
+        // pr.canvas.stroke((int((255/nchan)*Ichan)), 125-(int(((255/nchan)*Ichan)/2)), 255-(int((255/nchan)*Ichan)));
 
 
         float new_x = pr.valToX(fftData[Ichan].indexToFreq(0));  //first point, convert from data coordinates to pixel coordinates
