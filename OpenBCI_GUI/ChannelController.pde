@@ -349,8 +349,9 @@ class ChannelController {
 		channelSettingValues[_numChannel][3] = '0'; //make sure to disconnect from BIAS
 		channelSettingValues[_numChannel][4] = '0'; //make sure to disconnect from SRB2
 
-		//writeChannelSettings
-		initChannelWrite(_numChannel);//writeChannelSettings
+		// initChannelWrite(_numChannel);//writeChannelSettings
+		channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
+		serial_openBCI.write(command_deactivate_channel[_numChannel]);
 	}
 
 	public void powerUpChannel(int _numChannel){
@@ -359,7 +360,9 @@ class ChannelController {
 		channelSettingValues[_numChannel][3] = previousBIAS[_numChannel];
 		channelSettingValues[_numChannel][4] = previousSRB2[_numChannel];
 
-		initChannelWrite(_numChannel);//writeChannelSettings
+		// initChannelWrite(_numChannel);//writeChannelSettings
+		channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
+		serial_openBCI.write(command_activate_channel[_numChannel]);
 	}
 
 	public void initChannelWrite(int _numChannel){

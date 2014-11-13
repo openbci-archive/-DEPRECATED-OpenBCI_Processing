@@ -51,30 +51,119 @@ void parseKey(char val) {
     case '8':
       deactivateChannel(8-1); 
       break;
+
     case 'q':
-      activateChannel(1-1); 
+      if(nchan == 16){
+        println("doing this thing...");
+        deactivateChannel(9-1); 
+      }
       break;
     case 'w':
-      activateChannel(2-1); 
+      if(nchan == 16){
+        deactivateChannel(10-1); 
+      }
       break;
     case 'e':
-      activateChannel(3-1); 
+      if(nchan == 16){
+        deactivateChannel(11-1); 
+      }
       break;
     case 'r':
-      activateChannel(4-1); 
+      if(nchan == 16){
+        deactivateChannel(12-1); 
+      }
       break;
     case 't':
-      activateChannel(5-1); 
+      if(nchan == 16){
+        deactivateChannel(13-1); 
+      }
       break;
     case 'y':
-      activateChannel(6-1); 
+      if(nchan == 16){
+        deactivateChannel(14-1); 
+      }
       break;
     case 'u':
-      activateChannel(7-1); 
+      if(nchan == 16){
+        deactivateChannel(15-1); 
+      }
       break;
     case 'i':
-      activateChannel(8-1); 
+      if(nchan == 16){
+        deactivateChannel(16-1); 
+      }
       break;
+      
+    //activate channels 1-8
+    case '!':
+      activateChannel(1-1);
+      break;
+    case '@':
+      activateChannel(2-1);
+      break;
+    case '#':
+      activateChannel(3-1);
+      break;
+    case '$':
+      activateChannel(4-1);
+      break;
+    case '%':
+      activateChannel(5-1);
+      break;
+    case '^':
+      activateChannel(6-1);
+      break;
+    case '&':
+      activateChannel(7-1);
+      break;
+    case '*':
+      activateChannel(8-1);
+      break;
+      
+    //activate channels 9-16 (DAISY MODE ONLY)
+    case 'Q':
+      if(nchan == 16){
+        println("doing this thing...");
+        activateChannel(9-1);
+      }
+      break;
+    case 'W':
+      if(nchan == 16){
+        activateChannel(10-1);
+      }
+      break;
+    case 'E':
+      if(nchan == 16){
+        activateChannel(11-1);
+      }
+      break;
+    case 'R':
+      if(nchan == 16){
+        activateChannel(12-1);
+      }
+      break;
+    case 'T':
+      if(nchan == 16){
+        activateChannel(13-1);
+      }
+      break;
+    case 'Y':
+      if(nchan == 16){
+        activateChannel(14-1);
+      }
+      break;
+    case 'U':
+      if(nchan == 16){
+        activateChannel(15-1);
+      }
+      break;
+    case 'I':
+      if(nchan == 16){
+        activateChannel(16-1);
+      }
+      break;
+
+    //other controls
     case 's':
       println("case s...");
       stopRunning();
@@ -93,110 +182,57 @@ void parseKey(char val) {
       printRegisters();
       break;
       
-    //change the state of the impedance measurements...activate the P-channels
-    case '!':
-      Ichan = 1; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '@':
-      Ichan = 2; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '#':
-      Ichan = 3; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '$':
-      Ichan = 4; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '%':
-      Ichan = 5; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '^':
-      Ichan = 6; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '&':
-      Ichan = 7; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '*':
-      Ichan = 8; activate = true; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
+    // //change the state of the impedance measurements...activate the N-channels
+    // case 'A':
+    //   Ichan = 1; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'S':
+    //   Ichan = 2; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'D':
+    //   Ichan = 3; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'F':
+    //   Ichan = 4; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'G':
+    //   Ichan = 5; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'H':
+    //   Ichan = 6; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'J':
+    //   Ichan = 7; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'K':
+    //   Ichan = 8; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
       
-    //change the state of the impedance measurements...deactivate the P-channels
-    case 'Q':
-      Ichan = 1; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'W':
-      Ichan = 2; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'E':
-      Ichan = 3; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'R':
-      Ichan = 4; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'T':
-      Ichan = 5; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'Y':
-      Ichan = 6; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'U':
-      Ichan = 7; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'I':
-      Ichan = 8; activate = false; code_P_N_Both = 0;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-      
-      
-    //change the state of the impedance measurements...activate the N-channels
-    case 'A':
-      Ichan = 1; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'S':
-      Ichan = 2; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'D':
-      Ichan = 3; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'F':
-      Ichan = 4; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'G':
-      Ichan = 5; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'H':
-      Ichan = 6; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'J':
-      Ichan = 7; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'K':
-      Ichan = 8; activate = true; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-      
-    //change the state of the impedance measurements...deactivate the N-channels
-    case 'Z':
-      Ichan = 1; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'X':
-      Ichan = 2; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'C':
-      Ichan = 3; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'V':
-      Ichan = 4; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'B':
-      Ichan = 5; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'N':
-      Ichan = 6; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case 'M':
-      Ichan = 7; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
-    case '<':
-      Ichan = 8; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
-      break;
+    // //change the state of the impedance measurements...deactivate the N-channels
+    // case 'Z':
+    //   Ichan = 1; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'X':
+    //   Ichan = 2; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'C':
+    //   Ichan = 3; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'V':
+    //   Ichan = 4; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'B':
+    //   Ichan = 5; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'N':
+    //   Ichan = 6; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case 'M':
+    //   Ichan = 7; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
+    // case '<':
+    //   Ichan = 8; activate = false; code_P_N_Both = 1;  setChannelImpedanceState(Ichan-1,activate,code_P_N_Both);
+    //   break;
 
       
     case 'm':

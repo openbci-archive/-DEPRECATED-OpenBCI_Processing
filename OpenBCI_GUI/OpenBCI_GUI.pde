@@ -308,7 +308,7 @@ void initSystem(){
   initializeGUI();
   
   //final config
-  setBiasState(openBCI.isBiasAuto);
+  // setBiasState(openBCI.isBiasAuto);
   verbosePrint("-- Init 4 --");
 
   //open data file
@@ -933,20 +933,21 @@ void mousePressed() {
           
           break;
         case Gui_Manager.GUI_PAGE_IMPEDANCE_CHECK:
-          //check the impedance buttons
-          for (int Ibut = 0; Ibut < gui.impedanceButtonsP.length; Ibut++) {
-            if (gui.impedanceButtonsP[Ibut].isMouseHere()) { 
-              toggleChannelImpedanceState(gui.impedanceButtonsP[Ibut],Ibut,0);
-            }
-            if (gui.impedanceButtonsN[Ibut].isMouseHere()) { 
-              toggleChannelImpedanceState(gui.impedanceButtonsN[Ibut],Ibut,1);
-            }
-          }
-          if (gui.biasButton.isMouseHere()) { 
-            gui.biasButton.setIsActive(true);
-            setBiasState(!openBCI.isBiasAuto);
-          }      
-          break;
+          // ============ DEPRECATED ============== //
+          // //check the impedance buttons
+          // for (int Ibut = 0; Ibut < gui.impedanceButtonsP.length; Ibut++) {
+          //   if (gui.impedanceButtonsP[Ibut].isMouseHere()) { 
+          //     toggleChannelImpedanceState(gui.impedanceButtonsP[Ibut],Ibut,0);
+          //   }
+          //   if (gui.impedanceButtonsN[Ibut].isMouseHere()) { 
+          //     toggleChannelImpedanceState(gui.impedanceButtonsN[Ibut],Ibut,1);
+          //   }
+          // }
+          // if (gui.biasButton.isMouseHere()) { 
+          //   gui.biasButton.setIsActive(true);
+          //   setBiasState(!openBCI.isBiasAuto);
+          // }      
+          // break;
         case Gui_Manager.GUI_PAGE_HEADPLOT_SETUP:
           if (gui.intensityFactorButton.isMouseHere()) {
             gui.intensityFactorButton.setIsActive(true);
@@ -1223,14 +1224,14 @@ boolean isChannelActive(int Ichan) {
 //activateChannel: Ichan is [0 nchan-1] (aka zero referenced)
 void activateChannel(int Ichan) {
   println("OpenBCI_GUI: activating channel " + (Ichan+1));
-  // if (openBCI != null) openBCI.changeChannelState(Ichan, true); //activate
+  if (openBCI != null) openBCI.changeChannelState(Ichan, true); //activate
   if(openBCI != null) 
   if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
 
 }  
 void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
-  // if (openBCI != null) openBCI.changeChannelState(Ichan, false); //de-activate
+  if (openBCI != null) openBCI.changeChannelState(Ichan, false); //de-activate
 
   if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
 }
@@ -1246,48 +1247,54 @@ void deactivateChannel(int Ichan) {
 //  gui.setShowSpectrogram(gui.spectrogramButton.isActive());
 //
 
-void toggleChannelImpedanceState(Button but, int Ichan, int code_P_N_Both) {
-  boolean newstate = false;
-  println("OpenBCI_GUI: toggleChannelImpedanceState: Ichan " + Ichan + ", code_P_N_Both " + code_P_N_Both);
-  if ((Ichan >= 0) && (Ichan < gui.impedanceButtonsP.length)) {
 
-    //find what state we were, because that sets what state we need
-    newstate = !(but.isActive()); //toggle the state
 
-    //set the desired impedance state
-    setChannelImpedanceState(Ichan,newstate,code_P_N_Both);
-  }
-}
-void setChannelImpedanceState(int Ichan,boolean newstate,int code_P_N_Both) {
-  if ((Ichan >= 0) && (Ichan < gui.impedanceButtonsP.length)) {
-    //change the state of the OpenBCI channel itself
-    if (openBCI != null) openBCI.changeImpedanceState(Ichan,newstate,code_P_N_Both);
+// void toggleChannelImpedanceState(Button but, int Ichan, int code_P_N_Both) {
+//   boolean newstate = false;
+//   println("OpenBCI_GUI: toggleChannelImpedanceState: Ichan " + Ichan + ", code_P_N_Both " + code_P_N_Both);
+//   if ((Ichan >= 0) && (Ichan < gui.impedanceButtonsP.length)) {
+
+//     //find what state we were, because that sets what state we need
+//     newstate = !(but.isActive()); //toggle the state
+
+//     //set the desired impedance state
+//     setChannelImpedanceState(Ichan,newstate,code_P_N_Both);
+//   }
+// }
+
+
+// ========= DEPRECATED =========== //
+// void setChannelImpedanceState(int Ichan,boolean newstate,int code_P_N_Both) {
+//   if ((Ichan >= 0) && (Ichan < gui.impedanceButtonsP.length)) {
+//     //change the state of the OpenBCI channel itself
+//     if (openBCI != null) openBCI.changeImpedanceState(Ichan,newstate,code_P_N_Both);
     
-    //now update the button state
-    if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
-      //set the P channel
-      gui.impedanceButtonsP[Ichan].setIsActive(newstate);
-    } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
-      //set the N channel
-      gui.impedanceButtonsN[Ichan].setIsActive(newstate);
-    }
-  }
-}
+//     //now update the button state
+//     if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
+//       //set the P channel
+//       gui.impedanceButtonsP[Ichan].setIsActive(newstate);
+//     } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
+//       //set the N channel
+//       gui.impedanceButtonsN[Ichan].setIsActive(newstate);
+//     }
+//   }
+// }
 
-void setBiasState(boolean state) {
-  openBCI.isBiasAuto = state;
+
+//=========== DEPRECATED w/ CHANNEL CONTROLLER ===========//
+// void setBiasState(boolean state) {
+//   openBCI.isBiasAuto = state;
   
-  //send message to openBCI
-  if (openBCI != null) openBCI.setBiasAutoState(state);
+//   //send message to openBCI
+//   if (openBCI != null) openBCI.setBiasAutoState(state);
   
-  //change button text
-  if (openBCI.isBiasAuto) {
-    gui.biasButton.but_txt = "Bias\nAuto";
-  } else {
-    gui.biasButton.but_txt = "Bias\nFixed";
-  }
-  
-}
+//   //change button text
+//   if (openBCI.isBiasAuto) {
+//     gui.biasButton.but_txt = "Bias\nAuto";
+//   } else {
+//     gui.biasButton.but_txt = "Bias\nFixed";
+//   }
+// }
 
 void openNewLogFile(String _fileName) {
   //close the file if it's open
