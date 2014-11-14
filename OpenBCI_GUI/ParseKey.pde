@@ -175,7 +175,7 @@ void parseKey(char val) {
       // stopButtonWasPressed();
       break;
     case 'n':
-      println(openBCI.state);
+      println("openBCI: " + openBCI);
       break;
 
     case '?':
