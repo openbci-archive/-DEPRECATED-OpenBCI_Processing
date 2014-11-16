@@ -22,18 +22,24 @@ import java.io.OutputStream; //for logging raw bytes to an output file
 final String command_stop = "s";
 // final String command_startText = "x";
 final String command_startBinary = "b";
-final String command_startBinary_wAux = "n";
-final String command_startBinary_4chan = "v";
-final String command_activateFilters = "F";
-final String command_deactivateFilters = "g";
+final String command_startBinary_wAux = "n";  // already doing this with 'b' now
+final String command_startBinary_4chan = "v";  // not necessary now
+final String command_activateFilters = "f";  // swithed from 'F' to 'f'  ... but not necessary because taken out of hardware code
+final String command_deactivateFilters = "g";  // not necessary anymore 
+
 final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8"};
-final String[] command_activate_channel = {"q", "w", "e", "r", "t", "y", "u", "i"};
-final String[] command_activate_leadoffP_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};  //shift + 1-8
-final String[] command_deactivate_leadoffP_channel = {"Q", "W", "E", "R", "T", "Y", "U", "I"};   //letters (plus shift) right below 1-8
-final String[] command_activate_leadoffN_channel = {"A", "S", "D", "F", "G", "H", "J", "K"}; //letters (plus shift) below the letters below 1-8
-final String[] command_deactivate_leadoffN_channel = {"Z", "X", "C", "V", "B", "N", "M", "<"};   //letters (plus shift) below the letters below the letters below 1-8
-final String command_biasAuto = "`";
-final String command_biasFixed = "~";
+final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};
+
+final String[] command_deactivate_channel_daisy = {"q", "w", "e", "r", "t", "y", "u", "i"};
+final String[] command_activate_channel_daisy = {"Q", "W", "E", "R", "T", "Y", "U", "I"};
+
+//everything below is now deprecated...
+// final String[] command_activate_leadoffP_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};  //shift + 1-8
+// final String[] command_deactivate_leadoffP_channel = {"Q", "W", "E", "R", "T", "Y", "U", "I"};   //letters (plus shift) right below 1-8
+// final String[] command_activate_leadoffN_channel = {"A", "S", "D", "F", "G", "H", "J", "K"}; //letters (plus shift) below the letters below 1-8
+// final String[] command_deactivate_leadoffN_channel = {"Z", "X", "C", "V", "B", "N", "M", "<"};   //letters (plus shift) below the letters below the letters below 1-8
+// final String command_biasAuto = "`";
+// final String command_biasFixed = "~";
 
 // ArrayList defaultChannelSettings;
 
@@ -287,10 +293,8 @@ class OpenBCI_ADS1299 {
   /* **** Borrowed from Chris Viegl from his OpenBCI parser for BrainBay
   Modified by Joel Murphy and Conor Russomanno to read OpenBCI data
   Packet Parser for OpenBCI (1-N channel binary format):
-
   3-byte data values are stored in 'little endian' formant in AVRs
   so this protocol parser expects the lower bytes first.
-
   Start Indicator: 0xA0
   EXPECTING STANDARD PACKET LENGTH DON'T NEED: Packet_length  : 1 byte  (length = 4 bytes framenumber + 4 bytes per active channel + (optional) 4 bytes for 1 Aux value)
   Framenumber     : 1 byte (Sequential counter of packets)
@@ -405,9 +409,11 @@ class OpenBCI_ADS1299 {
     if (serial_openBCI != null) {
       if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
         if (activate) {
-          serial_openBCI.write(command_activate_channel[Ichan]);
+          // serial_openBCI.write(command_activate_channel[Ichan]);
+          gui.cc.powerUpChannel(Ichan);
         } else {
-          serial_openBCI.write(command_deactivate_channel[Ichan]);
+          // serial_openBCI.write(command_deactivate_channel[Ichan]);
+          gui.cc.powerDownChannel(Ichan);
         }
       }
     }
@@ -431,42 +437,43 @@ class OpenBCI_ADS1299 {
     }
   }
   
-  public void changeImpedanceState(int Ichan,boolean activate,int code_P_N_Both) {
-    //println("OpenBCI_ADS1299: changeImpedanceState: Ichan " + Ichan + ", activate " + activate + ", code_P_N_Both " + code_P_N_Both);
-    if (serial_openBCI != null) {
-      if ((Ichan >= 0) && (Ichan < command_activate_leadoffP_channel.length)) {
-        if (activate) {
-          if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
-            //activate the P channel
-            serial_openBCI.write(command_activate_leadoffP_channel[Ichan]);
-          } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
-            //activate the N channel
-            serial_openBCI.write(command_activate_leadoffN_channel[Ichan]);
-          }
-        } else {
-          if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
-            //deactivate the P channel
-            serial_openBCI.write(command_deactivate_leadoffP_channel[Ichan]);
-          } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
-            //deactivate the N channel
-            serial_openBCI.write(command_deactivate_leadoffN_channel[Ichan]);
-          }          
-        }
-      }
-    }
-  }
+  // ---- DEPRECATED ---- 
+  // public void changeImpedanceState(int Ichan,boolean activate,int code_P_N_Both) {
+  //   //println("OpenBCI_ADS1299: changeImpedanceState: Ichan " + Ichan + ", activate " + activate + ", code_P_N_Both " + code_P_N_Both);
+  //   if (serial_openBCI != null) {
+  //     if ((Ichan >= 0) && (Ichan < command_activate_leadoffP_channel.length)) {
+  //       if (activate) {
+  //         if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
+  //           //activate the P channel
+  //           serial_openBCI.write(command_activate_leadoffP_channel[Ichan]);
+  //         } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
+  //           //activate the N channel
+  //           serial_openBCI.write(command_activate_leadoffN_channel[Ichan]);
+  //         }
+  //       } else {
+  //         if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
+  //           //deactivate the P channel
+  //           serial_openBCI.write(command_deactivate_leadoffP_channel[Ichan]);
+  //         } else if ((code_P_N_Both == 1) || (code_P_N_Both == 2)) {
+  //           //deactivate the N channel
+  //           serial_openBCI.write(command_deactivate_leadoffN_channel[Ichan]);
+  //         }          
+  //       }
+  //     }
+  //   }
+  // }
   
-  public void setBiasAutoState(boolean isAuto) {
-    if (serial_openBCI != null) {
-      if (isAuto) {
-        println("OpenBCI_ADS1299: setBiasAutoState: setting bias to AUTO");
-        serial_openBCI.write(command_biasAuto);
-      } else {
-        println("OpenBCI_ADS1299: setBiasAutoState: setting bias to REF ONLY");
-        serial_openBCI.write(command_biasFixed);
-      }
-    }
-  }
+  // public void setBiasAutoState(boolean isAuto) {
+  //   if (serial_openBCI != null) {
+  //     if (isAuto) {
+  //       println("OpenBCI_ADS1299: setBiasAutoState: setting bias to AUTO");
+  //       serial_openBCI.write(command_biasAuto);
+  //     } else {
+  //       println("OpenBCI_ADS1299: setBiasAutoState: setting bias to REF ONLY");
+  //       serial_openBCI.write(command_biasFixed);
+  //     }
+  //   }
+  // }
   
   private int interpret24bitAsInt32(byte[] byteArray) {     
     //little endian
@@ -501,6 +508,7 @@ class OpenBCI_ADS1299 {
     dataPacket.copyTo(target);
     return 0;
   }
+};
   
 //  int measurePacketLength() {
 //    
@@ -523,9 +531,3 @@ class OpenBCI_ADS1299 {
 //      //println("OpenBCI_ADS1299: measurePacketLength = " + (endInd-startInd+1));
 //      return endInd-startInd+1;
 //    }
-//  }
-      
-    
-};
-
-

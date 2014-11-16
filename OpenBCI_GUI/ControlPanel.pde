@@ -283,6 +283,7 @@ class ControlPanel {
 
 	//mouse released in control panel
 	public void CPmouseReleased(){
+		verbosePrint("CPMouseReleased");
 		if(initSystemButton.isMouseHere() && initButtonPressed){
 
 			//if system is not active ... initate system and flip button state
