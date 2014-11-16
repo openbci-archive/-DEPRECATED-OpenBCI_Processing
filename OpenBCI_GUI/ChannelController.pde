@@ -1,3 +1,22 @@
+
+
+//these arrays of channel values need to be global so that they don't reset on screen resize, when GUI reinitializes (there's definitely a more efficient way to do this...)
+int numSettingsPerChannel = 6; //each channel has 6 different settings
+char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+char[][] impedanceCheckValues = new char [nchan][2];
+
+// color[] channelColors = new color[16];
+color[] channelColors = {
+	color(129, 113, 87), 
+	color(124, 75, 141), 
+	color(54, 87, 158), 
+	color(49, 113, 89),
+	color(221, 178, 13),
+	color(253, 94, 52),
+	color(224, 56, 45),
+	color(162, 82, 49)
+};
+
 class ChannelController {
 
 	public float x1, y1, w1, h1, x2, y2, w2, h2; //all 1 values refer to the left panel that is always visible ... al 2 values refer to the right panel that is only visible when showFullController = true
@@ -9,15 +28,13 @@ class ChannelController {
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
 
-	int numSettingsPerChannel = 6; //each channel has 6 different settings
-
 	// [Number of Channels] x 6 array of buttons for channel settings
 	Button[][] channelSettingButtons = new Button [nchan][numSettingsPerChannel];  // [channel#][Button#]
-	char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+	// char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
 
 	//buttons just to the left of 
 	Button[][] impedanceCheckButtons = new Button [nchan][2];
-	char [][] impedanceCheckValues = new char [nchan][2];
+	// char [][] impedanceCheckValues = new char [nchan][2];
 
 	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
 	char[] previousSRB2 = new char [nchan];
@@ -68,6 +85,11 @@ class ChannelController {
 		h2 = h1;
 
 		createChannelSettingButtons();
+
+		// set on/off buttons to default channel colors
+		for(int i = 0; i < nchan; i++){
+			channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);
+		}
 	}
 
 	public void loadDefaultChannelSettings(){
@@ -94,7 +116,7 @@ class ChannelController {
 			for(int j = 0; j < numSettingsPerChannel; j++){		
 				switch(j){  //what setting are we looking at
 					case 0: //on/off ??
-						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(color(255));// power down == false, set color to vibrant
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
 					case 1: //GAIN ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
@@ -303,11 +325,13 @@ class ChannelController {
 				if(channelSettingValues[i][0] < maxValuesPerSetting[0]){
 					channelSettingValues[i][0] = '1';	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
 					// channelSettingButtons[i][0].setColorNotPressed(color(25,25,25));
-					powerDownChannel(i);
+					// powerDownChannel(i);
+					deactivateChannel(i);
 				} else {
 					channelSettingValues[i][0] = '0';
 					// channelSettingButtons[i][0].setColorNotPressed(color(255));
-					powerUpChannel(i);
+					// powerUpChannel(i);
+					activateChannel(i);
 				}
 				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
 			}

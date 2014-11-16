@@ -163,7 +163,7 @@ HelpWidget helpWidget;
 //file writing variables
 OutputFile_rawtxt fileoutput;
 String output_fname;
-String fileName = "";
+String fileName = "N/A";
 
 //serial port open or closed(?)
 boolean portIsOpen = false;
@@ -540,6 +540,8 @@ public void initializeGUI(){
   println("5");
   gui.setDecimateFactor(2);
   println("6");
+  // gui.cc.loadDefaultChannelSettings();
+  println("7");
 }
 
 //======================== DRAW LOOP =============================//
@@ -579,7 +581,7 @@ public void systemUpdate(){ // for updating data values and variables
   }
   
   if(systemMode == 10){
-    // if (isRunning) {
+    if (isRunning) {
       //get the data, if it is available
 
       pointCounter = getDataIfAvailable(pointCounter);
@@ -634,7 +636,7 @@ public void systemUpdate(){ // for updating data values and variables
         //not enough data has arrived yet... only update the channel controller
         gui.cc.update(); //
       }
-    // }
+    }
     //make sure all system buttons are up to date
     updateButtons();
 
@@ -644,6 +646,7 @@ public void systemUpdate(){ // for updating data values and variables
       println("reinitializing GUI");
       timeOfGUIreinitialize = millis();
       initializeGUI();
+      // gui.cc.loadDefaultChannelSettings();
     }
   }
 
@@ -1122,31 +1125,24 @@ public void printRegisters(){
 
 public void stopRunning() {
     // openBCI.changeState(0); //make sure it's no longer interpretting as binary
-
+    verbosePrint("stopRunning...");
+    output("Data stream stopped.");
     if (openBCI != null) {
       openBCI.stopDataTransfer();
     }
-
     isRunning = false;
     // openBCI.changeState(0); //make sure it's no longer interpretting as binary
     // systemMode = 0;
-
     // closeLogFile();
 }
 
 public void startRunning() {
-    // if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) openNewLogFile();  //open a new log file
-    // println("OpenBCI_GUI: startDataTransfer...");
-    // println("OpenBCI_GUI: eegDataSource = " + eegDataSource);
-    // println("OpenBCI_GUI: isRunning = true");
-    // if (openBCI != null) openBCI.startDataTransfer(); //use whatever was the previous data transfer mode (TXT vs BINARY)
-
+    verbosePrint("startRunning...");
+    output("Data stream started.");
     if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
       if (openBCI != null) openBCI.startDataTransfer();
     }
     isRunning = true;
-    // openBCI.changeState(2);  // make sure it's now interpretting as binary
-    // systemMode = 10;
 }
 
 //execute this function whenver the stop button is pressed
@@ -1266,16 +1262,29 @@ public boolean isChannelActive(int Ichan) {
 //activateChannel: Ichan is [0 nchan-1] (aka zero referenced)
 public void activateChannel(int Ichan) {
   println("OpenBCI_GUI: activating channel " + (Ichan+1));
-  if (openBCI != null) openBCI.changeChannelState(Ichan, true); //activate
-  if(openBCI != null) 
-  if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
-
+  if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
+    if (serial_openBCI != null){
+      verbosePrint("**");
+      openBCI.changeChannelState(Ichan, true); //activate
+    }
+  }
+  if (Ichan < gui.chanButtons.length){
+    gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
+    gui.cc.channelSettingButtons[Ichan][0].isActive = false; 
+  }
 }  
 public void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
-  if (openBCI != null) openBCI.changeChannelState(Ichan, false); //de-activate
-
-  if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
+  if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
+    if (serial_openBCI != null) {
+      verbosePrint("***");
+      openBCI.changeChannelState(Ichan, false); //de-activate
+    }
+  }
+  if (Ichan < gui.chanButtons.length) {
+    gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
+    gui.cc.channelSettingButtons[Ichan][0].isActive = true; 
+  }
 }
 
 //void toggleDetectionState() {
@@ -1607,6 +1616,25 @@ class Button {
 
 
 
+
+
+//these arrays of channel values need to be global so that they don't reset on screen resize, when GUI reinitializes (there's definitely a more efficient way to do this...)
+int numSettingsPerChannel = 6; //each channel has 6 different settings
+char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+char[][] impedanceCheckValues = new char [nchan][2];
+
+// color[] channelColors = new color[16];
+int[] channelColors = {
+	color(129, 113, 87), 
+	color(124, 75, 141), 
+	color(54, 87, 158), 
+	color(49, 113, 89),
+	color(221, 178, 13),
+	color(253, 94, 52),
+	color(224, 56, 45),
+	color(162, 82, 49)
+};
+
 class ChannelController {
 
 	public float x1, y1, w1, h1, x2, y2, w2, h2; //all 1 values refer to the left panel that is always visible ... al 2 values refer to the right panel that is only visible when showFullController = true
@@ -1618,15 +1646,13 @@ class ChannelController {
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
 
-	int numSettingsPerChannel = 6; //each channel has 6 different settings
-
 	// [Number of Channels] x 6 array of buttons for channel settings
 	Button[][] channelSettingButtons = new Button [nchan][numSettingsPerChannel];  // [channel#][Button#]
-	char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+	// char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
 
 	//buttons just to the left of 
 	Button[][] impedanceCheckButtons = new Button [nchan][2];
-	char [][] impedanceCheckValues = new char [nchan][2];
+	// char [][] impedanceCheckValues = new char [nchan][2];
 
 	// Array for storing SRB2 history settings of channels prior to shutting off .. so you can return to previous state when reactivating channel
 	char[] previousSRB2 = new char [nchan];
@@ -1677,6 +1703,11 @@ class ChannelController {
 		h2 = h1;
 
 		createChannelSettingButtons();
+
+		// set on/off buttons to default channel colors
+		for(int i = 0; i < nchan; i++){
+			channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);
+		}
 	}
 
 	public void loadDefaultChannelSettings(){
@@ -1703,7 +1734,7 @@ class ChannelController {
 			for(int j = 0; j < numSettingsPerChannel; j++){		
 				switch(j){  //what setting are we looking at
 					case 0: //on/off ??
-						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(color(255));// power down == false, set color to vibrant
+						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
 					case 1: //GAIN ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
@@ -1912,11 +1943,13 @@ class ChannelController {
 				if(channelSettingValues[i][0] < maxValuesPerSetting[0]){
 					channelSettingValues[i][0] = '1';	//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
 					// channelSettingButtons[i][0].setColorNotPressed(color(25,25,25));
-					powerDownChannel(i);
+					// powerDownChannel(i);
+					deactivateChannel(i);
 				} else {
 					channelSettingValues[i][0] = '0';
 					// channelSettingButtons[i][0].setColorNotPressed(color(255));
-					powerUpChannel(i);
+					// powerUpChannel(i);
+					activateChannel(i);
 				}
 				// writeChannelSettings(i);//write new ADS1299 channel row values to OpenBCI
 			}

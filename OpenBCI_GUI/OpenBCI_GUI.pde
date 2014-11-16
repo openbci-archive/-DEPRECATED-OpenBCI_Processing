@@ -121,7 +121,7 @@ HelpWidget helpWidget;
 //file writing variables
 OutputFile_rawtxt fileoutput;
 String output_fname;
-String fileName = "";
+String fileName = "N/A";
 
 //serial port open or closed(?)
 boolean portIsOpen = false;
@@ -498,6 +498,8 @@ void initializeGUI(){
   println("5");
   gui.setDecimateFactor(2);
   println("6");
+  // gui.cc.loadDefaultChannelSettings();
+  println("7");
 }
 
 //======================== DRAW LOOP =============================//
@@ -537,7 +539,7 @@ void systemUpdate(){ // for updating data values and variables
   }
   
   if(systemMode == 10){
-    // if (isRunning) {
+    if (isRunning) {
       //get the data, if it is available
 
       pointCounter = getDataIfAvailable(pointCounter);
@@ -592,7 +594,7 @@ void systemUpdate(){ // for updating data values and variables
         //not enough data has arrived yet... only update the channel controller
         gui.cc.update(); //
       }
-    // }
+    }
     //make sure all system buttons are up to date
     updateButtons();
 
@@ -602,6 +604,7 @@ void systemUpdate(){ // for updating data values and variables
       println("reinitializing GUI");
       timeOfGUIreinitialize = millis();
       initializeGUI();
+      // gui.cc.loadDefaultChannelSettings();
     }
   }
 
@@ -1080,31 +1083,24 @@ void printRegisters(){
 
 void stopRunning() {
     // openBCI.changeState(0); //make sure it's no longer interpretting as binary
-
+    verbosePrint("stopRunning...");
+    output("Data stream stopped.");
     if (openBCI != null) {
       openBCI.stopDataTransfer();
     }
-
     isRunning = false;
     // openBCI.changeState(0); //make sure it's no longer interpretting as binary
     // systemMode = 0;
-
     // closeLogFile();
 }
 
 void startRunning() {
-    // if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) openNewLogFile();  //open a new log file
-    // println("OpenBCI_GUI: startDataTransfer...");
-    // println("OpenBCI_GUI: eegDataSource = " + eegDataSource);
-    // println("OpenBCI_GUI: isRunning = true");
-    // if (openBCI != null) openBCI.startDataTransfer(); //use whatever was the previous data transfer mode (TXT vs BINARY)
-
+    verbosePrint("startRunning...");
+    output("Data stream started.");
     if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
       if (openBCI != null) openBCI.startDataTransfer();
     }
     isRunning = true;
-    // openBCI.changeState(2);  // make sure it's now interpretting as binary
-    // systemMode = 10;
 }
 
 //execute this function whenver the stop button is pressed
@@ -1224,16 +1220,29 @@ boolean isChannelActive(int Ichan) {
 //activateChannel: Ichan is [0 nchan-1] (aka zero referenced)
 void activateChannel(int Ichan) {
   println("OpenBCI_GUI: activating channel " + (Ichan+1));
-  if (openBCI != null) openBCI.changeChannelState(Ichan, true); //activate
-  if(openBCI != null) 
-  if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
-
+  if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
+    if (serial_openBCI != null){
+      verbosePrint("**");
+      openBCI.changeChannelState(Ichan, true); //activate
+    }
+  }
+  if (Ichan < gui.chanButtons.length){
+    gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
+    gui.cc.channelSettingButtons[Ichan][0].isActive = false; 
+  }
 }  
 void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
-  if (openBCI != null) openBCI.changeChannelState(Ichan, false); //de-activate
-
-  if (Ichan < gui.chanButtons.length) gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
+  if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
+    if (serial_openBCI != null) {
+      verbosePrint("***");
+      openBCI.changeChannelState(Ichan, false); //de-activate
+    }
+  }
+  if (Ichan < gui.chanButtons.length) {
+    gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
+    gui.cc.channelSettingButtons[Ichan][0].isActive = true; 
+  }
 }
 
 //void toggleDetectionState() {
