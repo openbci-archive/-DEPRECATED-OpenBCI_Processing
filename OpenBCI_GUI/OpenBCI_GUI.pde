@@ -339,6 +339,10 @@ long timeOfLastCommand = 0;
 
 void syncWithHardware(){
   switch (hardwareSyncStep) {
+    // case 1:
+    //   println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    //   serial_openBCI.write('v');
+    //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
     case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
       println("[1] Sending channel count (" + nchan + ") to OpenBCI...");
       if(nchan == 8){
@@ -363,7 +367,7 @@ void syncWithHardware(){
       serial_openBCI.write("?"); 
       break;
     case 5:
-      serial_openBCI.write('j'); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
+      // serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
       switch (sdSetting){
         case 0: //"Do not write to SD"
           //do nothing
@@ -426,7 +430,9 @@ void haltSystem(){
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)){
     closeLogFile();  //close log file
     if (serial_openBCI != null){
-      serial_openBCI.write('j'); // tell the SD file to close if one is open...
+      println("Closing any open SD file. Writing 'j' to OpenBCI.");
+      serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
       hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
@@ -470,6 +476,10 @@ void systemUpdate(){ // for updating data values and variables
   if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
     openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
     timeOfLastCommand = millis();
+    serial_openBCI.clear();
+    openBCI.defaultChannelSettings = "";
+    println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    serial_openBCI.write('v');
   }
 
   //if we are in SYNC WITH HARDWARE state ... trigger a command
@@ -621,7 +631,7 @@ void systemDraw(){ //for drawing to the screen
       output("");
     }
 
-    if(millis() - timeOfInit > 10000){
+    if(millis() - timeOfInit > 12000){
       haltSystem();
       initSystemButton.but_txt = "START SYSTEM";
       output("Init timeout. Verify your Serial/COM Port. Power DOWN/UP your OpenBCI & USB Dongle. Then retry Initialization.");

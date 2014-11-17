@@ -40,7 +40,6 @@ import java.io.IOException;
 
 public class OpenBCI_GUI extends PApplet {
 
-
 ///////////////////////////////////////////////
 //
 // GUI for controlling the ADS1299-based OpenBCI
@@ -102,11 +101,16 @@ int nextPlayback_millis = -100; //any negative number
 
 // boolean printingRegisters = false;
 
+long timeOfInit;
+long timeSinceStopRunning = 1000;
+
 //other data fields
 float dataBuffX[];
 float dataBuffY_uV[][]; //2D array to handle multiple data channels, each row is a new channel so that dataBuffY[3][] is channel 4
 float dataBuffY_filtY_uV[][];
 float data_elec_imp_ohm[];
+
+int bgColor = color(1, 18, 41);
 
 //SD Card setting (if eegDataSource == 0)
 int sdSetting = 0; //0 = do not write; 1 = 5 min; 2 = 15 min; 3 = 30 min; etc...
@@ -134,7 +138,6 @@ EEG_Processing_User eegProcessing_user;
 //fft constants
 int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
 
-//
 FFT fftBuff[] = new FFT[nchan];   //from the minim library
 float[] smoothFac = new float[]{0.75f, 0.9f, 0.95f, 0.98f, 0.0f, 0.5f};
 final int N_SMOOTHEFAC = 6;
@@ -222,6 +225,8 @@ public void initializeFFTObjects(FFT[] fftBuff, float[][] dataBuffY_uV, int N, f
 int win_x = 1024;  //window width
 int win_y = 768; //window height
 
+PImage logo;
+
 //========================SETUP============================//
 //========================SETUP============================//
 //========================SETUP============================//
@@ -262,6 +267,8 @@ public void setup() {
   controlPanelCollapser.makeDropdownButton(true);
   controlPanel = new ControlPanel(this); 
 
+  logo = loadImage("logo2.png");
+
 }
 //====================== END--OF ==========================//
 //========================SETUP============================//
@@ -277,7 +284,8 @@ int drawLoop_counter = 0;
 public void initSystem(){
 
   verbosePrint("-- Init 0 --");
-  
+  timeOfInit = millis(); //store this for timeout in case init takes too long
+
   //prepare data variables
   verbosePrint("Preparing data variables...");
   dataBuffX = new float[(int)(dataBuff_len_sec * openBCI.fs_Hz)];
@@ -372,38 +380,11 @@ boolean currentlySyncing = false;
 long timeOfLastCommand = 0;
 
 public void syncWithHardware(){
-  // switch (hardwareSyncStep) {
-  //   case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
-  //     // serial_openBCI.write('?');
-  //     // delay(5); //must delay 5ms between write commands
-  //     println("Sending channel count (" + nchan + ") to OpenBCI...");
-  //     hardwareSyncStep = 2; print("Reseting OpenBCI registers to default... "); println("writing \'d\'");
-  //     break;
-  //   case 2: //reset hardware to default registers 
-  //     serial_openBCI.write("d");
-  //     // delay(5); //must delay 5ms between write commands
-  //     hardwareSyncStep = 3; print("Retrieving OpenBCI's channel settings to sync with GUI..."); println("writing \'D\'... waiting for $$$");
-  //     break;
-  //   case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
-  //     serial_openBCI.write("D"); 
-  //     // delay(5); //must delay 5ms between write commands
-  //     //waiting for $$$
-  //     break;
-  //   case 4: //check existing registers
-  //     // print("Retrieving OpenBCI's full register map for verification..."); println("writing \'?\'... waiting for $$$");
-  //     serial_openBCI.write('?');
-  //     // delay(5); //must delay 5ms between write commands
-  //     break;
-  //   case 5:
-  //     // print("Writing selected SD setting (" + "5 min"+ ") to OpenBCI...");
-  //     // serial_openBCI.write('?');
-  //     // delay(5); //must delay 5ms between write commands
-  //     output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
-  //     break;
-  // }
-
-
   switch (hardwareSyncStep) {
+    // case 1:
+    //   println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    //   serial_openBCI.write('v');
+    //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
     case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
       println("[1] Sending channel count (" + nchan + ") to OpenBCI...");
       if(nchan == 8){
@@ -412,8 +393,6 @@ public void syncWithHardware(){
       if(nchan == 16){
         serial_openBCI.write('C');
       }
-      // serial_openBCI.write('????');
-      // delay(5); //must delay 5ms between write commands
       break;
     case 2: //reset hardware to default registers 
       println("[2] Reseting OpenBCI registers to default... writing \'d\'...");
@@ -430,6 +409,7 @@ public void syncWithHardware(){
       serial_openBCI.write("?"); 
       break;
     case 5:
+      // serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
       switch (sdSetting){
         case 0: //"Do not write to SD"
           //do nothing
@@ -470,31 +450,6 @@ public void syncWithHardware(){
       systemMode = 10;
       break; 
   }
-
-  // if(millis() - timeOfSyncStart > 0){
-  //   println("Sending channel count (" + nchan + ") to OpenBCI...");
-  //   // serial_openBCI.write('????');
-  //   // delay(5); //must delay 5ms between write commands
-  // }
-
-  // println("Reseting OpenBCI registers to default... writing \'d\'...");
-  // serial_openBCI.write("d"); 
-  // delay(5);
-
-  // println("Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'...");
-  // serial_openBCI.write("D"); 
-  // delay(5);
-
-  // println("Retrieving OpenBCI's full register map for verification... writing \'?\'...");
-  // serial_openBCI.write("?"); 
-  // delay(5);
-
-    // println("Writing selected SD setting (" + "5 min" + ") to OpenBCI...");
-  // serial_openBCI.write("?")
-  //write 'b'
-
-  // openBCI.changeState(openBCI.STATE_NORMAL);
-
 }
 
 public void haltSystem(){
@@ -517,6 +472,9 @@ public void haltSystem(){
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)){
     closeLogFile();  //close log file
     if (serial_openBCI != null){
+      println("Closing any open SD file. Writing 'j' to OpenBCI.");
+      serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
       hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
@@ -560,6 +518,10 @@ public void systemUpdate(){ // for updating data values and variables
   if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
     openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
     timeOfLastCommand = millis();
+    serial_openBCI.clear();
+    openBCI.defaultChannelSettings = "";
+    println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    serial_openBCI.write('v');
   }
 
   //if we are in SYNC WITH HARDWARE state ... trigger a command
@@ -614,7 +576,6 @@ public void systemUpdate(){ // for updating data values and variables
           }
         }
         else{
-          //reinitializing GUI after resize
           println("reinitializing GUI after resize... not updating GUI");
         }
         
@@ -634,11 +595,11 @@ public void systemUpdate(){ // for updating data values and variables
       } 
       else {
         //not enough data has arrived yet... only update the channel controller
-        gui.cc.update(); //
       }
     }
-    //make sure all system buttons are up to date
-    updateButtons();
+
+    gui.cc.update(); //update Channel Controller even when not updating certain parts of the GUI... (this is a bit messy...)
+    updateButtons(); //make sure all system buttons are up to date
 
     //re-initialize GUI if screen has been resized and it's been more than 1/2 seccond (to prevent reinitialization of GUI from happening too often)
     if(screenHasBeenResized == true && (millis() - timeOfLastScreenResize) > reinitializeGUIdelay){
@@ -646,19 +607,16 @@ public void systemUpdate(){ // for updating data values and variables
       println("reinitializing GUI");
       timeOfGUIreinitialize = millis();
       initializeGUI();
-      // gui.cc.loadDefaultChannelSettings();
     }
   }
 
-
-  // gui.cc.update();  
   controlPanel.update();
 }
 
 public void systemDraw(){ //for drawing to the screen
     
   //redraw the screen...not every time, get paced by when data is being plotted    
-  background(31,69,110);  //clear the screen
+  background(bgColor);  //clear the screen
 
   if(systemMode == 10){
     int drawLoopCounter_thresh = 100;
@@ -707,13 +665,18 @@ public void systemDraw(){ //for drawing to the screen
   controlPanelCollapser.draw();
   helpWidget.draw();
 
-  if(openBCI.state == openBCI.STATE_COMINIT && systemMode == 0){
+  if((openBCI.state == openBCI.STATE_COMINIT || openBCI.state == openBCI.STATE_SYNCWITHHARDWARE) && systemMode == 0){
     //make out blink the text "Initalizing GUI..."
     if(millis()%1000 < 500){
       output("Iniitializing communication w/ your OpenBCI board...");
-    }
-    else{
+    } else{
       output("");
+    }
+
+    if(millis() - timeOfInit > 12000){
+      haltSystem();
+      initSystemButton.but_txt = "START SYSTEM";
+      output("Init timeout. Verify your Serial/COM Port. Power DOWN/UP your OpenBCI & USB Dongle. Then retry Initialization.");
     }
   }
 
@@ -1130,6 +1093,7 @@ public void stopRunning() {
     if (openBCI != null) {
       openBCI.stopDataTransfer();
     }
+    timeSinceStopRunning = millis(); //used as a timer to prevent misc. bytes from flooding serial...
     isRunning = false;
     // openBCI.changeState(0); //make sure it's no longer interpretting as binary
     // systemMode = 0;
@@ -1270,7 +1234,8 @@ public void activateChannel(int Ichan) {
   }
   if (Ichan < gui.chanButtons.length){
     gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
-    gui.cc.channelSettingButtons[Ichan][0].isActive = false; 
+    channelSettingValues[Ichan][0] = '0'; 
+    gui.cc.update();
   }
 }  
 public void deactivateChannel(int Ichan) {
@@ -1283,7 +1248,8 @@ public void deactivateChannel(int Ichan) {
   }
   if (Ichan < gui.chanButtons.length) {
     gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
-    gui.cc.channelSettingButtons[Ichan][0].isActive = true; 
+    channelSettingValues[Ichan][0] = '1'; 
+    gui.cc.update();
   }
 }
 
@@ -1461,8 +1427,11 @@ class Button {
   int color_pressed = color(51);
   int color_highlight = color(102);
   int color_notPressed = color(145);
+  int buttonStrokeColor = color(26);
+  int textColor = bgColor;
   int rectHighlight;
   //boolean isMouseHere = false;
+  boolean buttonHasStroke = true;
   boolean isActive = false;
   boolean isDropdownButton = false;
   boolean drawHand = false;
@@ -1529,6 +1498,14 @@ class Button {
     color_notPressed = _color;
   }
 
+  public void setStrokeColor(int _color){
+    buttonStrokeColor = _color;
+  }
+
+  public void hasStroke(boolean _trueORfalse){
+    buttonHasStroke = _trueORfalse;
+  }
+
   public boolean overRect(int x, int y, int width, int height) {
     if (mouseX >= x && mouseX <= x+width && 
       mouseY >= y && mouseY <= y+height) {
@@ -1542,12 +1519,16 @@ class Button {
   public void draw() {
     //draw the button
     fill(getColor());
-    stroke(26); //button border
+    if(buttonHasStroke){
+      stroke(buttonStrokeColor); //button border
+    }else{
+      noStroke();
+    }
     // noStroke();
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(0);
+    fill(textColor);
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);
@@ -1689,7 +1670,7 @@ class ChannelController {
 	char final_pORn = '0';
 	char final_onORoff = '0';
 
-	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
+	ChannelController(float _xPos, float _yPos, float _width, float _height, float _montage_w, float _montage_h){
 		//positioning values for left panel (that is always visible)
 		x1 = _xPos;
 		y1 = _yPos;
@@ -1698,6 +1679,7 @@ class ChannelController {
 
 		//positioning values for right panel that is only visible when showFullController = true (behind the graph)
 		x2 = x1 + w1;
+		// x2 = gui.showMontageButton.but_x;
 		y2 = y1;
 		w2 = _montage_w;
 		h2 = h1;
@@ -1769,20 +1751,20 @@ class ChannelController {
 					case 0: // P Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(75));
-							impedanceCheckButtons[i][0].setString("0");
+							impedanceCheckButtons[i][0].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
-							impedanceCheckButtons[i][0].setString("1");
+							impedanceCheckButtons[i][0].setString("");
 						}
 					case 1: // N Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
-							impedanceCheckButtons[i][1].setString("0");
+							impedanceCheckButtons[i][1].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
-							impedanceCheckButtons[i][1].setString("1");
+							impedanceCheckButtons[i][1].setString("");
 						}
 				}
 			}
@@ -1815,12 +1797,29 @@ class ChannelController {
 		noStroke();
 
 		//draw phantom rectangle to cover up random crap from Graph2D... we are replacing this stuff with the Montage Controller
-		fill(31,69,110);
+		fill(bgColor);
 		rect(x1 - 2, y1-(height*0.01f), w1, h1+(height*0.02f));
+
+		//draw light green rect behind pane title
+		fill(216,233,171);
+		rect(x2-2,y2-25,w2+1,25);
 
 		//BG of montage controller (for debugging mainly)
 		// fill(255,255,255,123);
 		// rect(x1, y1 - 1, w1, h1);
+
+		//draw background pane of impedance buttons
+		fill(221);
+		rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
+
+		//draw slightly darker line guides/separators for impedance buttons
+		stroke(175);
+		strokeWeight(2);
+		for(int i = 0; i < nchan; i++){
+			line(x1 + w1/3 + 2, y1 + (((h1-1)/(nchan+1))*(i+1)), x2 - 3, y1 + (((h1-1)/(nchan+1))*(i+1)));
+		}
+		line(x1 + 2*(w1/3) - 1, y1 + 1, x1 + 2*(w1/3) - 1, y1 + (h1-1) - 1);
+		strokeWeight(0);
 
 		//channel buttons
 		for(int i = 0; i < nchan; i++){
@@ -1830,6 +1829,11 @@ class ChannelController {
 				impedanceCheckButtons[i][j].draw();
 			}
 		}
+
+		//label impedance button columns
+		fill(bgColor);
+		text("P", x1 + 1*(w1/2), y1 + 12);
+		text("N", x1 + 5*(w1/6) - 2, y1 + 12);
 
 		if(showFullController){
 			//background
@@ -1847,17 +1851,18 @@ class ChannelController {
 			}
 
 			//draw column headers for channel settings behind EEG graph
-			fill(255);
+			fill(bgColor);
 			text("PGA Gain", x2 + (w2/10)*1, y1 - 12);
 			text("Input Type", x2 + (w2/10)*3, y1 - 12);
-			text("BIAS", x2 + (w2/10)*5, y1 - 12);
+			text("  Bias ", x2 + (w2/10)*5, y1 - 12);
 			text("SRB2", x2 + (w2/10)*7, y1 - 12);
 			text("SRB1", x2 + (w2/10)*9, y1 - 12);
 
 			//if mode is not from OpenBCI, draw a dark overlay to indicate that you cannot edit these settings
 			if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
 				fill(0,0,0,200);
-				rect(x2,y2,w2,h2);
+				noStroke();
+				rect(x2-2,y2,w2+1,h2);
 				fill(255);
 				textSize(24);
 				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
@@ -2065,11 +2070,7 @@ class ChannelController {
 					final_pORn = 'n';
 				}
 				final_onORoff = onORoff;
-
 			}
-
-
-
 		}
 	}
 
@@ -2165,14 +2166,16 @@ class ChannelController {
 		}
 		//create all (P)ositive impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
 		//create all (N)egative impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
+
+		int downSizer = 6;
 		for(int i = 0; i < nchan; i++){
 			for(int j = 1; j < 3; j++){
-				buttonW = PApplet.parseInt((w1 - (spacer1 *4)) / 3);
-				buttonX = PApplet.parseInt(x1 + j*(buttonW) + (j+1)*(spacer1));
+				buttonW = PApplet.parseInt(((w1 - (spacer1 *4)) / 3) - downSizer);
+				buttonX = PApplet.parseInt((x1 + j*(buttonW+6) + (j+1)*(spacer1)) + (downSizer/2) + 1);
 				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
-				buttonY = PApplet.parseInt(y1 + ((h1/(nchan+1))*(i+1)) - (buttonH/2));
-				buttonString = "0";
-				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
+				buttonY = PApplet.parseInt((y1 + (((h1-1)/(nchan+1))*(i+1)) - (buttonH/2)) + (downSizer/2) + 1);
+				buttonString = "";
+				tempButton = new Button (buttonX, buttonY, buttonW, buttonW, buttonString, 14);
 				impedanceCheckButtons[i][j-1] = tempButton;
 			}
 		}	
@@ -2183,7 +2186,7 @@ class ChannelController {
 				buttonW = PApplet.parseInt((w2 - (spacer2*6)) / 5);
 				buttonX = PApplet.parseInt((x2 + (spacer2 * (j))) + ((j-1) * buttonW));
 				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
-				buttonY = PApplet.parseInt(y2 + ((h2/(nchan+1))*(i+1)) - (buttonH/2));
+				buttonY = PApplet.parseInt(y2 + (((h2-1)/(nchan+1))*(i+1)) - (buttonH/2));
 				buttonString = "N/A";
 				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
 				channelSettingButtons[i][j] = tempButton;
@@ -2482,20 +2485,40 @@ class ControlPanel {
 
 			//if system is not active ... initate system and flip button state
 			if(initSystemButton.but_txt == "START SYSTEM"){
-				println("init");
 
-				initSystemButton.setString("STOP SYSTEM");
+				if((eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX) && openBCI_portName == "N/A"){ //if data source == normal && if no serial port selected OR no SD setting selected
+					output("No Serial/COM port selected. Please select your Serial/COM port and retry system initiation.");
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
 
-				//global steps to START SYSTEM
-				// prepare the serial port
-			    println("port is open? ... " + portIsOpen);
-			    if(portIsOpen == true){
-			      openBCI.closeSerialPort();
-			    }
+				else if(eegDataSource == DATASOURCE_PLAYBACKFILE && playbackData_fname == "N/A"){ //if data source == playback && playback file == 'N/A'
+					output("No playback file selected. Please select a playback file and retry system initiation.");				// tell user that they need to select a file before the system can be started
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
 
-			    fileName = cp5.get(Textfield.class,"fileName").getText(); // store the current text field value of "File Name" to be passed along to dataFiles 
-				initSystem();
-				// systemMode = 10;
+				else if(eegDataSource == -1){//if no data source selected
+					output("No DATA SOURCE selected. Please select a DATA SOURCE and retry system initiation.");//tell user they must select a data source before initiating system
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
+
+				else { //otherwise, initiate system!	
+					println("init");
+					initSystemButton.setString("STOP SYSTEM");
+					//global steps to START SYSTEM
+					// prepare the serial port
+				    println("port is open? ... " + portIsOpen);
+				    if(portIsOpen == true){
+				      openBCI.closeSerialPort();
+				    }
+				    fileName = cp5.get(Textfield.class,"fileName").getText(); // store the current text field value of "File Name" to be passed along to dataFiles 
+					initSystem();
+				}
 			}
 
 			//if system is already active ... stop system and flip button state back
@@ -3305,7 +3328,7 @@ class Gui_Manager {
     whichChannelForSpectrogram = 0; //assume
     
      //define some layout parameters
-    int axes_x, axes_y;
+    float axes_x, axes_y;
     float spacer_bottom = 30/PApplet.parseFloat(win_y); //want this to be a fixed 30 pixels
     float spacer_top = PApplet.parseFloat(controlPanelCollapser.but_dy)/PApplet.parseFloat(win_y);
     float gutter_topbot = 0.03f;
@@ -3343,20 +3366,29 @@ class Gui_Manager {
       (1.0f-left_right_split)-gutter_left-gutter_right, 
       available_top2bot-title_gutter-spacer_top
     }; //from left, from top, width, height
-    axes_x = PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[2]);  //width of the axis in pixels
-    axes_y = PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[3]);  //height of the axis in pixels
-    gMontage = new Graph2D(parent, axes_x, axes_y, false);  //last argument is whether the axes cross at zero
+    axes_x = PApplet.parseFloat(win_x)*axisMontage_relPos[2];  //width of the axis in pixels
+    axes_y = PApplet.parseFloat(win_y)*axisMontage_relPos[3];  //height of the axis in pixels
+    gMontage = new Graph2D(parent, PApplet.parseInt(axes_x), PApplet.parseInt(axes_y), false);  //last argument is whether the axes cross at zero
     setupMontagePlot(gMontage, win_x, win_y, axisMontage_relPos,displayTime_sec,fontInfo,filterDescription);
-  
-    //setup montage controller
-    cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
 
     println("Buttons: " + PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]) + ", " + (PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-40));
 
-    showMontageButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]), PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 120, 20, "Graph", 14); 
-    showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+120, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 120, 20, "Channel Settings", 14);
+    showMontageButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0]) - 1, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 125, 21, "EEG DATA", 14); 
+    showMontageButton.makeDropdownButton(true);
+    showMontageButton.setColorPressed(color(184,220,105));
+    showMontageButton.setColorNotPressed(color(255));
+    showMontageButton.hasStroke(false);
     showMontageButton.setIsActive(true);
+
+    showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+127, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
+    showChannelControllerButton.makeDropdownButton(true);
+    showChannelControllerButton.setColorPressed(color(184,220,105));
+    showChannelControllerButton.setColorNotPressed(color(255));
+    showChannelControllerButton.hasStroke(false);
     showChannelControllerButton.setIsActive(false);
+
+    //setup montage controller
+    cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
 
 
     //setup the FFT plot...bottom on left side
@@ -3375,7 +3407,7 @@ class Gui_Manager {
     }; //from left, from top, width, height
     axes_x = PApplet.parseInt(PApplet.parseFloat(win_x)*axisFFT_relPos[2]);  //width of the axis in pixels
     axes_y = PApplet.parseInt(PApplet.parseFloat(win_y)*axisFFT_relPos[3]);  //height of the axis in pixels
-    gFFT = new Graph2D(parent, axes_x, axes_y, false);  //last argument is whether the axes cross at zero
+    gFFT = new Graph2D(parent, PApplet.parseInt(axes_x), PApplet.parseInt(axes_y), false);  //last argument is whether the axes cross at zero
     setupFFTPlot(gFFT, win_x, win_y, axisFFT_relPos,fontInfo);
         
     //setup the spectrogram plot
@@ -3671,8 +3703,8 @@ class Gui_Manager {
     int y2 = y1 - 2;  //deflect two pixels upward
     titleMontage.x = x2;
     titleMontage.y = y2;
-    titleMontage.textColor = color(255,255,255);
-    titleMontage.setFontSize(16);
+    titleMontage.textColor = color(bgColor);
+    titleMontage.setFontSize(14);
     titleMontage.alignH = CENTER;
     
     //add channel data values and impedance values
@@ -3990,10 +4022,6 @@ class Gui_Manager {
 
       //show time-domain montage, only if full channel controller is not visible, to save some processing
       gMontage.draw(); 
-      if(cc.showFullController == false){
-        // gMontage.draw(); 
-        titleMontage.draw();
-      }
     
       //add annotations
       if (showMontageValues) {
@@ -4070,6 +4098,9 @@ class Gui_Manager {
     // controlPanelCollapser.draw();
 
     cc.draw();
+    if(cc.showFullController == false){
+      titleMontage.draw();
+    }
     showMontageButton.draw();
     showChannelControllerButton.draw();
 
@@ -5198,17 +5229,22 @@ class HelpWidget {
 		noStroke();
 
 		// draw background of widget
-		fill(75,75,75);
+		fill(255);
 		rect(x,height-h,width,h);
 
 		//draw bg of text field of widget
-		fill(25,25,25);
-		rect(x + padding, height-h + padding, width - padding*2, h - padding *2);
+		strokeWeight(1);
+		stroke(color(0,5,11));
+		fill(color(0,5,11));
+		rect(x + padding, height-h + padding, width - padding*5 - 128, h - padding *2);
 
 		textSize(14);
 		fill(255);
 		textAlign(LEFT, TOP);
 		text(currentOutput, padding*2, height - h + padding + 4);
+
+		//draw OpenBCI LOGO
+		image(logo, width - (128+padding*2), height - 26, 128, 22);
 
 		popStyle();
 
@@ -5644,7 +5680,9 @@ class OpenBCI_ADS1299 {
     if (echoChar){  //if not in interpret binary (NORMAL) mode
       // print(".");
       char inASCII = PApplet.parseChar(inByte); 
-      print(PApplet.parseChar(inByte));
+      if(isRunning == false && (millis() - timeSinceStopRunning) > 500){
+        print(PApplet.parseChar(inByte));
+      }
 
       //keep track of previous three chars coming from OpenBCI
       prev3chars[0] = prev3chars[1];
@@ -6107,6 +6145,12 @@ public void parseKey(char val) {
 
     case '?':
       printRegisters();
+      break;
+
+    case 'd':
+      verbosePrint("Updating GUI's channel settings to default...");
+      gui.cc.loadDefaultChannelSettings();
+      serial_openBCI.write('d');
       break;
       
     // //change the state of the impedance measurements...activate the N-channels
@@ -7265,7 +7309,7 @@ public class GraphDataPoint {
 };
 
 class PlotFontInfo {
-    String fontName = "Sans Serif";
+    String fontName = "Raleway-Regular.otf";
     int axisLabel_size = 16;
     int tickLabel_size = 14;
     int buttonLabel_size = 12;
@@ -7298,7 +7342,7 @@ public class TextBox {
   }
   public void setFontSize(int size) {
     fontSize = size;
-    font = createFont("Arial",fontSize);
+    font = createFont("Raleway-SemiBold.otf",fontSize);
   }
   public void draw() {
     //define text
