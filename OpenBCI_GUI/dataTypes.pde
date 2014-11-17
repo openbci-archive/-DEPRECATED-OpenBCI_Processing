@@ -101,7 +101,7 @@ public class GraphDataPoint {
 };
 
 class PlotFontInfo {
-    String fontName = "Sans Serif";
+    String fontName = "Raleway-Regular.otf";
     int axisLabel_size = 16;
     int tickLabel_size = 14;
     int buttonLabel_size = 12;
@@ -134,7 +134,7 @@ public class TextBox {
   }
   public void setFontSize(int size) {
     fontSize = size;
-    font = createFont("Arial",fontSize);
+    font = createFont("Raleway-SemiBold.otf",fontSize);
   }
   public void draw() {
     //define text

@@ -288,20 +288,40 @@ class ControlPanel {
 
 			//if system is not active ... initate system and flip button state
 			if(initSystemButton.but_txt == "START SYSTEM"){
-				println("init");
 
-				initSystemButton.setString("STOP SYSTEM");
+				if((eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX) && openBCI_portName == "N/A"){ //if data source == normal && if no serial port selected OR no SD setting selected
+					output("No Serial/COM port selected. Please select your Serial/COM port and retry system initiation.");
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
 
-				//global steps to START SYSTEM
-				// prepare the serial port
-			    println("port is open? ... " + portIsOpen);
-			    if(portIsOpen == true){
-			      openBCI.closeSerialPort();
-			    }
+				else if(eegDataSource == DATASOURCE_PLAYBACKFILE && playbackData_fname == "N/A"){ //if data source == playback && playback file == 'N/A'
+					output("No playback file selected. Please select a playback file and retry system initiation.");				// tell user that they need to select a file before the system can be started
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
 
-			    fileName = cp5.get(Textfield.class,"fileName").getText(); // store the current text field value of "File Name" to be passed along to dataFiles 
-				initSystem();
-				// systemMode = 10;
+				else if(eegDataSource == -1){//if no data source selected
+					output("No DATA SOURCE selected. Please select a DATA SOURCE and retry system initiation.");//tell user they must select a data source before initiating system
+					initButtonPressed = false;
+					initSystemButton.setIsActive(false);
+					return;
+				}
+
+				else { //otherwise, initiate system!	
+					println("init");
+					initSystemButton.setString("STOP SYSTEM");
+					//global steps to START SYSTEM
+					// prepare the serial port
+				    println("port is open? ... " + portIsOpen);
+				    if(portIsOpen == true){
+				      openBCI.closeSerialPort();
+				    }
+				    fileName = cp5.get(Textfield.class,"fileName").getText(); // store the current text field value of "File Name" to be passed along to dataFiles 
+					initSystem();
+				}
 			}
 
 			//if system is already active ... stop system and flip button state back

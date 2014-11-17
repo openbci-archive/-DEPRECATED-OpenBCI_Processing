@@ -27,17 +27,22 @@ class HelpWidget {
 		noStroke();
 
 		// draw background of widget
-		fill(75,75,75);
+		fill(255);
 		rect(x,height-h,width,h);
 
 		//draw bg of text field of widget
-		fill(25,25,25);
-		rect(x + padding, height-h + padding, width - padding*2, h - padding *2);
+		strokeWeight(1);
+		stroke(color(0,5,11));
+		fill(color(0,5,11));
+		rect(x + padding, height-h + padding, width - padding*5 - 128, h - padding *2);
 
 		textSize(14);
 		fill(255);
 		textAlign(LEFT, TOP);
 		text(currentOutput, padding*2, height - h + padding + 4);
+
+		//draw OpenBCI LOGO
+		image(logo, width - (128+padding*2), height - 26, 128, 22);
 
 		popStyle();
 

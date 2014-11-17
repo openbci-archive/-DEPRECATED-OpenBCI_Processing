@@ -250,7 +250,9 @@ class OpenBCI_ADS1299 {
     if (echoChar){  //if not in interpret binary (NORMAL) mode
       // print(".");
       char inASCII = char(inByte); 
-      print(char(inByte));
+      if(isRunning == false && (millis() - timeSinceStopRunning) > 500){
+        print(char(inByte));
+      }
 
       //keep track of previous three chars coming from OpenBCI
       prev3chars[0] = prev3chars[1];

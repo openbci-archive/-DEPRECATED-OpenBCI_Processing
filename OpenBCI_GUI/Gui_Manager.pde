@@ -96,7 +96,7 @@ class Gui_Manager {
     whichChannelForSpectrogram = 0; //assume
     
      //define some layout parameters
-    int axes_x, axes_y;
+    float axes_x, axes_y;
     float spacer_bottom = 30/float(win_y); //want this to be a fixed 30 pixels
     float spacer_top = float(controlPanelCollapser.but_dy)/float(win_y);
     float gutter_topbot = 0.03f;
@@ -134,20 +134,29 @@ class Gui_Manager {
       (1.0f-left_right_split)-gutter_left-gutter_right, 
       available_top2bot-title_gutter-spacer_top
     }; //from left, from top, width, height
-    axes_x = int(float(win_x)*axisMontage_relPos[2]);  //width of the axis in pixels
-    axes_y = int(float(win_y)*axisMontage_relPos[3]);  //height of the axis in pixels
-    gMontage = new Graph2D(parent, axes_x, axes_y, false);  //last argument is whether the axes cross at zero
+    axes_x = float(win_x)*axisMontage_relPos[2];  //width of the axis in pixels
+    axes_y = float(win_y)*axisMontage_relPos[3];  //height of the axis in pixels
+    gMontage = new Graph2D(parent, int(axes_x), int(axes_y), false);  //last argument is whether the axes cross at zero
     setupMontagePlot(gMontage, win_x, win_y, axisMontage_relPos,displayTime_sec,fontInfo,filterDescription);
-  
-    //setup montage controller
-    cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
 
     println("Buttons: " + int(float(win_x)*axisMontage_relPos[0]) + ", " + (int(float(win_y)*axisMontage_relPos[1])-40));
 
-    showMontageButton = new Button (int(float(win_x)*axisMontage_relPos[0]), int(float(win_y)*axisMontage_relPos[1])-45, 120, 20, "Graph", 14); 
-    showChannelControllerButton = new Button (int(float(win_x)*axisMontage_relPos[0])+120, int(float(win_y)*axisMontage_relPos[1])-45, 120, 20, "Channel Settings", 14);
+    showMontageButton = new Button (int(float(win_x)*axisMontage_relPos[0]) - 1, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "EEG DATA", 14); 
+    showMontageButton.makeDropdownButton(true);
+    showMontageButton.setColorPressed(color(184,220,105));
+    showMontageButton.setColorNotPressed(color(255));
+    showMontageButton.hasStroke(false);
     showMontageButton.setIsActive(true);
+
+    showChannelControllerButton = new Button (int(float(win_x)*axisMontage_relPos[0])+127, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
+    showChannelControllerButton.makeDropdownButton(true);
+    showChannelControllerButton.setColorPressed(color(184,220,105));
+    showChannelControllerButton.setColorNotPressed(color(255));
+    showChannelControllerButton.hasStroke(false);
     showChannelControllerButton.setIsActive(false);
+
+    //setup montage controller
+    cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
 
 
     //setup the FFT plot...bottom on left side
@@ -166,7 +175,7 @@ class Gui_Manager {
     }; //from left, from top, width, height
     axes_x = int(float(win_x)*axisFFT_relPos[2]);  //width of the axis in pixels
     axes_y = int(float(win_y)*axisFFT_relPos[3]);  //height of the axis in pixels
-    gFFT = new Graph2D(parent, axes_x, axes_y, false);  //last argument is whether the axes cross at zero
+    gFFT = new Graph2D(parent, int(axes_x), int(axes_y), false);  //last argument is whether the axes cross at zero
     setupFFTPlot(gFFT, win_x, win_y, axisFFT_relPos,fontInfo);
         
     //setup the spectrogram plot
@@ -462,8 +471,8 @@ class Gui_Manager {
     int y2 = y1 - 2;  //deflect two pixels upward
     titleMontage.x = x2;
     titleMontage.y = y2;
-    titleMontage.textColor = color(255,255,255);
-    titleMontage.setFontSize(16);
+    titleMontage.textColor = color(bgColor);
+    titleMontage.setFontSize(14);
     titleMontage.alignH = CENTER;
     
     //add channel data values and impedance values
@@ -781,10 +790,6 @@ class Gui_Manager {
 
       //show time-domain montage, only if full channel controller is not visible, to save some processing
       gMontage.draw(); 
-      if(cc.showFullController == false){
-        // gMontage.draw(); 
-        titleMontage.draw();
-      }
     
       //add annotations
       if (showMontageValues) {
@@ -861,6 +866,9 @@ class Gui_Manager {
     // controlPanelCollapser.draw();
 
     cc.draw();
+    if(cc.showFullController == false){
+      titleMontage.draw();
+    }
     showMontageButton.draw();
     showChannelControllerButton.draw();
 

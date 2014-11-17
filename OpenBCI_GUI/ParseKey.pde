@@ -181,6 +181,12 @@ void parseKey(char val) {
     case '?':
       printRegisters();
       break;
+
+    case 'd':
+      verbosePrint("Updating GUI's channel settings to default...");
+      gui.cc.loadDefaultChannelSettings();
+      serial_openBCI.write('d');
+      break;
       
     // //change the state of the impedance measurements...activate the N-channels
     // case 'A':

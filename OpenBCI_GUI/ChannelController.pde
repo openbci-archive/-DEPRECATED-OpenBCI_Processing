@@ -71,7 +71,7 @@ class ChannelController {
 	char final_pORn = '0';
 	char final_onORoff = '0';
 
-	ChannelController(float _xPos, float _yPos, float _width, float _height, int _montage_w, int _montage_h){
+	ChannelController(float _xPos, float _yPos, float _width, float _height, float _montage_w, float _montage_h){
 		//positioning values for left panel (that is always visible)
 		x1 = _xPos;
 		y1 = _yPos;
@@ -80,6 +80,7 @@ class ChannelController {
 
 		//positioning values for right panel that is only visible when showFullController = true (behind the graph)
 		x2 = x1 + w1;
+		// x2 = gui.showMontageButton.but_x;
 		y2 = y1;
 		w2 = _montage_w;
 		h2 = h1;
@@ -151,20 +152,20 @@ class ChannelController {
 					case 0: // P Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(75));
-							impedanceCheckButtons[i][0].setString("0");
+							impedanceCheckButtons[i][0].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
-							impedanceCheckButtons[i][0].setString("1");
+							impedanceCheckButtons[i][0].setString("");
 						}
 					case 1: // N Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
-							impedanceCheckButtons[i][1].setString("0");
+							impedanceCheckButtons[i][1].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
-							impedanceCheckButtons[i][1].setString("1");
+							impedanceCheckButtons[i][1].setString("");
 						}
 				}
 			}
@@ -197,12 +198,29 @@ class ChannelController {
 		noStroke();
 
 		//draw phantom rectangle to cover up random crap from Graph2D... we are replacing this stuff with the Montage Controller
-		fill(31,69,110);
+		fill(bgColor);
 		rect(x1 - 2, y1-(height*0.01f), w1, h1+(height*0.02f));
+
+		//draw light green rect behind pane title
+		fill(216,233,171);
+		rect(x2-2,y2-25,w2+1,25);
 
 		//BG of montage controller (for debugging mainly)
 		// fill(255,255,255,123);
 		// rect(x1, y1 - 1, w1, h1);
+
+		//draw background pane of impedance buttons
+		fill(221);
+		rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
+
+		//draw slightly darker line guides/separators for impedance buttons
+		stroke(175);
+		strokeWeight(2);
+		for(int i = 0; i < nchan; i++){
+			line(x1 + w1/3 + 2, y1 + (((h1-1)/(nchan+1))*(i+1)), x2 - 3, y1 + (((h1-1)/(nchan+1))*(i+1)));
+		}
+		line(x1 + 2*(w1/3) - 1, y1 + 1, x1 + 2*(w1/3) - 1, y1 + (h1-1) - 1);
+		strokeWeight(0);
 
 		//channel buttons
 		for(int i = 0; i < nchan; i++){
@@ -212,6 +230,11 @@ class ChannelController {
 				impedanceCheckButtons[i][j].draw();
 			}
 		}
+
+		//label impedance button columns
+		fill(bgColor);
+		text("P", x1 + 1*(w1/2), y1 + 12);
+		text("N", x1 + 5*(w1/6) - 2, y1 + 12);
 
 		if(showFullController){
 			//background
@@ -229,17 +252,18 @@ class ChannelController {
 			}
 
 			//draw column headers for channel settings behind EEG graph
-			fill(255);
+			fill(bgColor);
 			text("PGA Gain", x2 + (w2/10)*1, y1 - 12);
 			text("Input Type", x2 + (w2/10)*3, y1 - 12);
-			text("BIAS", x2 + (w2/10)*5, y1 - 12);
+			text("  Bias ", x2 + (w2/10)*5, y1 - 12);
 			text("SRB2", x2 + (w2/10)*7, y1 - 12);
 			text("SRB1", x2 + (w2/10)*9, y1 - 12);
 
 			//if mode is not from OpenBCI, draw a dark overlay to indicate that you cannot edit these settings
 			if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
 				fill(0,0,0,200);
-				rect(x2,y2,w2,h2);
+				noStroke();
+				rect(x2-2,y2,w2+1,h2);
 				fill(255);
 				textSize(24);
 				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
@@ -447,11 +471,7 @@ class ChannelController {
 					final_pORn = 'n';
 				}
 				final_onORoff = onORoff;
-
 			}
-
-
-
 		}
 	}
 
@@ -547,14 +567,16 @@ class ChannelController {
 		}
 		//create all (P)ositive impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
 		//create all (N)egative impedance check butttons ... these are the buttons just to the right of activate/deactivate buttons ... These are also always visible
+
+		int downSizer = 6;
 		for(int i = 0; i < nchan; i++){
 			for(int j = 1; j < 3; j++){
-				buttonW = int((w1 - (spacer1 *4)) / 3);
-				buttonX = int(x1 + j*(buttonW) + (j+1)*(spacer1));
+				buttonW = int(((w1 - (spacer1 *4)) / 3) - downSizer);
+				buttonX = int((x1 + j*(buttonW+6) + (j+1)*(spacer1)) + (downSizer/2) + 1);
 				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
-				buttonY = int(y1 + ((h1/(nchan+1))*(i+1)) - (buttonH/2));
-				buttonString = "0";
-				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
+				buttonY = int((y1 + (((h1-1)/(nchan+1))*(i+1)) - (buttonH/2)) + (downSizer/2) + 1);
+				buttonString = "";
+				tempButton = new Button (buttonX, buttonY, buttonW, buttonW, buttonString, 14);
 				impedanceCheckButtons[i][j-1] = tempButton;
 			}
 		}	
@@ -565,7 +587,7 @@ class ChannelController {
 				buttonW = int((w2 - (spacer2*6)) / 5);
 				buttonX = int((x2 + (spacer2 * (j))) + ((j-1) * buttonW));
 				// buttonH = int((h2 / (nchan + 1)) - (spacer2/2));
-				buttonY = int(y2 + ((h2/(nchan+1))*(i+1)) - (buttonH/2));
+				buttonY = int(y2 + (((h2-1)/(nchan+1))*(i+1)) - (buttonH/2));
 				buttonString = "N/A";
 				tempButton = new Button (buttonX, buttonY, buttonW, buttonH, buttonString, 14);
 				channelSettingButtons[i][j] = tempButton;

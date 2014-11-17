@@ -17,8 +17,11 @@ class Button {
   color color_pressed = color(51);
   color color_highlight = color(102);
   color color_notPressed = color(145);
+  color buttonStrokeColor = color(26);
+  color textColor = bgColor;
   color rectHighlight;
   //boolean isMouseHere = false;
+  boolean buttonHasStroke = true;
   boolean isActive = false;
   boolean isDropdownButton = false;
   boolean drawHand = false;
@@ -85,6 +88,14 @@ class Button {
     color_notPressed = _color;
   }
 
+  public void setStrokeColor(color _color){
+    buttonStrokeColor = _color;
+  }
+
+  public void hasStroke(boolean _trueORfalse){
+    buttonHasStroke = _trueORfalse;
+  }
+
   boolean overRect(int x, int y, int width, int height) {
     if (mouseX >= x && mouseX <= x+width && 
       mouseY >= y && mouseY <= y+height) {
@@ -98,12 +109,16 @@ class Button {
   public void draw() {
     //draw the button
     fill(getColor());
-    stroke(26); //button border
+    if(buttonHasStroke){
+      stroke(buttonStrokeColor); //button border
+    }else{
+      noStroke();
+    }
     // noStroke();
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(0);
+    fill(textColor);
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);

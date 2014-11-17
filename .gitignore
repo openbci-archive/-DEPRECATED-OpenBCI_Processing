@@ -4,6 +4,7 @@
 OpenBCI_GUI/SavedData/*.txt
 OpenBCI_GUI/output/*.*
 OpenBCI_GUI/*.bak
+OpenBCI_GUI/build-tmp/*
 
 
 #### Added as part of defualt GitHub .getattributes
