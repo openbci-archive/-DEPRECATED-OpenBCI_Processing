@@ -48,7 +48,7 @@ public class MenuList extends Controller {
           menu.beginDraw();
           int len = -(itemHeight * items.size()) + getHeight();
           int ty = int(map(pos, len, 0, getHeight() - scrollerLength - 2, 2 ) );
-          menu.fill(255);
+          menu.fill(bgColor, 100);
           menu.rect(getWidth()-scrollerWidth-2, ty, scrollerWidth, scrollerLength );
           menu.endDraw();
         }
@@ -83,18 +83,18 @@ public class MenuList extends Controller {
 		Map m = items.get(i);
 		menu.fill(255, 100);
 		if(i == hoverItem){
-			menu.fill(200,100);
+			menu.fill(127,134,143);
 		}
 		if(i == activeItem){
-			menu.stroke(255);
+			menu.stroke(184,220,105,255);
 			menu.strokeWeight(1);
-			menu.fill(31,69,110,255);
+			menu.fill(184,220,105,255);
 			menu.rect(0, 0, getWidth()-1, itemHeight-1 );
 			menu.noStroke();
 		} else{
 			menu.rect(0, 0, getWidth(), itemHeight-1 );
 		}
-			menu.fill(255);
+			menu.fill(bgColor);
 			menu.textFont(menuFont);
 			menu.text(m.get("headline").toString(), 8, itemHeight - padding); // 5/17
 			menu.translate( 0, itemHeight );

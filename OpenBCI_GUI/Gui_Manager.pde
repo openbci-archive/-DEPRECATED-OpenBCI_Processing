@@ -296,7 +296,7 @@ class Gui_Manager {
   } 
   private int calcButtonXLocation(int Ibut,int win_x,int w, int xoffset, float gutter_between_buttons) {
     // return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
-    return width - ((Ibut+1) * (w + 2));
+    return width - ((Ibut+1) * (w + 2)) - 1;
   }
   
   public void setDefaultVertScale(float val_uV) {

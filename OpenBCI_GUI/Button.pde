@@ -14,11 +14,12 @@ class Button {
   
   int but_x, but_y, but_dx, but_dy;      // Position of square button
   //int rectSize = 90;     // Diameter of rect
-  color color_pressed = color(51);
+  color color_pressed = color(200);
   color color_highlight = color(102);
   color color_notPressed = color(255);
   color buttonStrokeColor = bgColor;
-  color textColor = bgColor;
+  color textColorActive = color(255);
+  color textColorNotActive = bgColor;
   color rectHighlight;
   //boolean isMouseHere = false;
   boolean buttonHasStroke = true;
@@ -118,7 +119,11 @@ class Button {
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(textColor);
+    if(isActive){
+      fill(textColorActive);
+    }else{
+      fill(textColorNotActive);
+    }
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);

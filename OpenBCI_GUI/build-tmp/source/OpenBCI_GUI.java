@@ -262,7 +262,9 @@ public void setup() {
   helpWidget = new HelpWidget(0, win_y - 30, win_x, 30);
 
   // println("..." + this);
-  controlPanelCollapser = new Button(0, 0, 256, PApplet.parseInt((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  // controlPanelCollapser = new Button(2, 2, 256, int((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  controlPanelCollapser = new Button(2, 2, 256, 26, "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
   controlPanel = new ControlPanel(this); 
@@ -474,6 +476,7 @@ public void haltSystem(){
     if (serial_openBCI != null){
       println("Closing any open SD file. Writing 'j' to OpenBCI.");
       serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      delay(100); //make sure 'j' gets sent to the board
       readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
@@ -644,6 +647,11 @@ public void systemDraw(){ //for drawing to the screen
       // println("attempting to draw GUI...");
       try{
         // println("GUI DRAW!!! " + millis());
+        pushStyle();
+          fill(255);
+          noStroke();
+          rect(0, 0, width, 32);
+        popStyle();
         gui.draw(); //draw the GUI
       } catch (Exception e){
         println(e.getMessage());
@@ -1129,10 +1137,12 @@ public void updateButtons(){
   if (isRunning) {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStop_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStop_txt); 
+    gui.stopButton.setColorNotPressed(color(224, 56, 45));
   } 
   else {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStart_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStart_txt);
+    gui.stopButton.setColorNotPressed(color(184,220,105));
   }
 }
 
@@ -1424,11 +1434,12 @@ class Button {
   
   int but_x, but_y, but_dx, but_dy;      // Position of square button
   //int rectSize = 90;     // Diameter of rect
-  int color_pressed = color(51);
+  int color_pressed = color(200);
   int color_highlight = color(102);
-  int color_notPressed = color(145);
-  int buttonStrokeColor = color(26);
-  int textColor = bgColor;
+  int color_notPressed = color(255);
+  int buttonStrokeColor = bgColor;
+  int textColorActive = color(255);
+  int textColorNotActive = bgColor;
   int rectHighlight;
   //boolean isMouseHere = false;
   boolean buttonHasStroke = true;
@@ -1528,7 +1539,11 @@ class Button {
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(textColor);
+    if(isActive){
+      fill(textColorActive);
+    }else{
+      fill(textColorNotActive);
+    }
     stroke(255);
     textFont(f2);  //load f2 ... from control panel 
     textSize(12);
@@ -1623,6 +1638,7 @@ class ChannelController {
 	public int rowHeight;
 	public int buttonSpacing;
 	boolean showFullController = false;
+	boolean[] drawImpedanceValues = new boolean [nchan];
 
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
@@ -1711,6 +1727,12 @@ class ChannelController {
 	}
 
 	public void update(){
+
+		//make false to check again below
+		for(int i = 0; i < nchan; i++){
+			drawImpedanceValues[i] = false;
+		}
+
 		for(int i = 0; i < nchan; i++){ //for every channel
 			//update buttons based on channelSettingValues[i][j]
 			for(int j = 0; j < numSettingsPerChannel; j++){		
@@ -1718,6 +1740,7 @@ class ChannelController {
 					case 0: //on/off ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
+						break;
 					case 1: //GAIN ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
@@ -1726,6 +1749,7 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
+						break;
 					case 2: //input type ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
@@ -1735,17 +1759,22 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
 						if(channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
+						break;
 					case 3: //BIAS ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
+						break;
 					case 4: // SRB2 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
+						break;
 					case 5: // SRB1 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
+						break;
 				}
 			}
+
 			for(int k = 0; k < 2; k++){
 				switch(k){
 					case 0: // P Imp Buttons
@@ -1754,18 +1783,22 @@ class ChannelController {
 							impedanceCheckButtons[i][0].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
-							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][0].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 					case 1: // N Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
 							impedanceCheckButtons[i][1].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
-							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][1].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 				}
 			}
 		}
@@ -1868,6 +1901,18 @@ class ChannelController {
 				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
 			}
 		}
+
+		if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+			fill(0,0,0,200);
+			rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
+		}
+
+		for (int i = 0; i < nchan; i++){
+			if(drawImpedanceValues[i] == true){
+				gui.impValuesMontage[i].draw();  //impedance values on montage plot
+	        }
+		}
+
 		popStyle();
 
 	}
@@ -2235,6 +2280,11 @@ String[] serialPorts = new String[Serial.list().length];
 
 MenuList sdTimes;
 
+int boxColor = color(200);
+// color boxStrokeColor = color(173,183,192);
+int boxStrokeColor = color(138,146,153);
+int greenColor = color(184,220,105);
+
 // Button openClosePort;
 // boolean portButtonPressed;
 
@@ -2289,8 +2339,8 @@ class ControlPanel {
 
 	ControlPanel(OpenBCI_GUI mainClass){
 
-		x = 0;
-		y = controlPanelCollapser.but_dy;		
+		x = 2;
+		y = 2 + controlPanelCollapser.but_dy;		
 		w = controlPanelCollapser.but_dx;
 		h = height - PApplet.parseInt(helpWidget.h);
 
@@ -2299,8 +2349,8 @@ class ControlPanel {
 		fontInfo = new PlotFontInfo();
 
 		f1 = createFont("Raleway-SemiBold.otf", 16);
-		f2 = createFont("Raleway-Regular.otf", 14);
-		f3 = createFont("Raleway-SemiBold.otf", 14);
+		f2 = createFont("Raleway-Regular.otf", 15);
+		f3 = createFont("Raleway-SemiBold.otf", 15);
 
 		globalPadding = 10;  //controls the padding of all elements on the control panel
 		globalBorder = 0;   //controls the border of all elements in the control panel ... using processing's stroke() instead
@@ -2362,6 +2412,12 @@ class ControlPanel {
 		fill(0,0,0,185);
 		rect(0,0,width,height);
 
+		pushStyle();
+			fill(255);
+			noStroke();
+			rect(0, 0, width, 32);
+		popStyle();
+
 		// //background pane of control panel
 		// fill(35,35,35);
 		// rect(0,0,w,h);
@@ -2414,14 +2470,14 @@ class ControlPanel {
 		//draw the box that tells you to stop the system in order to edit control settings
 		if(drawStopInstructions){
 			pushStyle();
-				fill(100);
+				fill(boxColor);
 				strokeWeight(1);
-				stroke(26);
+				stroke(boxStrokeColor);
 				rect(x, y, w, dataSourceBox.h); //draw background of box
 				String stopInstructions = "Press the \"STOP SYSTEM\" button to edit system settings.";
 				textAlign(CENTER, TOP);
 				textFont(f2);
-				fill(255);
+				fill(bgColor);
 				text(stopInstructions, x + globalPadding*2, y + globalPadding*4, w - globalPadding*4, dataSourceBox.h - globalPadding*4);
 			popStyle();
 		}
@@ -2453,11 +2509,15 @@ class ControlPanel {
 				if(chanButton8.isMouseHere()){
 					chanButton8.setIsActive(true);
 					chanButton8Pressed = true;
+					chanButton8.color_notPressed = color(184,220,105);
+					chanButton16.color_notPressed = color(255);
 				}
 
 				if(chanButton16.isMouseHere()){
 					chanButton16.setIsActive(true);
 					chanButton16Pressed = true;
+					chanButton8.color_notPressed = color(255);
+					chanButton16.color_notPressed = color(184,220,105);
 				}
 			}
 
@@ -2637,13 +2697,13 @@ class DataSourceBox {
 		h = 115;
 		padding = _padding;
 
-		sourceList = new MenuList(cp5, "sourceList", w - padding*2, 72, f3);
+		sourceList = new MenuList(cp5, "sourceList", w - padding*2, 72, f2);
 		// sourceList.itemHeight = 28;
 		// sourceList.padding = 9;
 		sourceList.setPosition(x + padding, y + padding*2 + 13);
-		sourceList.addItem(makeItem("LIVE (from OpenBCI)"));
-		sourceList.addItem(makeItem("PLAYBACK (from file)"));
-		sourceList.addItem(makeItem("SYNTHETIC"));
+		sourceList.addItem(makeItem("LIVE (from OpenBCI)                   >"));
+		sourceList.addItem(makeItem("PLAYBACK (from file)                  >"));
+		sourceList.addItem(makeItem("SYNTHETIC (algorithmic)           >"));
 		sourceList.scrollerLength = 10;
 	}
 
@@ -2653,11 +2713,11 @@ class DataSourceBox {
 
 	public void draw(){
 		pushStyle();
-			fill(89);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("DATA SOURCE", x + padding, y + padding);
@@ -2678,13 +2738,13 @@ class SerialBox {
 		x = _x;
 		y = _y;
 		w = _w;
-		h = 183;
+		h = 147;
 		padding = _padding;
 
 		// openClosePort = new Button (padding + border, y + padding*3 + 13 + 150, (w-padding*3)/2, 24, "OPEN PORT", fontInfo.buttonLabel_size);
-		refreshPort = new Button (x + padding, y + padding*3 + 13 + 107, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
+		refreshPort = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
 
-		serialList = new MenuList(cp5, "serialList", w - padding*2, 108, f2);
+		serialList = new MenuList(cp5, "serialList", w - padding*2, 72, f2);
 		serialList.setPosition(x + padding, y + padding*2 + 13);
 		serialPorts = Serial.list();
 		for(int i = 0; i < serialPorts.length; i++){
@@ -2699,11 +2759,11 @@ class SerialBox {
 
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("SERIAL/COM PORT", x + padding, y + padding);
@@ -2750,8 +2810,8 @@ class DataLogBox {
 			.setColor(color(26,26,26))
 			.setColorBackground(color(255,255,255)) // text field bg color
 			.setColorValueLabel(color(0,0,0))  // text color
-			.setColorForeground(color(26,26,26))  // border color when not selected
-			.setColorActive(color(31,69,110))  // border color when selected
+			.setColorForeground(greenColor)  // border color when not selected
+			.setColorActive(greenColor)  // border color when selected
 			.setColorCursor(color(26,26,26)) 
 			.setText(getDateString())
 			.align(5, 10, 20, 40) 
@@ -2769,11 +2829,11 @@ class DataLogBox {
 
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("DATA LOG FILE", x + padding, y + padding);
@@ -2798,6 +2858,7 @@ class ChannelCountBox {
 		padding = _padding;
 
 		chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
+		chanButton8.color_notPressed = color(184,220,105);
 		chanButton16 = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
 
 	}
@@ -2808,15 +2869,15 @@ class ChannelCountBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("CHANNEL COUNT", x + padding, y + padding);
-			fill(115,217,115); //set color to green
+			fill(bgColor); //set color to green
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("(" + str(nchan) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
@@ -2847,11 +2908,11 @@ class PlaybackFileBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("PLAYBACK FILE", x + padding, y + padding);
@@ -2894,11 +2955,11 @@ class SDBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("WRITE TO SD (Y/N)?", x + padding, y + padding);
@@ -2929,11 +2990,11 @@ class SDConverterBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("CONVERT SD FOR PLAYBACK", x + padding, y + padding);
@@ -2961,6 +3022,8 @@ class InitBox {
 
 		//init button
 		initSystemButton = new Button (padding, y + padding, w-padding*2, h - padding*2, "START SYSTEM", fontInfo.buttonLabel_size);
+		initSystemButton.color_notPressed = color(boxColor);
+		initSystemButton.buttonStrokeColor = color(boxColor);
 		initButtonPressed = false;
 	}
 
@@ -2971,8 +3034,8 @@ class InitBox {
 	public void draw(){
 
 		pushStyle();
-			fill(89);
-			stroke(26);
+			fill(255);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
 		popStyle();
@@ -3317,8 +3380,8 @@ class Gui_Manager {
   public final static int GUI_PAGE_HEADPLOT_SETUP = 2;
   public final static int N_GUI_PAGES = 3;
   
-  public final static String stopButton_pressToStop_txt = "Press to Stop";
-  public final static String stopButton_pressToStart_txt = "Press to Start";
+  public final static String stopButton_pressToStop_txt = "Stop Data Stream";
+  public final static String stopButton_pressToStart_txt = "Start Data Stream";
   
   Gui_Manager(PApplet parent,int win_x, int win_y,int nchan,float displayTime_sec, float default_yScale_uV, 
     String filterDescription, float smooth_fac) {  
@@ -3436,11 +3499,12 @@ class Gui_Manager {
            
     //setup stop button
     w = 120;    //button width
-    h = 35;     //button height, was 25
+    h = 26;     //button height, was 25
     // x = win_x - int(gutter_right*float(win_x)) - w;
-    x = PApplet.parseInt(PApplet.parseFloat(win_x) * 0.3f);
+    x = width/2 - w;
     // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
-    y = PApplet.parseInt(0.5f*gutter_topbot*PApplet.parseFloat(win_y));
+    // y = int(0.5*gutter_topbot*float(win_y));
+    y = 2;
     //int y = win_y - h;
     stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
     
@@ -3493,56 +3557,41 @@ class Gui_Manager {
     biasButton = new Button(x,y,w1,h1,"Bias\n" + "Auto",fontInfo.buttonLabel_size);
 
 
-
     //setup the buttons to control the processing and frequency displays
-    int Ibut=0;    w = w_orig;    h = h;
-    
+    int Ibut=0;    
+    w = 70;    
+    h = 26;
+    y = 2;
+
     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
-  
-    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
-   
-    set_vertScaleAsLog(true);
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
-    
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    showPolarityButton = new Button(x,y,w,h,"Show Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
- 
-     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
     maxDisplayFreqButton = new Button(x,y,w,h,"Max Freq\n" + round(maxDisplayFreq_Hz[maxDisplayFreq_ind]) + " Hz",fontInfo.buttonLabel_size);
 
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    showPolarityButton = new Button(x,y,w,h,"Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
 
-    // //set up controlPanelCollapser button
-    // controlPanelCollapser = new Button(0, 0, width/4, 25, "Control Panel", fontInfo.buttonLabel_size);
-    // controlPanelCollapser.setIsActive(true);
-    
-    //set the signal detection button...left of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f - (float)w - (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //detectButton = new Button(x,y,w,h,"Detect " + signalDetectName,fontInfo.buttonLabel_size);
-    
-    //set the show spectrogram button...right of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f + (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //spectrogramButton = new Button(x,y,w,h,"Spectrogram",fontInfo.buttonLabel_size);
-       
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
+
+    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
+
+    set_vertScaleAsLog(true);
+
     //set the initial display page for the GUI
     setGUIpage(GUI_PAGE_HEADPLOT_SETUP);  
   } 
   private int calcButtonXLocation(int Ibut,int win_x,int w, int xoffset, float gutter_between_buttons) {
-    return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    // return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    return width - ((Ibut+1) * (w + 2)) - 1;
   }
   
   public void setDefaultVertScale(float val_uV) {
@@ -5310,7 +5359,7 @@ public class MenuList extends Controller {
           menu.beginDraw();
           int len = -(itemHeight * items.size()) + getHeight();
           int ty = PApplet.parseInt(map(pos, len, 0, getHeight() - scrollerLength - 2, 2 ) );
-          menu.fill(255);
+          menu.fill(bgColor, 100);
           menu.rect(getWidth()-scrollerWidth-2, ty, scrollerWidth, scrollerLength );
           menu.endDraw();
         }
@@ -5345,18 +5394,18 @@ public class MenuList extends Controller {
 		Map m = items.get(i);
 		menu.fill(255, 100);
 		if(i == hoverItem){
-			menu.fill(200,100);
+			menu.fill(127,134,143);
 		}
 		if(i == activeItem){
-			menu.stroke(255);
+			menu.stroke(184,220,105,255);
 			menu.strokeWeight(1);
-			menu.fill(31,69,110,255);
+			menu.fill(184,220,105,255);
 			menu.rect(0, 0, getWidth()-1, itemHeight-1 );
 			menu.noStroke();
 		} else{
 			menu.rect(0, 0, getWidth(), itemHeight-1 );
 		}
-			menu.fill(255);
+			menu.fill(bgColor);
 			menu.textFont(menuFont);
 			menu.text(m.get("headline").toString(), 8, itemHeight - padding); // 5/17
 			menu.translate( 0, itemHeight );
@@ -6228,9 +6277,9 @@ public void parseKeycode(int val) {
       println("OpenBCI_GUI: parseKeycode(" + val + "): received BACKSPACE keypress.  Ignoring...");
       break;   
     case 9:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Toggling Impedance Control...");
+      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Ignoring...");
       //gui.showImpedanceButtons = !gui.showImpedanceButtons;
-      gui.incrementGUIpage();
+      // gui.incrementGUIpage(); //deprecated with new channel controller
       break;    
     case 10:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received ENTER keypress.  Ignoring...");

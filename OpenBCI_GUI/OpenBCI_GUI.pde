@@ -434,6 +434,7 @@ void haltSystem(){
     if (serial_openBCI != null){
       println("Closing any open SD file. Writing 'j' to OpenBCI.");
       serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      delay(100); //make sure 'j' gets sent to the board
       readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
@@ -604,6 +605,11 @@ void systemDraw(){ //for drawing to the screen
       // println("attempting to draw GUI...");
       try{
         // println("GUI DRAW!!! " + millis());
+        pushStyle();
+          fill(255);
+          noStroke();
+          rect(0, 0, width, 32);
+        popStyle();
         gui.draw(); //draw the GUI
       } catch (Exception e){
         println(e.getMessage());
