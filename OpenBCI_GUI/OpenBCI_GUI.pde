@@ -220,7 +220,9 @@ void setup() {
   helpWidget = new HelpWidget(0, win_y - 30, win_x, 30);
 
   // println("..." + this);
-  controlPanelCollapser = new Button(0, 0, 256, int((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  // controlPanelCollapser = new Button(2, 2, 256, int((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  controlPanelCollapser = new Button(2, 2, 256, 26, "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
   controlPanel = new ControlPanel(this); 
@@ -1087,10 +1089,12 @@ void updateButtons(){
   if (isRunning) {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStop_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStop_txt); 
+    gui.stopButton.setColorNotPressed(color(224, 56, 45));
   } 
   else {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStart_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStart_txt);
+    gui.stopButton.setColorNotPressed(color(184,220,105));
   }
 }
 

@@ -16,8 +16,8 @@ class Button {
   //int rectSize = 90;     // Diameter of rect
   color color_pressed = color(51);
   color color_highlight = color(102);
-  color color_notPressed = color(145);
-  color buttonStrokeColor = color(26);
+  color color_notPressed = color(255);
+  color buttonStrokeColor = bgColor;
   color textColor = bgColor;
   color rectHighlight;
   //boolean isMouseHere = false;

@@ -85,8 +85,8 @@ class Gui_Manager {
   public final static int GUI_PAGE_HEADPLOT_SETUP = 2;
   public final static int N_GUI_PAGES = 3;
   
-  public final static String stopButton_pressToStop_txt = "Press to Stop";
-  public final static String stopButton_pressToStart_txt = "Press to Start";
+  public final static String stopButton_pressToStop_txt = "Stop Data Stream";
+  public final static String stopButton_pressToStart_txt = "Start Data Stream";
   
   Gui_Manager(PApplet parent,int win_x, int win_y,int nchan,float displayTime_sec, float default_yScale_uV, 
     String filterDescription, float smooth_fac) {  
@@ -204,11 +204,12 @@ class Gui_Manager {
            
     //setup stop button
     w = 120;    //button width
-    h = 35;     //button height, was 25
+    h = 26;     //button height, was 25
     // x = win_x - int(gutter_right*float(win_x)) - w;
-    x = int(float(win_x) * 0.3f);
+    x = width/2 - w;
     // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
-    y = int(0.5*gutter_topbot*float(win_y));
+    // y = int(0.5*gutter_topbot*float(win_y));
+    y = 2;
     //int y = win_y - h;
     stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
     
@@ -261,56 +262,41 @@ class Gui_Manager {
     biasButton = new Button(x,y,w1,h1,"Bias\n" + "Auto",fontInfo.buttonLabel_size);
 
 
-
     //setup the buttons to control the processing and frequency displays
-    int Ibut=0;    w = w_orig;    h = h;
-    
+    int Ibut=0;    
+    w = 70;    
+    h = 26;
+    y = 2;
+
     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
-  
-    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
-   
-    set_vertScaleAsLog(true);
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
-    
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    showPolarityButton = new Button(x,y,w,h,"Show Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
- 
-     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
     maxDisplayFreqButton = new Button(x,y,w,h,"Max Freq\n" + round(maxDisplayFreq_Hz[maxDisplayFreq_ind]) + " Hz",fontInfo.buttonLabel_size);
 
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    showPolarityButton = new Button(x,y,w,h,"Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
 
-    // //set up controlPanelCollapser button
-    // controlPanelCollapser = new Button(0, 0, width/4, 25, "Control Panel", fontInfo.buttonLabel_size);
-    // controlPanelCollapser.setIsActive(true);
-    
-    //set the signal detection button...left of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f - (float)w - (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //detectButton = new Button(x,y,w,h,"Detect " + signalDetectName,fontInfo.buttonLabel_size);
-    
-    //set the show spectrogram button...right of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f + (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //spectrogramButton = new Button(x,y,w,h,"Spectrogram",fontInfo.buttonLabel_size);
-       
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
+
+    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
+
+    set_vertScaleAsLog(true);
+
     //set the initial display page for the GUI
     setGUIpage(GUI_PAGE_HEADPLOT_SETUP);  
   } 
   private int calcButtonXLocation(int Ibut,int win_x,int w, int xoffset, float gutter_between_buttons) {
-    return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    // return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    return width - ((Ibut+1) * (w + 2));
   }
   
   public void setDefaultVertScale(float val_uV) {

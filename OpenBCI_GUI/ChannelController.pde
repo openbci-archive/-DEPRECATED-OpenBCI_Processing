@@ -24,6 +24,7 @@ class ChannelController {
 	public int rowHeight;
 	public int buttonSpacing;
 	boolean showFullController = false;
+	boolean[] drawImpedanceValues = new boolean [nchan];
 
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
@@ -112,6 +113,12 @@ class ChannelController {
 	}
 
 	public void update(){
+
+		//make false to check again below
+		for(int i = 0; i < nchan; i++){
+			drawImpedanceValues[i] = false;
+		}
+
 		for(int i = 0; i < nchan; i++){ //for every channel
 			//update buttons based on channelSettingValues[i][j]
 			for(int j = 0; j < numSettingsPerChannel; j++){		
@@ -119,6 +126,7 @@ class ChannelController {
 					case 0: //on/off ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
+						break;
 					case 1: //GAIN ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
@@ -127,6 +135,7 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
+						break;
 					case 2: //input type ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
@@ -136,17 +145,22 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
 						if(channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
+						break;
 					case 3: //BIAS ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
+						break;
 					case 4: // SRB2 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
+						break;
 					case 5: // SRB1 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
+						break;
 				}
 			}
+
 			for(int k = 0; k < 2; k++){
 				switch(k){
 					case 0: // P Imp Buttons
@@ -157,7 +171,9 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
 							impedanceCheckButtons[i][0].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 					case 1: // N Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
@@ -166,7 +182,9 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
 							impedanceCheckButtons[i][1].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 				}
 			}
 		}
@@ -269,6 +287,18 @@ class ChannelController {
 				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
 			}
 		}
+
+		if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+			fill(0,0,0,200);
+			rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
+		}
+
+		for (int i = 0; i < nchan; i++){
+			if(drawImpedanceValues[i] == true){
+				gui.impValuesMontage[i].draw();  //impedance values on montage plot
+	        }
+		}
+
 		popStyle();
 
 	}

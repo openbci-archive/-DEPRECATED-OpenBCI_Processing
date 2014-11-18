@@ -263,9 +263,9 @@ void parseKeycode(int val) {
       println("OpenBCI_GUI: parseKeycode(" + val + "): received BACKSPACE keypress.  Ignoring...");
       break;   
     case 9:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Toggling Impedance Control...");
+      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Ignoring...");
       //gui.showImpedanceButtons = !gui.showImpedanceButtons;
-      gui.incrementGUIpage();
+      // gui.incrementGUIpage(); //deprecated with new channel controller
       break;    
     case 10:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received ENTER keypress.  Ignoring...");

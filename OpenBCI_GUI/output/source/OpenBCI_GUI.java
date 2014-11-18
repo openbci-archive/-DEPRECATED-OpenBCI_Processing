@@ -262,7 +262,9 @@ public void setup() {
   helpWidget = new HelpWidget(0, win_y - 30, win_x, 30);
 
   // println("..." + this);
-  controlPanelCollapser = new Button(0, 0, 256, PApplet.parseInt((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  // controlPanelCollapser = new Button(2, 2, 256, int((float)win_y*(0.03f)), "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+  controlPanelCollapser = new Button(2, 2, 256, 26, "SYSTEM CONTROL PANEL", fontInfo.buttonLabel_size);
+
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
   controlPanel = new ControlPanel(this); 
@@ -381,6 +383,10 @@ long timeOfLastCommand = 0;
 
 public void syncWithHardware(){
   switch (hardwareSyncStep) {
+    // case 1:
+    //   println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    //   serial_openBCI.write('v');
+    //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
     case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
       println("[1] Sending channel count (" + nchan + ") to OpenBCI...");
       if(nchan == 8){
@@ -405,7 +411,7 @@ public void syncWithHardware(){
       serial_openBCI.write("?"); 
       break;
     case 5:
-      serial_openBCI.write('j'); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
+      // serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
       switch (sdSetting){
         case 0: //"Do not write to SD"
           //do nothing
@@ -468,7 +474,9 @@ public void haltSystem(){
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)){
     closeLogFile();  //close log file
     if (serial_openBCI != null){
-      serial_openBCI.write('j'); // tell the SD file to close if one is open...
+      println("Closing any open SD file. Writing 'j' to OpenBCI.");
+      serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
       hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
@@ -512,6 +520,10 @@ public void systemUpdate(){ // for updating data values and variables
   if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
     openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
     timeOfLastCommand = millis();
+    serial_openBCI.clear();
+    openBCI.defaultChannelSettings = "";
+    println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+    serial_openBCI.write('v');
   }
 
   //if we are in SYNC WITH HARDWARE state ... trigger a command
@@ -663,7 +675,7 @@ public void systemDraw(){ //for drawing to the screen
       output("");
     }
 
-    if(millis() - timeOfInit > 10000){
+    if(millis() - timeOfInit > 12000){
       haltSystem();
       initSystemButton.but_txt = "START SYSTEM";
       output("Init timeout. Verify your Serial/COM Port. Power DOWN/UP your OpenBCI & USB Dongle. Then retry Initialization.");
@@ -1119,10 +1131,12 @@ public void updateButtons(){
   if (isRunning) {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStop_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStop_txt); 
+    gui.stopButton.setColorNotPressed(color(224, 56, 45));
   } 
   else {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStart_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStart_txt);
+    gui.stopButton.setColorNotPressed(color(184,220,105));
   }
 }
 
@@ -1416,8 +1430,8 @@ class Button {
   //int rectSize = 90;     // Diameter of rect
   int color_pressed = color(51);
   int color_highlight = color(102);
-  int color_notPressed = color(145);
-  int buttonStrokeColor = color(26);
+  int color_notPressed = color(255);
+  int buttonStrokeColor = bgColor;
   int textColor = bgColor;
   int rectHighlight;
   //boolean isMouseHere = false;
@@ -1613,6 +1627,7 @@ class ChannelController {
 	public int rowHeight;
 	public int buttonSpacing;
 	boolean showFullController = false;
+	boolean[] drawImpedanceValues = new boolean [nchan];
 
 	int spacer1 = 3;
 	int spacer2 = 5; //space between buttons
@@ -1701,6 +1716,12 @@ class ChannelController {
 	}
 
 	public void update(){
+
+		//make false to check again below
+		for(int i = 0; i < nchan; i++){
+			drawImpedanceValues[i] = false;
+		}
+
 		for(int i = 0; i < nchan; i++){ //for every channel
 			//update buttons based on channelSettingValues[i][j]
 			for(int j = 0; j < numSettingsPerChannel; j++){		
@@ -1708,6 +1729,7 @@ class ChannelController {
 					case 0: //on/off ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
+						break;
 					case 1: //GAIN ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
@@ -1716,6 +1738,7 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
+						break;
 					case 2: //input type ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
@@ -1725,17 +1748,22 @@ class ChannelController {
 						if(channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
 						if(channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
 						if(channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
+						break;
 					case 3: //BIAS ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
+						break;
 					case 4: // SRB2 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
+						break;
 					case 5: // SRB1 ??
 						if(channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
 						if(channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
+						break;
 				}
 			}
+
 			for(int k = 0; k < 2; k++){
 				switch(k){
 					case 0: // P Imp Buttons
@@ -1746,7 +1774,9 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
 							impedanceCheckButtons[i][0].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 					case 1: // N Imp Buttons
 						if(impedanceCheckValues[i][k] == '0'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(75));
@@ -1755,7 +1785,9 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
 							impedanceCheckButtons[i][1].setString("");
+							drawImpedanceValues[i] = true;
 						}
+						break;
 				}
 			}
 		}
@@ -1858,6 +1890,18 @@ class ChannelController {
 				text("DATA SOURCE (LIVE) only", x2 + (w2/2), y2 + (h2/2));
 			}
 		}
+
+		if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+			fill(0,0,0,200);
+			rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
+		}
+
+		for (int i = 0; i < nchan; i++){
+			if(drawImpedanceValues[i] == true){
+				gui.impValuesMontage[i].draw();  //impedance values on montage plot
+	        }
+		}
+
 		popStyle();
 
 	}
@@ -3307,8 +3351,8 @@ class Gui_Manager {
   public final static int GUI_PAGE_HEADPLOT_SETUP = 2;
   public final static int N_GUI_PAGES = 3;
   
-  public final static String stopButton_pressToStop_txt = "Press to Stop";
-  public final static String stopButton_pressToStart_txt = "Press to Start";
+  public final static String stopButton_pressToStop_txt = "Stop Data Stream";
+  public final static String stopButton_pressToStart_txt = "Start Data Stream";
   
   Gui_Manager(PApplet parent,int win_x, int win_y,int nchan,float displayTime_sec, float default_yScale_uV, 
     String filterDescription, float smooth_fac) {  
@@ -3426,11 +3470,12 @@ class Gui_Manager {
            
     //setup stop button
     w = 120;    //button width
-    h = 35;     //button height, was 25
+    h = 26;     //button height, was 25
     // x = win_x - int(gutter_right*float(win_x)) - w;
-    x = PApplet.parseInt(PApplet.parseFloat(win_x) * 0.3f);
+    x = width/2 - w;
     // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
-    y = PApplet.parseInt(0.5f*gutter_topbot*PApplet.parseFloat(win_y));
+    // y = int(0.5*gutter_topbot*float(win_y));
+    y = 2;
     //int y = win_y - h;
     stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
     
@@ -3483,56 +3528,41 @@ class Gui_Manager {
     biasButton = new Button(x,y,w1,h1,"Bias\n" + "Auto",fontInfo.buttonLabel_size);
 
 
-
     //setup the buttons to control the processing and frequency displays
-    int Ibut=0;    w = w_orig;    h = h;
-    
+    int Ibut=0;    
+    w = 70;    
+    h = 26;
+    y = 2;
+
     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
-  
-    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
-   
-    set_vertScaleAsLog(true);
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
-  
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
-    
-    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
-    showPolarityButton = new Button(x,y,w,h,"Show Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
- 
-     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
     maxDisplayFreqButton = new Button(x,y,w,h,"Max Freq\n" + round(maxDisplayFreq_Hz[maxDisplayFreq_ind]) + " Hz",fontInfo.buttonLabel_size);
 
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    showPolarityButton = new Button(x,y,w,h,"Polarity\n" + headPlot1.getUsePolarityTrueFalse(),fontInfo.buttonLabel_size);
 
-    // //set up controlPanelCollapser button
-    // controlPanelCollapser = new Button(0, 0, width/4, 25, "Control Panel", fontInfo.buttonLabel_size);
-    // controlPanelCollapser.setIsActive(true);
-    
-    //set the signal detection button...left of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f - (float)w - (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //detectButton = new Button(x,y,w,h,"Detect " + signalDetectName,fontInfo.buttonLabel_size);
-    
-    //set the show spectrogram button...right of center
-    //w = stopButton.but_dx;
-    //h = stopButton.but_dy;
-    //x = (int)(((float)win_x) / 2.0f + (gutter_between_buttons*win_x)/2.0f);
-    //y = stopButton.but_y;
-    //spectrogramButton = new Button(x,y,w,h,"Spectrogram",fontInfo.buttonLabel_size);
-       
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    smoothingButton = new Button(x,y,w,h,"Smooth\n" + headPlot1.smooth_fac,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    loglinPlotButton = new Button(x,y,w,h,"Vert Scale\n" + get_vertScaleAsLogText(),fontInfo.buttonLabel_size);
+
+    //x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    //fftNButton = new Button(x,y,w,h,"FFT N\n" + Nfft,fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
+
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
+
+    set_vertScaleAsLog(true);
+
     //set the initial display page for the GUI
     setGUIpage(GUI_PAGE_HEADPLOT_SETUP);  
   } 
   private int calcButtonXLocation(int Ibut,int win_x,int w, int xoffset, float gutter_between_buttons) {
-    return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    // return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
+    return width - ((Ibut+1) * (w + 2));
   }
   
   public void setDefaultVertScale(float val_uV) {
@@ -6218,9 +6248,9 @@ public void parseKeycode(int val) {
       println("OpenBCI_GUI: parseKeycode(" + val + "): received BACKSPACE keypress.  Ignoring...");
       break;   
     case 9:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Toggling Impedance Control...");
+      println("OpenBCI_GUI: parseKeycode(" + val + "): received TAB keypress.  Ignoring...");
       //gui.showImpedanceButtons = !gui.showImpedanceButtons;
-      gui.incrementGUIpage();
+      // gui.incrementGUIpage(); //deprecated with new channel controller
       break;    
     case 10:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received ENTER keypress.  Ignoring...");
