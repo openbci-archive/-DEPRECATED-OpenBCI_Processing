@@ -65,7 +65,7 @@ class EEG_Processing {
   final int N_NOTCH_CONFIGS = 3;
   FilterConstants[] filtCoeff_notch = new FilterConstants[N_NOTCH_CONFIGS];
   private int currentFilt_ind = 0;
-  private int currentNotch_ind = 0;
+  private int currentNotch_ind = 0;  // set to 0 to default to 60Hz, set to 1 to default to 50Hz
   float data_std_uV[];
   float polarity[];
 
