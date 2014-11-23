@@ -935,6 +935,10 @@ void mousePressed() {
             gui.filtBPButton.setIsActive(true);
             incrementFilterConfiguration();
           }
+          if (gui.filtNotchButton.isMouseHere()) {
+            gui.filtNotchButton.setIsActive(true);
+            incrementNotchConfiguration();
+          }
           if (gui.smoothingButton.isMouseHere()) {
             gui.smoothingButton.setIsActive(true);
             incrementSmoothing();
@@ -1312,11 +1316,16 @@ void incrementFilterConfiguration() {
   eegProcessing.incrementFilterConfiguration();
   
   //update the button strings
-//  gui.filtBPButton.but_txt = "BP Filt\n" + filtCoeff_bp[currentFilt_ind].short_name;
-//  gui.titleMontage.string = "EEG Data (" + filtCoeff_bp[currentFilt_ind].name + ", " + filtCoeff_notch[currentFilt_ind].name + ")"; 
   gui.filtBPButton.but_txt = "BP Filt\n" + eegProcessing.getShortFilterDescription();
   gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
+}
+
+void incrementNotchConfiguration() {
+  eegProcessing.incrementNotchConfiguration();
   
+  //update the button strings
+  gui.filtNotchButton.but_txt = "Notch\n" + eegProcessing.getShortNotchDescription();
+  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
 }
   
 void incrementSmoothing() {

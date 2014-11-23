@@ -40,6 +40,7 @@ class Gui_Manager {
   Button intensityFactorButton;
   Button loglinPlotButton;
   Button filtBPButton;
+  Button filtNotchButton;
   Button fftNButton;
   Button smoothingButton;
   Button maxDisplayFreqButton;
@@ -201,25 +202,16 @@ class Gui_Manager {
     
     //setup the buttons
     int w,h,x,y;
-           
-    //setup stop button
-    w = 120;    //button width
     h = 26;     //button height, was 25
-    // x = win_x - int(gutter_right*float(win_x)) - w;
-    x = width/2 - w;
-    // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
-    // y = int(0.5*gutter_topbot*float(win_y));
-    y = 2;
-    //int y = win_y - h;
-    stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
-    
+    y = 2;      //button y position, measured top
+              
+    // //// Is this block used anymore?  Chip 2014-11-23
     //setup the gui page button
-
     w = 80; //button width
     x = (int)((3*gutter_between_buttons + left_right_split) * win_x);
-
     // x = int(float(win_x)*0.3f);
     // guiPageButton = new Button(x,y,w,h,"Page\n" + (guiPage+1) + " of " + N_GUI_PAGES,fontInfo.buttonLabel_size);
+    // //// End Ques by Chip 2014-11-12    
         
     //setup the channel on/off buttons...only plot 8 buttons, even if there are more channels
     //because as of 4/3/2014, you can only turn on/off the higher channels (the ones above chan 8)
@@ -287,9 +279,21 @@ class Gui_Manager {
     intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
 
     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    filtNotchButton = new Button(x,y,w,h,"Notch\n" + eegProcessing.getShortNotchDescription(),fontInfo.buttonLabel_size);    
+    
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
     filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
 
     set_vertScaleAsLog(true);
+    
+    //setup start/stop button
+    // x = win_x - int(gutter_right*float(win_x)) - w;
+    //x = width/2 - w;
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    int w_wide = 120;    //button width, wider
+    x = x + w - w_wide-((int)(gutter_between_buttons*win_x));  //adjust the x position for the wider button, plus double the gutter
+    stopButton = new Button(x,y,w_wide,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
+ 
 
     //set the initial display page for the GUI
     setGUIpage(GUI_PAGE_HEADPLOT_SETUP);  
@@ -828,6 +832,7 @@ class Gui_Manager {
         intensityFactorButton.draw();
         loglinPlotButton.draw();
         filtBPButton.draw();
+        filtNotchButton.draw();
         //fftNButton.draw();
         smoothingButton.draw();
         showPolarityButton.draw();
@@ -903,6 +908,7 @@ class Gui_Manager {
     intensityFactorButton.setIsActive(false);
     loglinPlotButton.setIsActive(false);
     filtBPButton.setIsActive(false);
+    filtNotchButton.setIsActive(false);
     smoothingButton.setIsActive(false);
     showPolarityButton.setIsActive(false);
     maxDisplayFreqButton.setIsActive(false);
