@@ -953,6 +953,10 @@ void mousePressed() {
             gui.filtBPButton.setIsActive(true);
             incrementFilterConfiguration();
           }
+          if (gui.filtNotchButton.isMouseHere()) {
+            gui.filtNotchButton.setIsActive(true);
+            incrementNotchConfiguration();
+          }
           if (gui.smoothingButton.isMouseHere()) {
             gui.smoothingButton.setIsActive(true);
             incrementSmoothing();
@@ -1143,7 +1147,7 @@ void updateButtons(){
 }
 
 final float sine_freq_Hz = 10.0f;
-float sine_phase_rad = 0.0;
+float[] sine_phase_rad = new float[nchan];
 void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, DataPacket_ADS1299 curDataPacket) {
   float val_uV;
   for (int Ichan=0; Ichan < nchan; Ichan++) {
@@ -1154,12 +1158,21 @@ void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, Da
       
       if (Ichan==1) {
         //add sine wave at 10 Hz at 10 uVrms
-        sine_phase_rad += 2.0f*PI * sine_freq_Hz / fs_Hz;
-        if (sine_phase_rad > 2.0f*PI) sine_phase_rad -= 2.0f*PI;
-        val_uV += 10.0f * sqrt(2.0)*sin(sine_phase_rad);
+        sine_phase_rad[Ichan] += 2.0f*PI * sine_freq_Hz / fs_Hz;
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 10.0f * sqrt(2.0)*sin(sine_phase_rad[Ichan]);
+      } else if (Ichan==2) {
+        //50 Hz interference at 50 uVrms
+        sine_phase_rad[Ichan] += 2.0f*PI * 50.0f / fs_Hz;  //60 Hz
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 50.0f * sqrt(2.0)*sin(sine_phase_rad[Ichan]);    //20 uVrms
+      } else if (Ichan==3) {
+        //60 Hz interference at 50 uVrms
+        sine_phase_rad[Ichan] += 2.0f*PI * 60.0f / fs_Hz;  //50 Hz
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 50.0f * sqrt(2.0)*sin(sine_phase_rad[Ichan]);  //20 uVrms  
       }
-    } 
-    else {
+    } else {
       val_uV = 0.0f;
     }
     curDataPacket.values[Ichan] = (int) (0.5f+ val_uV / scale_fac_uVolts_per_count); //convert to counts, the 0.5 is to ensure rounding
@@ -1341,11 +1354,16 @@ void incrementFilterConfiguration() {
   eegProcessing.incrementFilterConfiguration();
   
   //update the button strings
-//  gui.filtBPButton.but_txt = "BP Filt\n" + filtCoeff_bp[currentFilt_ind].short_name;
-//  gui.titleMontage.string = "EEG Data (" + filtCoeff_bp[currentFilt_ind].name + ", " + filtCoeff_notch[currentFilt_ind].name + ")"; 
   gui.filtBPButton.but_txt = "BP Filt\n" + eegProcessing.getShortFilterDescription();
   gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
+}
+
+void incrementNotchConfiguration() {
+  eegProcessing.incrementNotchConfiguration();
   
+  //update the button strings
+  gui.filtNotchButton.but_txt = "Notch\n" + eegProcessing.getShortNotchDescription();
+  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
 }
   
 void incrementSmoothing() {
