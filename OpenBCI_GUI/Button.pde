@@ -28,7 +28,7 @@ class Button {
   boolean drawHand = false;
   boolean wasPressed = false;
   public String but_txt;
-  // PFont font;
+  PFont buttonFont = f2;
 
   public Button(int x, int y, int w, int h, String txt, int fontSize) {
     setup(x, y, w, h, txt);
@@ -107,6 +107,12 @@ class Button {
     }
   }
 
+  public void draw(int _x, int _y){
+    but_x = _x;
+    but_y = _y;
+    draw();
+  }
+
   public void draw() {
     //draw the button
     fill(getColor());
@@ -125,7 +131,7 @@ class Button {
       fill(textColorNotActive);
     }
     stroke(255);
-    textFont(f2);  //load f2 ... from control panel 
+    textFont(buttonFont);  //load f2 ... from control panel 
     textSize(12);
     textAlign(CENTER, CENTER);
     textLeading(round(0.9*(textAscent()+textDescent())));

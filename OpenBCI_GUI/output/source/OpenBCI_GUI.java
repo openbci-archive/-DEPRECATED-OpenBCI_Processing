@@ -154,6 +154,9 @@ ControlPanel controlPanel;
 Button controlPanelCollapser;
 PlotFontInfo fontInfo;
 
+Playground playground;
+int navBarHeight = 32;
+
 //program constants
 boolean isRunning=false;
 boolean redrawScreenNow = true;
@@ -227,6 +230,10 @@ int win_y = 768; //window height
 
 PImage logo;
 
+PFont f1;
+PFont f2;
+PFont f3;
+
 //========================SETUP============================//
 //========================SETUP============================//
 //========================SETUP============================//
@@ -242,6 +249,10 @@ public void setup() {
   // smooth(); //turn this off if it's too slow
 
   frame.setResizable(true); 
+
+  f1 = createFont("Raleway-SemiBold.otf", 16);
+  f2 = createFont("Raleway-Regular.otf", 15);
+  f3 = createFont("Raleway-SemiBold.otf", 15);
 
   //listen for window resize ... used to adjust elements in application
   frame.addComponentListener(new ComponentAdapter() { 
@@ -270,6 +281,8 @@ public void setup() {
   controlPanel = new ControlPanel(this); 
 
   logo = loadImage("logo2.png");
+
+  playground = new Playground(navBarHeight);
 
 }
 //====================== END--OF ==========================//
@@ -476,6 +489,7 @@ public void haltSystem(){
     if (serial_openBCI != null){
       println("Closing any open SD file. Writing 'j' to OpenBCI.");
       serial_openBCI.write("j"); // tell the SD file to close if one is open...
+      delay(100); //make sure 'j' gets sent to the board
       readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
@@ -610,6 +624,8 @@ public void systemUpdate(){ // for updating data values and variables
       timeOfGUIreinitialize = millis();
       initializeGUI();
     }
+
+    playground.update();
   }
 
   controlPanel.update();
@@ -646,7 +662,13 @@ public void systemDraw(){ //for drawing to the screen
       // println("attempting to draw GUI...");
       try{
         // println("GUI DRAW!!! " + millis());
+        pushStyle();
+          fill(255);
+          noStroke();
+          rect(0, 0, width, navBarHeight);
+        popStyle();
         gui.draw(); //draw the GUI
+        // playground.draw();
       } catch (Exception e){
         println(e.getMessage());
         reinitializeGUIdelay = reinitializeGUIdelay * 2;
@@ -657,6 +679,8 @@ public void systemDraw(){ //for drawing to the screen
       //reinitializing GUI after resize
       println("reinitializing GUI after resize... not drawing GUI");
     }
+
+    playground.draw();
 
   }
 
@@ -1011,7 +1035,11 @@ public void mousePressed() {
         //toggle the display of the montage values
         gui.showMontageValues  = !gui.showMontageValues;
       }
+
+
     }
+
+    
   }
 
   //=============================//
@@ -1053,6 +1081,14 @@ public void mousePressed() {
   }
 
   redrawScreenNow = true;  //command a redraw of the GUI whenever the mouse is pressed
+
+  if(playground.isMouseHere()){
+    playground.mousePressed();
+  }
+
+  if(playground.isMouseInButton()){
+    playground.toggleWindow();
+  }
 }
 
 public void mouseReleased() {
@@ -1077,6 +1113,14 @@ public void mouseReleased() {
   if(screenHasBeenResized){
     println("screen has been resized...");
     screenHasBeenResized = false;
+  }
+
+  //Playground Interactivity
+  if(playground.isMouseHere()){
+    playground.mouseReleased();
+  }
+  if(playground.isMouseInButton()){
+    // playground.toggleWindow();
   }
 }
 
@@ -1428,11 +1472,12 @@ class Button {
   
   int but_x, but_y, but_dx, but_dy;      // Position of square button
   //int rectSize = 90;     // Diameter of rect
-  int color_pressed = color(51);
+  int color_pressed = color(200);
   int color_highlight = color(102);
   int color_notPressed = color(255);
   int buttonStrokeColor = bgColor;
-  int textColor = bgColor;
+  int textColorActive = color(255);
+  int textColorNotActive = bgColor;
   int rectHighlight;
   //boolean isMouseHere = false;
   boolean buttonHasStroke = true;
@@ -1441,7 +1486,7 @@ class Button {
   boolean drawHand = false;
   boolean wasPressed = false;
   public String but_txt;
-  // PFont font;
+  PFont buttonFont = f2;
 
   public Button(int x, int y, int w, int h, String txt, int fontSize) {
     setup(x, y, w, h, txt);
@@ -1520,6 +1565,12 @@ class Button {
     }
   }
 
+  public void draw(int _x, int _y){
+    but_x = _x;
+    but_y = _y;
+    draw();
+  }
+
   public void draw() {
     //draw the button
     fill(getColor());
@@ -1532,9 +1583,13 @@ class Button {
     rect(but_x,but_y,but_dx,but_dy);
     
     //draw the text
-    fill(textColor);
+    if(isActive){
+      fill(textColorActive);
+    }else{
+      fill(textColorNotActive);
+    }
     stroke(255);
-    textFont(f2);  //load f2 ... from control panel 
+    textFont(buttonFont);  //load f2 ... from control panel 
     textSize(12);
     textAlign(CENTER, CENTER);
     textLeading(round(0.9f*(textAscent()+textDescent())));
@@ -1772,7 +1827,7 @@ class ChannelController {
 							impedanceCheckButtons[i][0].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
-							impedanceCheckButtons[i][0].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][0].setString("");
 							drawImpedanceValues[i] = true;
 						}
@@ -1783,7 +1838,7 @@ class ChannelController {
 							impedanceCheckButtons[i][1].setString("");
 						}
 						if(impedanceCheckValues[i][k] == '1'){
-							impedanceCheckButtons[i][1].setColorNotPressed(color(255));
+							impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][1].setString("");
 							drawImpedanceValues[i] = true;
 						}
@@ -2249,10 +2304,6 @@ class ChannelController {
 
 
 
-PFont f1;
-PFont f2;
-PFont f3;
-
 ControlP5 cp5; //program-wide instance of ControlP5
 CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text field on double-click
     public void controlEvent(CallbackEvent theEvent) {
@@ -2268,6 +2319,11 @@ MenuList serialList;
 String[] serialPorts = new String[Serial.list().length];
 
 MenuList sdTimes;
+
+int boxColor = color(200);
+// color boxStrokeColor = color(173,183,192);
+int boxStrokeColor = color(138,146,153);
+int greenColor = color(184,220,105);
 
 // Button openClosePort;
 // boolean portButtonPressed;
@@ -2323,8 +2379,8 @@ class ControlPanel {
 
 	ControlPanel(OpenBCI_GUI mainClass){
 
-		x = 0;
-		y = controlPanelCollapser.but_dy;		
+		x = 2;
+		y = 2 + controlPanelCollapser.but_dy;		
 		w = controlPanelCollapser.but_dx;
 		h = height - PApplet.parseInt(helpWidget.h);
 
@@ -2332,9 +2388,9 @@ class ControlPanel {
 
 		fontInfo = new PlotFontInfo();
 
-		f1 = createFont("Raleway-SemiBold.otf", 16);
-		f2 = createFont("Raleway-Regular.otf", 14);
-		f3 = createFont("Raleway-SemiBold.otf", 14);
+		// f1 = createFont("Raleway-SemiBold.otf", 16);
+		// f2 = createFont("Raleway-Regular.otf", 15);
+		// f3 = createFont("Raleway-SemiBold.otf", 15);
 
 		globalPadding = 10;  //controls the padding of all elements on the control panel
 		globalBorder = 0;   //controls the border of all elements in the control panel ... using processing's stroke() instead
@@ -2396,6 +2452,12 @@ class ControlPanel {
 		fill(0,0,0,185);
 		rect(0,0,width,height);
 
+		pushStyle();
+			fill(255);
+			noStroke();
+			rect(0, 0, width, 32);
+		popStyle();
+
 		// //background pane of control panel
 		// fill(35,35,35);
 		// rect(0,0,w,h);
@@ -2448,14 +2510,14 @@ class ControlPanel {
 		//draw the box that tells you to stop the system in order to edit control settings
 		if(drawStopInstructions){
 			pushStyle();
-				fill(100);
+				fill(boxColor);
 				strokeWeight(1);
-				stroke(26);
+				stroke(boxStrokeColor);
 				rect(x, y, w, dataSourceBox.h); //draw background of box
 				String stopInstructions = "Press the \"STOP SYSTEM\" button to edit system settings.";
 				textAlign(CENTER, TOP);
 				textFont(f2);
-				fill(255);
+				fill(bgColor);
 				text(stopInstructions, x + globalPadding*2, y + globalPadding*4, w - globalPadding*4, dataSourceBox.h - globalPadding*4);
 			popStyle();
 		}
@@ -2487,11 +2549,15 @@ class ControlPanel {
 				if(chanButton8.isMouseHere()){
 					chanButton8.setIsActive(true);
 					chanButton8Pressed = true;
+					chanButton8.color_notPressed = color(184,220,105);
+					chanButton16.color_notPressed = color(255);
 				}
 
 				if(chanButton16.isMouseHere()){
 					chanButton16.setIsActive(true);
 					chanButton16Pressed = true;
+					chanButton8.color_notPressed = color(255);
+					chanButton16.color_notPressed = color(184,220,105);
 				}
 			}
 
@@ -2671,13 +2737,13 @@ class DataSourceBox {
 		h = 115;
 		padding = _padding;
 
-		sourceList = new MenuList(cp5, "sourceList", w - padding*2, 72, f3);
+		sourceList = new MenuList(cp5, "sourceList", w - padding*2, 72, f2);
 		// sourceList.itemHeight = 28;
 		// sourceList.padding = 9;
 		sourceList.setPosition(x + padding, y + padding*2 + 13);
-		sourceList.addItem(makeItem("LIVE (from OpenBCI)"));
-		sourceList.addItem(makeItem("PLAYBACK (from file)"));
-		sourceList.addItem(makeItem("SYNTHETIC"));
+		sourceList.addItem(makeItem("LIVE (from OpenBCI)                   >"));
+		sourceList.addItem(makeItem("PLAYBACK (from file)                  >"));
+		sourceList.addItem(makeItem("SYNTHETIC (algorithmic)           >"));
 		sourceList.scrollerLength = 10;
 	}
 
@@ -2687,11 +2753,11 @@ class DataSourceBox {
 
 	public void draw(){
 		pushStyle();
-			fill(89);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("DATA SOURCE", x + padding, y + padding);
@@ -2712,13 +2778,13 @@ class SerialBox {
 		x = _x;
 		y = _y;
 		w = _w;
-		h = 183;
+		h = 147;
 		padding = _padding;
 
 		// openClosePort = new Button (padding + border, y + padding*3 + 13 + 150, (w-padding*3)/2, 24, "OPEN PORT", fontInfo.buttonLabel_size);
-		refreshPort = new Button (x + padding, y + padding*3 + 13 + 107, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
+		refreshPort = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
 
-		serialList = new MenuList(cp5, "serialList", w - padding*2, 108, f2);
+		serialList = new MenuList(cp5, "serialList", w - padding*2, 72, f2);
 		serialList.setPosition(x + padding, y + padding*2 + 13);
 		serialPorts = Serial.list();
 		for(int i = 0; i < serialPorts.length; i++){
@@ -2733,11 +2799,11 @@ class SerialBox {
 
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("SERIAL/COM PORT", x + padding, y + padding);
@@ -2784,8 +2850,8 @@ class DataLogBox {
 			.setColor(color(26,26,26))
 			.setColorBackground(color(255,255,255)) // text field bg color
 			.setColorValueLabel(color(0,0,0))  // text color
-			.setColorForeground(color(26,26,26))  // border color when not selected
-			.setColorActive(color(31,69,110))  // border color when selected
+			.setColorForeground(greenColor)  // border color when not selected
+			.setColorActive(greenColor)  // border color when selected
 			.setColorCursor(color(26,26,26)) 
 			.setText(getDateString())
 			.align(5, 10, 20, 40) 
@@ -2803,11 +2869,11 @@ class DataLogBox {
 
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("DATA LOG FILE", x + padding, y + padding);
@@ -2832,6 +2898,7 @@ class ChannelCountBox {
 		padding = _padding;
 
 		chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
+		chanButton8.color_notPressed = color(184,220,105);
 		chanButton16 = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
 
 	}
@@ -2842,15 +2909,15 @@ class ChannelCountBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("CHANNEL COUNT", x + padding, y + padding);
-			fill(115,217,115); //set color to green
+			fill(bgColor); //set color to green
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("(" + str(nchan) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
@@ -2881,11 +2948,11 @@ class PlaybackFileBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("PLAYBACK FILE", x + padding, y + padding);
@@ -2928,11 +2995,11 @@ class SDBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("WRITE TO SD (Y/N)?", x + padding, y + padding);
@@ -2963,11 +3030,11 @@ class SDConverterBox {
 	
 	public void draw(){
 		pushStyle();
-			fill(64);
-			stroke(26);
+			fill(boxColor);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
-			fill(255);
+			fill(bgColor);
 			textFont(f1);
 			textAlign(LEFT, TOP);
 			text("CONVERT SD FOR PLAYBACK", x + padding, y + padding);
@@ -2995,6 +3062,8 @@ class InitBox {
 
 		//init button
 		initSystemButton = new Button (padding, y + padding, w-padding*2, h - padding*2, "START SYSTEM", fontInfo.buttonLabel_size);
+		initSystemButton.color_notPressed = color(boxColor);
+		initSystemButton.buttonStrokeColor = color(boxColor);
 		initButtonPressed = false;
 	}
 
@@ -3005,8 +3074,8 @@ class InitBox {
 	public void draw(){
 
 		pushStyle();
-			fill(89);
-			stroke(26);
+			fill(255);
+			stroke(boxStrokeColor);
 			strokeWeight(1);
 			rect(x, y, w, h);
 		popStyle();
@@ -3413,6 +3482,9 @@ class Gui_Manager {
     showMontageButton.setColorNotPressed(color(255));
     showMontageButton.hasStroke(false);
     showMontageButton.setIsActive(true);
+    showMontageButton.buttonFont = f1;
+    showMontageButton.textColorActive = bgColor;
+
 
     showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+127, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
     showChannelControllerButton.makeDropdownButton(true);
@@ -3420,6 +3492,7 @@ class Gui_Manager {
     showChannelControllerButton.setColorNotPressed(color(255));
     showChannelControllerButton.hasStroke(false);
     showChannelControllerButton.setIsActive(false);
+    showChannelControllerButton.textColorActive = bgColor;
 
     //setup montage controller
     cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
@@ -3562,7 +3635,7 @@ class Gui_Manager {
   } 
   private int calcButtonXLocation(int Ibut,int win_x,int w, int xoffset, float gutter_between_buttons) {
     // return xoffset + (Ibut * (w + (int)(gutter_between_buttons*win_x)));
-    return width - ((Ibut+1) * (w + 2));
+    return width - ((Ibut+1) * (w + 2)) - 1;
   }
   
   public void setDefaultVertScale(float val_uV) {
@@ -4133,13 +4206,17 @@ class Gui_Manager {
       //turn off visibility of channel full controller
       cc.showFullController = false;
       showMontageButton.setIsActive(true);
+      showMontageButton.buttonFont = f1;
       showChannelControllerButton.setIsActive(false);
+      showChannelControllerButton.buttonFont = f2;
     }
     //if showChannelController is pressed
     if(showChannelControllerButton.isMouseHere()){
       cc.showFullController = true;
       showMontageButton.setIsActive(false);
+      showMontageButton.buttonFont = f2;
       showChannelControllerButton.setIsActive(true);
+      showChannelControllerButton.buttonFont = f1;
     }
 
     //if cursor inside channel controller
@@ -5330,7 +5407,7 @@ public class MenuList extends Controller {
           menu.beginDraw();
           int len = -(itemHeight * items.size()) + getHeight();
           int ty = PApplet.parseInt(map(pos, len, 0, getHeight() - scrollerLength - 2, 2 ) );
-          menu.fill(255);
+          menu.fill(bgColor, 100);
           menu.rect(getWidth()-scrollerWidth-2, ty, scrollerWidth, scrollerLength );
           menu.endDraw();
         }
@@ -5365,18 +5442,18 @@ public class MenuList extends Controller {
 		Map m = items.get(i);
 		menu.fill(255, 100);
 		if(i == hoverItem){
-			menu.fill(200,100);
+			menu.fill(127,134,143);
 		}
 		if(i == activeItem){
-			menu.stroke(255);
+			menu.stroke(184,220,105,255);
 			menu.strokeWeight(1);
-			menu.fill(31,69,110,255);
+			menu.fill(184,220,105,255);
 			menu.rect(0, 0, getWidth()-1, itemHeight-1 );
 			menu.noStroke();
 		} else{
 			menu.rect(0, 0, getWidth(), itemHeight-1 );
 		}
-			menu.fill(255);
+			menu.fill(bgColor);
 			menu.textFont(menuFont);
 			menu.text(m.get("headline").toString(), 8, itemHeight - padding); // 5/17
 			menu.translate( 0, itemHeight );
@@ -6342,6 +6419,133 @@ public void parseKeycode(int val) {
       break;
   }
 }
+//////////////////////////////////////////////////////////////////////////
+//
+//		Playground Class
+//		Created: 11/22/14 by Conor Russomanno
+//		An extra interface pane for additional GUI features
+//
+//////////////////////////////////////////////////////////////////////////
+
+
+class Playground {
+
+	//button for opening and closing
+	float x, y, w, h;
+	int boxBG;
+	int strokeColor;
+	float topMargin, bottomMargin;
+
+	boolean isOpen;
+	boolean collapsing;
+
+	Button collapser;
+
+	Playground(int _topMargin){
+
+		topMargin = _topMargin;
+		bottomMargin = helpWidget.h;
+
+		isOpen = false;
+		collapsing = true;
+
+		boxBG = color(255);
+		strokeColor = color(138,146,153);
+		collapser = new Button(0, 0, 20, 60, "<", 14);
+
+		x = width;
+		y = topMargin;
+		w = 0;
+		h = height - (topMargin+bottomMargin);
+
+	}
+
+	public void update(){
+		// verbosePrint("uh huh");
+		if(collapsing){
+			collapse();
+		} else{
+			expand();
+		}
+
+		if(x > width){
+			x = width;
+		}
+
+	}
+
+	public void draw(){
+		// verbosePrint("yeaaa");
+		pushStyle();
+			fill(boxBG);
+			stroke(strokeColor);
+			rect(width - w, topMargin, w, height - (topMargin + bottomMargin));
+			textFont(f1);
+			textAlign(LEFT, TOP);
+			fill(bgColor);
+			text("Developer Playground", x + 10, y + 10);
+			fill(255,0,0);
+			collapser.draw(PApplet.parseInt(x - collapser.but_dx), PApplet.parseInt(topMargin + (h-collapser.but_dy)/2));
+		popStyle();
+
+	}
+
+	public boolean isMouseHere(){
+		if(mouseX >= x && mouseX <= width && mouseY >= y && mouseY <= height - bottomMargin){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public boolean isMouseInButton(){
+		verbosePrint("attempting");
+		if(mouseX >= collapser.but_x && mouseX <= collapser.but_x+collapser.but_dx && mouseY >= collapser.but_y && mouseY <= collapser.but_y + collapser.but_dy){
+			return true;
+		} else{
+			return false;
+		}
+	}
+
+	public void toggleWindow(){
+		if(isOpen){//if open
+			verbosePrint("close");
+			collapsing = true;//collapsing = true;
+			isOpen = false;
+			collapser.but_txt = "<";
+		} else {//if closed
+			verbosePrint("open");
+			collapsing = false;//expanding = true;
+			isOpen = true;
+			collapser.but_txt = ">";
+		}
+	}
+
+	public void mousePressed(){
+		verbosePrint("Playground >> mousePressed()");
+	}
+
+	public void mouseReleased(){
+		verbosePrint("Playground >> mouseReleased()");
+	}
+
+	public void expand(){
+		if(w <= width/3){
+			w = w + 50;
+			x = width - w;
+		}
+	}
+
+	public void collapse(){
+		if(w >= 0){
+			w = w - 50;
+			x = width - w;
+		}
+	}
+
+
+
+};
 
 //////////////////////////////////
 //

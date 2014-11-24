@@ -112,6 +112,9 @@ ControlPanel controlPanel;
 Button controlPanelCollapser;
 PlotFontInfo fontInfo;
 
+Playground playground;
+int navBarHeight = 32;
+
 //program constants
 boolean isRunning=false;
 boolean redrawScreenNow = true;
@@ -185,6 +188,10 @@ int win_y = 768; //window height
 
 PImage logo;
 
+PFont f1;
+PFont f2;
+PFont f3;
+
 //========================SETUP============================//
 //========================SETUP============================//
 //========================SETUP============================//
@@ -200,6 +207,10 @@ void setup() {
   // smooth(); //turn this off if it's too slow
 
   frame.setResizable(true); 
+
+  f1 = createFont("Raleway-SemiBold.otf", 16);
+  f2 = createFont("Raleway-Regular.otf", 15);
+  f3 = createFont("Raleway-SemiBold.otf", 15);
 
   //listen for window resize ... used to adjust elements in application
   frame.addComponentListener(new ComponentAdapter() { 
@@ -228,6 +239,8 @@ void setup() {
   controlPanel = new ControlPanel(this); 
 
   logo = loadImage("logo2.png");
+
+  playground = new Playground(navBarHeight);
 
 }
 //====================== END--OF ==========================//
@@ -569,6 +582,8 @@ void systemUpdate(){ // for updating data values and variables
       timeOfGUIreinitialize = millis();
       initializeGUI();
     }
+
+    playground.update();
   }
 
   controlPanel.update();
@@ -608,9 +623,10 @@ void systemDraw(){ //for drawing to the screen
         pushStyle();
           fill(255);
           noStroke();
-          rect(0, 0, width, 32);
+          rect(0, 0, width, navBarHeight);
         popStyle();
         gui.draw(); //draw the GUI
+        // playground.draw();
       } catch (Exception e){
         println(e.getMessage());
         reinitializeGUIdelay = reinitializeGUIdelay * 2;
@@ -621,6 +637,8 @@ void systemDraw(){ //for drawing to the screen
       //reinitializing GUI after resize
       println("reinitializing GUI after resize... not drawing GUI");
     }
+
+    playground.draw();
 
   }
 
@@ -975,7 +993,11 @@ void mousePressed() {
         //toggle the display of the montage values
         gui.showMontageValues  = !gui.showMontageValues;
       }
+
+
     }
+
+    
   }
 
   //=============================//
@@ -1017,6 +1039,14 @@ void mousePressed() {
   }
 
   redrawScreenNow = true;  //command a redraw of the GUI whenever the mouse is pressed
+
+  if(playground.isMouseHere()){
+    playground.mousePressed();
+  }
+
+  if(playground.isMouseInButton()){
+    playground.toggleWindow();
+  }
 }
 
 void mouseReleased() {
@@ -1041,6 +1071,14 @@ void mouseReleased() {
   if(screenHasBeenResized){
     println("screen has been resized...");
     screenHasBeenResized = false;
+  }
+
+  //Playground Interactivity
+  if(playground.isMouseHere()){
+    playground.mouseReleased();
+  }
+  if(playground.isMouseInButton()){
+    // playground.toggleWindow();
   }
 }
 

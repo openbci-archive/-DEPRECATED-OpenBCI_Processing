@@ -147,6 +147,9 @@ class Gui_Manager {
     showMontageButton.setColorNotPressed(color(255));
     showMontageButton.hasStroke(false);
     showMontageButton.setIsActive(true);
+    showMontageButton.buttonFont = f1;
+    showMontageButton.textColorActive = bgColor;
+
 
     showChannelControllerButton = new Button (int(float(win_x)*axisMontage_relPos[0])+127, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
     showChannelControllerButton.makeDropdownButton(true);
@@ -154,6 +157,7 @@ class Gui_Manager {
     showChannelControllerButton.setColorNotPressed(color(255));
     showChannelControllerButton.hasStroke(false);
     showChannelControllerButton.setIsActive(false);
+    showChannelControllerButton.textColorActive = bgColor;
 
     //setup montage controller
     cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
@@ -867,13 +871,17 @@ class Gui_Manager {
       //turn off visibility of channel full controller
       cc.showFullController = false;
       showMontageButton.setIsActive(true);
+      showMontageButton.buttonFont = f1;
       showChannelControllerButton.setIsActive(false);
+      showChannelControllerButton.buttonFont = f2;
     }
     //if showChannelController is pressed
     if(showChannelControllerButton.isMouseHere()){
       cc.showFullController = true;
       showMontageButton.setIsActive(false);
+      showMontageButton.buttonFont = f2;
       showChannelControllerButton.setIsActive(true);
+      showChannelControllerButton.buttonFont = f1;
     }
 
     //if cursor inside channel controller

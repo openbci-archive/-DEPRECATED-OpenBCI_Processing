@@ -18,10 +18,6 @@
 
 import controlP5.*;
 
-PFont f1;
-PFont f2;
-PFont f3;
-
 ControlP5 cp5; //program-wide instance of ControlP5
 CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text field on double-click
     public void controlEvent(CallbackEvent theEvent) {
@@ -106,9 +102,9 @@ class ControlPanel {
 
 		fontInfo = new PlotFontInfo();
 
-		f1 = createFont("Raleway-SemiBold.otf", 16);
-		f2 = createFont("Raleway-Regular.otf", 15);
-		f3 = createFont("Raleway-SemiBold.otf", 15);
+		// f1 = createFont("Raleway-SemiBold.otf", 16);
+		// f2 = createFont("Raleway-Regular.otf", 15);
+		// f3 = createFont("Raleway-SemiBold.otf", 15);
 
 		globalPadding = 10;  //controls the padding of all elements on the control panel
 		globalBorder = 0;   //controls the border of all elements in the control panel ... using processing's stroke() instead
