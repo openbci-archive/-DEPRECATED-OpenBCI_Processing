@@ -154,6 +154,9 @@ ControlPanel controlPanel;
 Button controlPanelCollapser;
 PlotFontInfo fontInfo;
 
+Playground playground;
+int navBarHeight = 32;
+
 //program constants
 boolean isRunning=false;
 boolean redrawScreenNow = true;
@@ -227,6 +230,10 @@ int win_y = 768; //window height
 
 PImage logo;
 
+PFont f1;
+PFont f2;
+PFont f3;
+
 //========================SETUP============================//
 //========================SETUP============================//
 //========================SETUP============================//
@@ -242,6 +249,10 @@ public void setup() {
   // smooth(); //turn this off if it's too slow
 
   frame.setResizable(true); 
+
+  f1 = createFont("Raleway-SemiBold.otf", 16);
+  f2 = createFont("Raleway-Regular.otf", 15);
+  f3 = createFont("Raleway-SemiBold.otf", 15);
 
   //listen for window resize ... used to adjust elements in application
   frame.addComponentListener(new ComponentAdapter() { 
@@ -270,6 +281,8 @@ public void setup() {
   controlPanel = new ControlPanel(this); 
 
   logo = loadImage("logo2.png");
+
+  playground = new Playground(navBarHeight);
 
 }
 //====================== END--OF ==========================//
@@ -394,6 +407,7 @@ public void syncWithHardware(){
       }
       if(nchan == 16){
         serial_openBCI.write('C');
+        readyToSend = false;
       }
       break;
     case 2: //reset hardware to default registers 
@@ -450,6 +464,7 @@ public void syncWithHardware(){
       output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
       openBCI.changeState(openBCI.STATE_STOPPED);
       systemMode = 10;
+      //renitialize GUI if nchan has been updated... needs to be built
       break; 
   }
 }
@@ -501,8 +516,6 @@ public void initializeGUI(){
   println("5");
   gui.setDecimateFactor(2);
   println("6");
-  // gui.cc.loadDefaultChannelSettings();
-  println("7");
 }
 
 //======================== DRAW LOOP =============================//
@@ -522,7 +535,8 @@ public void systemUpdate(){ // for updating data values and variables
     openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
     timeOfLastCommand = millis();
     serial_openBCI.clear();
-    openBCI.defaultChannelSettings = "";
+    openBCI.defaultChannelSettings = ""; //clear channel setting string to be reset upon a new Init System
+    openBCI.daisyOrNot = ""; //clear daisyOrNot string to be reset upon a new Init System
     println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
     serial_openBCI.write('v');
   }
@@ -568,8 +582,6 @@ public void systemUpdate(){ // for updating data values and variables
         //   println("eegProcessing.data_std_uV[" + i + "] = " + eegProcessing.data_std_uV[i]);
         // }
         if((millis() - timeOfGUIreinitialize) > reinitializeGUIdelay){ //wait 1 second for GUI to reinitialize
-          // gui.update(eegProcessing.data_std_uV,data_elec_imp_ohm);
-          // println("attempting to update GUI...");
           try{
             gui.update(eegProcessing.data_std_uV,data_elec_imp_ohm);
           } catch (Exception e){
@@ -611,6 +623,8 @@ public void systemUpdate(){ // for updating data values and variables
       timeOfGUIreinitialize = millis();
       initializeGUI();
     }
+
+    playground.update();
   }
 
   controlPanel.update();
@@ -650,9 +664,10 @@ public void systemDraw(){ //for drawing to the screen
         pushStyle();
           fill(255);
           noStroke();
-          rect(0, 0, width, 32);
+          rect(0, 0, width, navBarHeight);
         popStyle();
         gui.draw(); //draw the GUI
+        // playground.draw();
       } catch (Exception e){
         println(e.getMessage());
         reinitializeGUIdelay = reinitializeGUIdelay * 2;
@@ -663,6 +678,8 @@ public void systemDraw(){ //for drawing to the screen
       //reinitializing GUI after resize
       println("reinitializing GUI after resize... not drawing GUI");
     }
+
+    playground.draw();
 
   }
 
@@ -936,11 +953,11 @@ public void mousePressed() {
       switch (gui.guiPage) {
         case Gui_Manager.GUI_PAGE_CHANNEL_ONOFF:
           //check the channel buttons
-          for (int Ibut = 0; Ibut < gui.chanButtons.length; Ibut++) {
-            if (gui.chanButtons[Ibut].isMouseHere()) { 
-              toggleChannelState(Ibut);
-            }
-          }
+          // for (int Ibut = 0; Ibut < gui.chanButtons.length; Ibut++) {
+          //   if (gui.chanButtons[Ibut].isMouseHere()) { 
+          //     toggleChannelState(Ibut);
+          //   }
+          // }
 
           //check the detection button
           //if (gui.detectButton.updateIsMouseHere()) toggleDetectionState();      
@@ -976,6 +993,10 @@ public void mousePressed() {
           if (gui.filtBPButton.isMouseHere()) {
             gui.filtBPButton.setIsActive(true);
             incrementFilterConfiguration();
+          }
+          if (gui.filtNotchButton.isMouseHere()) {
+            gui.filtNotchButton.setIsActive(true);
+            incrementNotchConfiguration();
           }
           if (gui.smoothingButton.isMouseHere()) {
             gui.smoothingButton.setIsActive(true);
@@ -1017,7 +1038,11 @@ public void mousePressed() {
         //toggle the display of the montage values
         gui.showMontageValues  = !gui.showMontageValues;
       }
+
+
     }
+
+    
   }
 
   //=============================//
@@ -1059,6 +1084,14 @@ public void mousePressed() {
   }
 
   redrawScreenNow = true;  //command a redraw of the GUI whenever the mouse is pressed
+
+  if(playground.isMouseHere()){
+    playground.mousePressed();
+  }
+
+  if(playground.isMouseInButton()){
+    playground.toggleWindow();
+  }
 }
 
 public void mouseReleased() {
@@ -1083,6 +1116,14 @@ public void mouseReleased() {
   if(screenHasBeenResized){
     println("screen has been resized...");
     screenHasBeenResized = false;
+  }
+
+  //Playground Interactivity
+  if(playground.isMouseHere()){
+    playground.mouseReleased();
+  }
+  if(playground.isMouseInButton()){
+    // playground.toggleWindow();
   }
 }
 
@@ -1147,7 +1188,7 @@ public void updateButtons(){
 }
 
 final float sine_freq_Hz = 10.0f;
-float sine_phase_rad = 0.0f;
+float[] sine_phase_rad = new float[nchan];
 public void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, DataPacket_ADS1299 curDataPacket) {
   float val_uV;
   for (int Ichan=0; Ichan < nchan; Ichan++) {
@@ -1158,12 +1199,21 @@ public void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_co
       
       if (Ichan==1) {
         //add sine wave at 10 Hz at 10 uVrms
-        sine_phase_rad += 2.0f*PI * sine_freq_Hz / fs_Hz;
-        if (sine_phase_rad > 2.0f*PI) sine_phase_rad -= 2.0f*PI;
-        val_uV += 10.0f * sqrt(2.0f)*sin(sine_phase_rad);
+        sine_phase_rad[Ichan] += 2.0f*PI * sine_freq_Hz / fs_Hz;
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 10.0f * sqrt(2.0f)*sin(sine_phase_rad[Ichan]);
+      } else if (Ichan==2) {
+        //50 Hz interference at 50 uVrms
+        sine_phase_rad[Ichan] += 2.0f*PI * 50.0f / fs_Hz;  //60 Hz
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 50.0f * sqrt(2.0f)*sin(sine_phase_rad[Ichan]);    //20 uVrms
+      } else if (Ichan==3) {
+        //60 Hz interference at 50 uVrms
+        sine_phase_rad[Ichan] += 2.0f*PI * 60.0f / fs_Hz;  //50 Hz
+        if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
+        val_uV += 50.0f * sqrt(2.0f)*sin(sine_phase_rad[Ichan]);  //20 uVrms  
       }
-    } 
-    else {
+    } else {
       val_uV = 0.0f;
     }
     curDataPacket.values[Ichan] = (int) (0.5f+ val_uV / scale_fac_uVolts_per_count); //convert to counts, the 0.5 is to ensure rounding
@@ -1201,34 +1251,24 @@ public int getPlaybackDataFromTable(Table datatable, int currentTableRowIndex, f
 }
 
 //toggleChannelState: : Ichan is [0 nchan-1]
-public void toggleChannelState(int Ichan) {
-  if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
-    if (isChannelActive(Ichan)) {
-      deactivateChannel(Ichan);      
-    } 
-    else {
-      activateChannel(Ichan);
-    }
-  }
-}
+// void toggleChannelState(int Ichan) {
+//   if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
+//     if (isChannelActive(Ichan)) {
+//       deactivateChannel(Ichan);      
+//     } 
+//     else {
+//       activateChannel(Ichan);
+//     }
+//   }
+// }
 
 //Ichan is zero referenced (not one referenced)
 public boolean isChannelActive(int Ichan) {
   boolean return_val = false;
-  
-  //account for 16 channel case...because the channel 9-16 (aka 8-15) are coupled to channels 1-8 (aka 0-7)
-  // if ((Ichan > 7) && (OpenBCI_Nchannels > 8)) Ichan = Ichan - 8;
-  if ((Ichan > 7) && (nchan > 8)) Ichan = Ichan - 8;
-
-    
-  //now check the state of the corresponding channel button
-  if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
-    boolean button_is_pressed = gui.chanButtons[Ichan].isActive();
-    if (button_is_pressed) { //button is pressed, which means the channel was NOT active
-      return_val = false;
-    } else { //button is not pressed, so channel is active
-      return_val = true;
-    }
+  if(channelSettingValues[Ichan][0] == '1'){
+    return_val = false;
+  } else{
+    return_val = true;
   }
   return return_val;
 }
@@ -1243,7 +1283,6 @@ public void activateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length){
-    gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
     channelSettingValues[Ichan][0] = '0'; 
     gui.cc.update();
   }
@@ -1257,7 +1296,6 @@ public void deactivateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length) {
-    gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
     channelSettingValues[Ichan][0] = '1'; 
     gui.cc.update();
   }
@@ -1345,11 +1383,16 @@ public void incrementFilterConfiguration() {
   eegProcessing.incrementFilterConfiguration();
   
   //update the button strings
-//  gui.filtBPButton.but_txt = "BP Filt\n" + filtCoeff_bp[currentFilt_ind].short_name;
-//  gui.titleMontage.string = "EEG Data (" + filtCoeff_bp[currentFilt_ind].name + ", " + filtCoeff_notch[currentFilt_ind].name + ")"; 
   gui.filtBPButton.but_txt = "BP Filt\n" + eegProcessing.getShortFilterDescription();
   gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
+}
+
+public void incrementNotchConfiguration() {
+  eegProcessing.incrementNotchConfiguration();
   
+  //update the button strings
+  gui.filtNotchButton.but_txt = "Notch\n" + eegProcessing.getShortNotchDescription();
+  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
 }
   
 public void incrementSmoothing() {
@@ -1448,7 +1491,7 @@ class Button {
   boolean drawHand = false;
   boolean wasPressed = false;
   public String but_txt;
-  // PFont font;
+  PFont buttonFont = f2;
 
   public Button(int x, int y, int w, int h, String txt, int fontSize) {
     setup(x, y, w, h, txt);
@@ -1527,6 +1570,12 @@ class Button {
     }
   }
 
+  public void draw(int _x, int _y){
+    but_x = _x;
+    but_y = _y;
+    draw();
+  }
+
   public void draw() {
     //draw the button
     fill(getColor());
@@ -1545,7 +1594,7 @@ class Button {
       fill(textColorNotActive);
     }
     stroke(255);
-    textFont(f2);  //load f2 ... from control panel 
+    textFont(buttonFont);  //load f2 ... from control panel 
     textSize(12);
     textAlign(CENTER, CENTER);
     textLeading(round(0.9f*(textAscent()+textDescent())));
@@ -1619,9 +1668,14 @@ int numSettingsPerChannel = 6; //each channel has 6 different settings
 char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
 char[][] impedanceCheckValues = new char [nchan][2];
 
+public void updateChannelArrays(int _nchan){
+	channelSettingValues = new char [_nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+	impedanceCheckValues = new char [_nchan][2];
+}
+
 // color[] channelColors = new color[16];
 int[] channelColors = {
-	color(129, 113, 87), 
+	color(129, 129, 129), 
 	color(124, 75, 141), 
 	color(54, 87, 158), 
 	color(49, 113, 89),
@@ -1711,6 +1765,7 @@ class ChannelController {
 	public void loadDefaultChannelSettings(){
 		verbosePrint("loading default channel settings to GUI's channel controller...");
 		for(int i = 0; i < nchan; i++){
+			verbosePrint("chan: " + i + " ");
 			for(int j = 0; j < numSettingsPerChannel; j++){ //channel setting values
 				channelSettingValues[i][j] = PApplet.parseChar(openBCI.defaultChannelSettings.toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
 				if(j == numSettingsPerChannel - 1){
@@ -1723,6 +1778,7 @@ class ChannelController {
 				impedanceCheckValues[i][k] = '0';
 			}
 		}
+		verbosePrint("made it!");
 		update(); //update 1 time to refresh button values based on new loaded settings
 	}
 
@@ -1785,7 +1841,11 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][0].setString("");
-							drawImpedanceValues[i] = true;
+							if(showFullController){
+								drawImpedanceValues[i] = false;
+							}else{
+								drawImpedanceValues[i] = true;
+							}
 						}
 						break;
 					case 1: // N Imp Buttons
@@ -1796,7 +1856,11 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][1].setString("");
-							drawImpedanceValues[i] = true;
+							if(showFullController){
+								drawImpedanceValues[i] = false;
+							}else{
+								drawImpedanceValues[i] = true;
+							}
 						}
 						break;
 				}
@@ -2062,7 +2126,13 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
-		serial_openBCI.write(command_deactivate_channel[_numChannel]);
+		if(_numChannel < 8){
+			verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
+			serial_openBCI.write(command_deactivate_channel[_numChannel]);
+		}else{ //if a daisy channel
+			verbosePrint("Command: " + command_deactivate_channel_daisy[_numChannel - 8]);
+			serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
+		}
 	}
 
 	public void powerUpChannel(int _numChannel){
@@ -2073,7 +2143,13 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
-		serial_openBCI.write(command_activate_channel[_numChannel]);
+		if(_numChannel < 8){
+			verbosePrint("Command: " + command_activate_channel[_numChannel]);
+			serial_openBCI.write(command_activate_channel[_numChannel]);
+		} else{ //if a daisy channel
+			verbosePrint("Command: " + command_activate_channel_daisy[_numChannel - 8]);
+			serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
+		}
 	}
 
 	public void initChannelWrite(int _numChannel){
@@ -2129,7 +2205,12 @@ class ChannelController {
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
-					serial_openBCI.write((char) ('0'+(_numChannel+1)));
+					if(_numChannel < 8){
+						serial_openBCI.write((char)('0'+(_numChannel+1)));
+					}
+					if(_numChannel >= 8){
+						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+					}
 					break;
 				case 2: case 3: case 4: case 5: case 6: case 7:
 					verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
@@ -2165,7 +2246,12 @@ class ChannelController {
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
-					serial_openBCI.write((char) ('0'+(_numChannel+1)));
+					if(_numChannel < 8){
+						serial_openBCI.write((char)('0'+(_numChannel+1)));
+					}
+					if(_numChannel >= 8){
+						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+					}
 					break;
 				case 2: case 3: 
 					verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
@@ -2260,10 +2346,6 @@ class ChannelController {
 
 
 
-PFont f1;
-PFont f2;
-PFont f3;
-
 ControlP5 cp5; //program-wide instance of ControlP5
 CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text field on double-click
     public void controlEvent(CallbackEvent theEvent) {
@@ -2348,9 +2430,9 @@ class ControlPanel {
 
 		fontInfo = new PlotFontInfo();
 
-		f1 = createFont("Raleway-SemiBold.otf", 16);
-		f2 = createFont("Raleway-Regular.otf", 15);
-		f3 = createFont("Raleway-SemiBold.otf", 15);
+		// f1 = createFont("Raleway-SemiBold.otf", 16);
+		// f2 = createFont("Raleway-Regular.otf", 15);
+		// f3 = createFont("Raleway-SemiBold.otf", 15);
 
 		globalPadding = 10;  //controls the padding of all elements on the control panel
 		globalBorder = 0;   //controls the border of all elements in the control panel ... using processing's stroke() instead
@@ -2613,6 +2695,7 @@ class ControlPanel {
 			fftBuff = new FFT[nchan];   //from the minim library
 			yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
 			output("channel count set to " + str(nchan));
+			updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
 		}
 
 		if(chanButton16.isMouseHere() && chanButton16Pressed){
@@ -2620,6 +2703,7 @@ class ControlPanel {
 			fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
 			yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
 			output("channel count set to " + str(nchan));
+			updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
 		}
 
 		if(selectPlaybackFile.isMouseHere() && selectPlaybackFilePressed){
@@ -3123,8 +3207,10 @@ class EEG_Processing {
   private int nchan;
   final int N_FILT_CONFIGS = 5;
   FilterConstants[] filtCoeff_bp = new FilterConstants[N_FILT_CONFIGS];
-  FilterConstants[] filtCoeff_notch = new FilterConstants[N_FILT_CONFIGS];
+  final int N_NOTCH_CONFIGS = 3;
+  FilterConstants[] filtCoeff_notch = new FilterConstants[N_NOTCH_CONFIGS];
   private int currentFilt_ind = 0;
+  private int currentNotch_ind = 0;  // set to 0 to default to 60Hz, set to 1 to default to 50Hz
   float data_std_uV[];
   float polarity[];
 
@@ -3152,104 +3238,120 @@ class EEG_Processing {
 
   //define filters...assumes sample rate of 250 Hz !!!!!
   private void defineFilters() {
-    int n_filt = filtCoeff_bp.length;
+    int n_filt;
     double[] b, a, b2, a2;
     String filt_txt, filt_txt2;
     String short_txt, short_txt2; 
 
     //loop over all of the pre-defined filter types
+    n_filt = filtCoeff_notch.length;
+    for (int Ifilt=0; Ifilt < n_filt; Ifilt++) {
+      switch (Ifilt) {
+        case 0:
+          //60 Hz notch filter, assumed fs = 250 Hz.  2nd Order Butterworth: b, a = signal.butter(2,[59.0 61.0]/(fs_Hz / 2.0), 'bandstop')
+          b2 = new double[] { 9.650809863447347e-001f, -2.424683201757643e-001f, 1.945391494128786e+000f, -2.424683201757643e-001f, 9.650809863447347e-001f };
+          a2 = new double[] { 1.000000000000000e+000f, -2.467782611297853e-001f, 1.944171784691352e+000f, -2.381583792217435e-001f, 9.313816821269039e-001f  }; 
+          filtCoeff_notch[Ifilt] =  new FilterConstants(b2, a2, "Notch 60Hz", "60Hz");
+          break;
+        case 1:
+          //50 Hz notch filter, assumed fs = 250 Hz.  2nd Order Butterworth: b, a = signal.butter(2,[49.0 11.0]/(fs_Hz / 2.0), 'bandstop')
+          b2 = new double[] { 0.96508099f, -1.19328255f,  2.29902305f, -1.19328255f,  0.96508099f };
+          a2 = new double[] { 1.0f       , -1.21449348f,  2.29780334f, -1.17207163f,  0.93138168f }; 
+          filtCoeff_notch[Ifilt] =  new FilterConstants(b2, a2, "Notch 50Hz", "50Hz");
+          break;
+        case 2:
+          //no notch filter
+          b2 = new double[] { 1.0f };
+          a2 = new double[] { 1.0f };
+          filtCoeff_notch[Ifilt] =  new FilterConstants(b2, a2, "No Notch", "None");
+          break;         
+      }
+    } // end loop over notch filters
+  
+    n_filt = filtCoeff_bp.length;
     for (int Ifilt=0;Ifilt<n_filt;Ifilt++) {
-
-      //define common notch filter
-      b2 = new double[] { 
-        9.650809863447347e-001f, -2.424683201757643e-001f, 1.945391494128786e+000f, -2.424683201757643e-001f, 9.650809863447347e-001f
-      };
-      a2 = new double[] {    
-        1.000000000000000e+000f, -2.467782611297853e-001f, 1.944171784691352e+000f, -2.381583792217435e-001f, 9.313816821269039e-001f
-      }; 
-      filtCoeff_notch[Ifilt] =  new FilterConstants(b2, a2, "Notch 60Hz", "60Hz");
-
       //define bandpass filter
       switch (Ifilt) {
-      case 0:
-        //butter(2,[1 50]/(250/2));  %bandpass filter
-        b = new double[] { 
-          2.001387256580675e-001f, 0.0f, -4.002774513161350e-001f, 0.0f, 2.001387256580675e-001f
-        };
-        a = new double[] { 
-          1.0f, -2.355934631131582e+000f, 1.941257088655214e+000f, -7.847063755334187e-001f, 1.999076052968340e-001f
-        };
-        filt_txt = "Bandpass 1-50Hz";
-        short_txt = "1-50 Hz";
-        break;
-      case 1:
-        //butter(2,[7 13]/(250/2));
-        b = new double[] {  
-          5.129268366104263e-003f, 0.0f, -1.025853673220853e-002f, 0.0f, 5.129268366104263e-003f
-        };
-        a = new double[] { 
-          1.0f, -3.678895469764040e+000f, 5.179700413522124e+000f, -3.305801890016702e+000f, 8.079495914209149e-001f
-        };
-        filt_txt = "Bandpass 7-13Hz";
-        short_txt = "7-13 Hz";
-        break;      
-      case 2:
-        //[b,a]=butter(2,[15 50]/(250/2)); %matlab command
-        b = new double[] { 
-          1.173510367246093e-001f, 0.0f, -2.347020734492186e-001f, 0.0f, 1.173510367246093e-001f
-        };
-        a = new double[] { 
-          1.0f, -2.137430180172061e+000f, 2.038578008108517e+000f, -1.070144399200925e+000f, 2.946365275879138e-001f
-        };
-        filt_txt = "Bandpass 15-50Hz";
-        short_txt = "15-50 Hz";  
-        break;    
-      case 3:
-        //[b,a]=butter(2,[5 50]/(250/2)); %matlab command
-        b = new double[] {  
-          1.750876436721012e-001f, 0.0f, -3.501752873442023e-001f, 0.0f, 1.750876436721012e-001f
-        };       
-        a = new double[] { 
-          1.0f, -2.299055356038497e+000f, 1.967497759984450e+000f, -8.748055564494800e-001f, 2.196539839136946e-001f
-        };
-        filt_txt = "Bandpass 5-50Hz";
-        short_txt = "5-50 Hz";
-        break;      
-      default:
-        //no filtering
-        b = new double[] {
-          1.0f
-        };
-        a = new double[] {
-          1.0f
-        };
-        filt_txt = "No BP Filter";
-        short_txt = "No Filter";
-        b2 = new double[] {
-          1.0f
-        };
-        a2 = new double[] {
-          1.0f
-        };
-        filtCoeff_notch[Ifilt] =  new FilterConstants(b2, a2, "No Notch", "No Notch");
+        case 0:
+          //butter(2,[1 50]/(250/2));  %bandpass filter
+          b = new double[] { 
+            2.001387256580675e-001f, 0.0f, -4.002774513161350e-001f, 0.0f, 2.001387256580675e-001f
+          };
+          a = new double[] { 
+            1.0f, -2.355934631131582e+000f, 1.941257088655214e+000f, -7.847063755334187e-001f, 1.999076052968340e-001f
+          };
+          filt_txt = "Bandpass 1-50Hz";
+          short_txt = "1-50 Hz";
+          break;
+        case 1:
+          //butter(2,[7 13]/(250/2));
+          b = new double[] {  
+            5.129268366104263e-003f, 0.0f, -1.025853673220853e-002f, 0.0f, 5.129268366104263e-003f
+          };
+          a = new double[] { 
+            1.0f, -3.678895469764040e+000f, 5.179700413522124e+000f, -3.305801890016702e+000f, 8.079495914209149e-001f
+          };
+          filt_txt = "Bandpass 7-13Hz";
+          short_txt = "7-13 Hz";
+          break;      
+        case 2:
+          //[b,a]=butter(2,[15 50]/(250/2)); %matlab command
+          b = new double[] { 
+            1.173510367246093e-001f, 0.0f, -2.347020734492186e-001f, 0.0f, 1.173510367246093e-001f
+          };
+          a = new double[] { 
+            1.0f, -2.137430180172061e+000f, 2.038578008108517e+000f, -1.070144399200925e+000f, 2.946365275879138e-001f
+          };
+          filt_txt = "Bandpass 15-50Hz";
+          short_txt = "15-50 Hz";  
+          break;    
+        case 3:
+          //[b,a]=butter(2,[5 50]/(250/2)); %matlab command
+          b = new double[] {  
+            1.750876436721012e-001f, 0.0f, -3.501752873442023e-001f, 0.0f, 1.750876436721012e-001f
+          };       
+          a = new double[] { 
+            1.0f, -2.299055356038497e+000f, 1.967497759984450e+000f, -8.748055564494800e-001f, 2.196539839136946e-001f
+          };
+          filt_txt = "Bandpass 5-50Hz";
+          short_txt = "5-50 Hz";
+          break;      
+        default:
+          //no filtering
+          b = new double[] {
+            1.0f
+          };
+          a = new double[] {
+            1.0f
+          };
+          filt_txt = "No BP Filter";
+          short_txt = "No Filter";
       }  //end switch block  
-
+      
       //create the bandpass filter    
       filtCoeff_bp[Ifilt] =  new FilterConstants(b, a, filt_txt, short_txt);
-    } //end loop over filters
+    } //end loop over band pass filters
   } //end defineFilters method 
 
   public String getFilterDescription() {
-    return filtCoeff_bp[currentFilt_ind].name + ", " + filtCoeff_notch[currentFilt_ind].name;
+    return filtCoeff_bp[currentFilt_ind].name + ", " + filtCoeff_notch[currentNotch_ind].name;
   }
   public String getShortFilterDescription() {
     return filtCoeff_bp[currentFilt_ind].short_name;   
+  }
+  public String getShortNotchDescription() {
+    return filtCoeff_notch[currentNotch_ind].short_name;
   }
   
   public void incrementFilterConfiguration() {
     //increment the index
     currentFilt_ind++;
     if (currentFilt_ind >= N_FILT_CONFIGS) currentFilt_ind = 0;
+  }
+  public void incrementNotchConfiguration() {
+    //increment the index
+    currentNotch_ind++;
+    if (currentNotch_ind >= N_NOTCH_CONFIGS) currentNotch_ind = 0;
   }
 
   public void process(float[][] data_newest_uV, //holds raw EEG data that is new since the last call
@@ -3261,7 +3363,7 @@ class EEG_Processing {
     for (int Ichan=0;Ichan < nchan; Ichan++) {  
 
       //filter the data in the time domain
-      filterIIR(filtCoeff_notch[currentFilt_ind].b, filtCoeff_notch[currentFilt_ind].a, data_forDisplay_uV[Ichan]); //notch
+      filterIIR(filtCoeff_notch[currentNotch_ind].b, filtCoeff_notch[currentNotch_ind].a, data_forDisplay_uV[Ichan]); //notch
       filterIIR(filtCoeff_bp[currentFilt_ind].b, filtCoeff_bp[currentFilt_ind].a, data_forDisplay_uV[Ichan]); //bandpass
 
       //compute the standard deviation of the filtered signal...this is for the head plot
@@ -3335,6 +3437,7 @@ class Gui_Manager {
   Button intensityFactorButton;
   Button loglinPlotButton;
   Button filtBPButton;
+  Button filtNotchButton;
   Button fftNButton;
   Button smoothingButton;
   Button maxDisplayFreqButton;
@@ -3343,7 +3446,7 @@ class Gui_Manager {
   //these two buttons toggle between EEG graph state (they are mutually exclusive states)
   Button showMontageButton; // to show uV time graph as opposed to channel controller
   Button showChannelControllerButton; //to drawChannelController on top of gMontage
-  boolean isChannelControllerVisible;
+  // boolean isChannelControllerVisible;
 
   TextBox titleMontage, titleFFT,titleSpectrogram;
   TextBox[] chanValuesMontage;
@@ -3442,6 +3545,9 @@ class Gui_Manager {
     showMontageButton.setColorNotPressed(color(255));
     showMontageButton.hasStroke(false);
     showMontageButton.setIsActive(true);
+    showMontageButton.buttonFont = f1;
+    showMontageButton.textColorActive = bgColor;
+
 
     showChannelControllerButton = new Button (PApplet.parseInt(PApplet.parseFloat(win_x)*axisMontage_relPos[0])+127, PApplet.parseInt(PApplet.parseFloat(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
     showChannelControllerButton.makeDropdownButton(true);
@@ -3449,6 +3555,7 @@ class Gui_Manager {
     showChannelControllerButton.setColorNotPressed(color(255));
     showChannelControllerButton.hasStroke(false);
     showChannelControllerButton.setIsActive(false);
+    showChannelControllerButton.textColorActive = bgColor;
 
     //setup montage controller
     cc = new ChannelController(x_cc, y_cc, w_cc, h_cc, axes_x, axes_y);
@@ -3496,25 +3603,16 @@ class Gui_Manager {
     
     //setup the buttons
     int w,h,x,y;
-           
-    //setup stop button
-    w = 120;    //button width
     h = 26;     //button height, was 25
-    // x = win_x - int(gutter_right*float(win_x)) - w;
-    x = width/2 - w;
-    // y = win_y - int(0.5*gutter_topbot*float(win_y)) - h - int(spacer_bottom*(float(win_y)));
-    // y = int(0.5*gutter_topbot*float(win_y));
-    y = 2;
-    //int y = win_y - h;
-    stopButton = new Button(x,y,w,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
-    
+    y = 2;      //button y position, measured top
+              
+    // //// Is this block used anymore?  Chip 2014-11-23
     //setup the gui page button
-
     w = 80; //button width
     x = (int)((3*gutter_between_buttons + left_right_split) * win_x);
-
     // x = int(float(win_x)*0.3f);
     // guiPageButton = new Button(x,y,w,h,"Page\n" + (guiPage+1) + " of " + N_GUI_PAGES,fontInfo.buttonLabel_size);
+    // //// End Ques by Chip 2014-11-12    
         
     //setup the channel on/off buttons...only plot 8 buttons, even if there are more channels
     //because as of 4/3/2014, you can only turn on/off the higher channels (the ones above chan 8)
@@ -3582,9 +3680,21 @@ class Gui_Manager {
     intensityFactorButton = new Button(x,y,w,h,"Vert Scale\n" + round(vertScale_uV) + "uV",fontInfo.buttonLabel_size);
 
     x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    filtNotchButton = new Button(x,y,w,h,"Notch\n" + eegProcessing.getShortNotchDescription(),fontInfo.buttonLabel_size);    
+    
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
     filtBPButton = new Button(x,y,w,h,"BP Filt\n" + eegProcessing.getShortFilterDescription(),fontInfo.buttonLabel_size);
 
     set_vertScaleAsLog(true);
+    
+    //setup start/stop button
+    // x = win_x - int(gutter_right*float(win_x)) - w;
+    //x = width/2 - w;
+    x = calcButtonXLocation(Ibut++, win_x, w, xoffset,gutter_between_buttons);
+    int w_wide = 120;    //button width, wider
+    x = x + w - w_wide-((int)(gutter_between_buttons*win_x));  //adjust the x position for the wider button, plus double the gutter
+    stopButton = new Button(x,y,w_wide,h,stopButton_pressToStart_txt,fontInfo.buttonLabel_size);
+ 
 
     //set the initial display page for the GUI
     setGUIpage(GUI_PAGE_HEADPLOT_SETUP);  
@@ -4123,6 +4233,7 @@ class Gui_Manager {
         intensityFactorButton.draw();
         loglinPlotButton.draw();
         filtBPButton.draw();
+        filtNotchButton.draw();
         //fftNButton.draw();
         smoothingButton.draw();
         showPolarityButton.draw();
@@ -4162,13 +4273,17 @@ class Gui_Manager {
       //turn off visibility of channel full controller
       cc.showFullController = false;
       showMontageButton.setIsActive(true);
+      showMontageButton.buttonFont = f1;
       showChannelControllerButton.setIsActive(false);
+      showChannelControllerButton.buttonFont = f2;
     }
     //if showChannelController is pressed
     if(showChannelControllerButton.isMouseHere()){
       cc.showFullController = true;
       showMontageButton.setIsActive(false);
+      showMontageButton.buttonFont = f2;
       showChannelControllerButton.setIsActive(true);
+      showChannelControllerButton.buttonFont = f1;
     }
 
     //if cursor inside channel controller
@@ -4198,6 +4313,7 @@ class Gui_Manager {
     intensityFactorButton.setIsActive(false);
     loglinPlotButton.setIsActive(false);
     filtBPButton.setIsActive(false);
+    filtNotchButton.setIsActive(false);
     smoothingButton.setIsActive(false);
     showPolarityButton.setIsActive(false);
     maxDisplayFreqButton.setIsActive(false);
@@ -5570,7 +5686,9 @@ class OpenBCI_ADS1299 {
 
   final char[] EOT = {'$','$','$'};
   char[] prev3chars = {'#','#','#'};
+
   String defaultChannelSettings = "";
+  String daisyOrNot = "";
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -5738,6 +5856,16 @@ class OpenBCI_ADS1299 {
       prev3chars[1] = prev3chars[2];
       prev3chars[2] = inASCII;
 
+      if(hardwareSyncStep == 1 && inASCII != '$'){
+        daisyOrNot+=inASCII;
+        //if hardware returns 8 because daisy is not attached, switch the GUI mode back to 8 channels
+        // if(nchan == 16 && char(daisyOrNot.substring(daisyOrNot.length() - 1)) == '8'){
+        if(nchan == 16 && daisyOrNot.charAt(daisyOrNot.length() - 1) == '8'){
+          verbosePrint(" received from OpenBCI... Switching to nchan = 8 bc daisy is not present...");
+          nchan = 8;
+        }
+      }
+
       if(hardwareSyncStep == 3 && inASCII != '$'){ //if we're retrieving channel settings from OpenBCI
         defaultChannelSettings+=inASCII;
       }
@@ -5748,8 +5876,11 @@ class OpenBCI_ADS1299 {
         // hardwareSyncStep++;
         prev3chars[2] = '#';
         if(hardwareSyncStep == 3){
+          println("x");
           println(defaultChannelSettings);
+          println("y");
           gui.cc.loadDefaultChannelSettings();
+          println("z");
         }
         readyToSend = true; 
         // println(hardwareSyncStep);
@@ -5888,7 +6019,8 @@ class OpenBCI_ADS1299 {
   //activate or deactivate an EEG channel...channel counting is zero through nchan-1
   public void changeChannelState(int Ichan,boolean activate) {
     if (serial_openBCI != null) {
-      if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
+      // if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
+      if ((Ichan >= 0)) {
         if (activate) {
           // serial_openBCI.write(command_activate_channel[Ichan]);
           gui.cc.powerUpChannel(Ichan);
@@ -6068,7 +6200,6 @@ public void parseKey(char val) {
 
     case 'q':
       if(nchan == 16){
-        println("doing this thing...");
         deactivateChannel(9-1); 
       }
       break;
@@ -6137,7 +6268,6 @@ public void parseKey(char val) {
     //activate channels 9-16 (DAISY MODE ONLY)
     case 'Q':
       if(nchan == 16){
-        println("doing this thing...");
         activateChannel(9-1);
       }
       break;
@@ -6371,6 +6501,133 @@ public void parseKeycode(int val) {
       break;
   }
 }
+//////////////////////////////////////////////////////////////////////////
+//
+//		Playground Class
+//		Created: 11/22/14 by Conor Russomanno
+//		An extra interface pane for additional GUI features
+//
+//////////////////////////////////////////////////////////////////////////
+
+
+class Playground {
+
+	//button for opening and closing
+	float x, y, w, h;
+	int boxBG;
+	int strokeColor;
+	float topMargin, bottomMargin;
+
+	boolean isOpen;
+	boolean collapsing;
+
+	Button collapser;
+
+	Playground(int _topMargin){
+
+		topMargin = _topMargin;
+		bottomMargin = helpWidget.h;
+
+		isOpen = false;
+		collapsing = true;
+
+		boxBG = color(255);
+		strokeColor = color(138,146,153);
+		collapser = new Button(0, 0, 20, 60, "<", 14);
+
+		x = width;
+		y = topMargin;
+		w = 0;
+		h = height - (topMargin+bottomMargin);
+
+	}
+
+	public void update(){
+		// verbosePrint("uh huh");
+		if(collapsing){
+			collapse();
+		} else{
+			expand();
+		}
+
+		if(x > width){
+			x = width;
+		}
+
+	}
+
+	public void draw(){
+		// verbosePrint("yeaaa");
+		pushStyle();
+			fill(boxBG);
+			stroke(strokeColor);
+			rect(width - w, topMargin, w, height - (topMargin + bottomMargin));
+			textFont(f1);
+			textAlign(LEFT, TOP);
+			fill(bgColor);
+			text("Developer Playground", x + 10, y + 10);
+			fill(255,0,0);
+			collapser.draw(PApplet.parseInt(x - collapser.but_dx), PApplet.parseInt(topMargin + (h-collapser.but_dy)/2));
+		popStyle();
+
+	}
+
+	public boolean isMouseHere(){
+		if(mouseX >= x && mouseX <= width && mouseY >= y && mouseY <= height - bottomMargin){
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	public boolean isMouseInButton(){
+		verbosePrint("attempting");
+		if(mouseX >= collapser.but_x && mouseX <= collapser.but_x+collapser.but_dx && mouseY >= collapser.but_y && mouseY <= collapser.but_y + collapser.but_dy){
+			return true;
+		} else{
+			return false;
+		}
+	}
+
+	public void toggleWindow(){
+		if(isOpen){//if open
+			verbosePrint("close");
+			collapsing = true;//collapsing = true;
+			isOpen = false;
+			collapser.but_txt = "<";
+		} else {//if closed
+			verbosePrint("open");
+			collapsing = false;//expanding = true;
+			isOpen = true;
+			collapser.but_txt = ">";
+		}
+	}
+
+	public void mousePressed(){
+		verbosePrint("Playground >> mousePressed()");
+	}
+
+	public void mouseReleased(){
+		verbosePrint("Playground >> mouseReleased()");
+	}
+
+	public void expand(){
+		if(w <= width/3){
+			w = w + 50;
+			x = width - w;
+		}
+	}
+
+	public void collapse(){
+		if(w >= 0){
+			w = w - 50;
+			x = width - w;
+		}
+	}
+
+
+
+};
 
 //////////////////////////////////
 //
@@ -6579,7 +6836,7 @@ class ScatterTrace extends Blank2DTrace {
         //if colorMode == 1 ...
         switch (Ichan % 8) {
         case 0:
-          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          pr.canvas.stroke(129, 129, 129);  //set the new line's color;
           break;
         case 1:
           pr.canvas.stroke(124, 75, 141);  //set the new line's color;
@@ -6755,7 +7012,7 @@ class ScatterTrace_FFT extends Blank2DTrace {
         //if colorMode == 1 ...
         switch (Ichan % 8) {
         case 0:
-          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          pr.canvas.stroke(129, 129, 129);  //set the new line's color;
           break;
         case 1:
           pr.canvas.stroke(124, 75, 141);  //set the new line's color;

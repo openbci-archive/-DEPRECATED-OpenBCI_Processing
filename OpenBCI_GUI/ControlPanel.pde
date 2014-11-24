@@ -367,6 +367,7 @@ class ControlPanel {
 			fftBuff = new FFT[nchan];   //from the minim library
 			yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
 			output("channel count set to " + str(nchan));
+			updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
 		}
 
 		if(chanButton16.isMouseHere() && chanButton16Pressed){
@@ -374,6 +375,7 @@ class ControlPanel {
 			fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
 			yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
 			output("channel count set to " + str(nchan));
+			updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
 		}
 
 		if(selectPlaybackFile.isMouseHere() && selectPlaybackFilePressed){

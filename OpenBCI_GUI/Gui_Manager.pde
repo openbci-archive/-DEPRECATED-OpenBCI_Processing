@@ -49,7 +49,7 @@ class Gui_Manager {
   //these two buttons toggle between EEG graph state (they are mutually exclusive states)
   Button showMontageButton; // to show uV time graph as opposed to channel controller
   Button showChannelControllerButton; //to drawChannelController on top of gMontage
-  boolean isChannelControllerVisible;
+  // boolean isChannelControllerVisible;
 
   TextBox titleMontage, titleFFT,titleSpectrogram;
   TextBox[] chanValuesMontage;

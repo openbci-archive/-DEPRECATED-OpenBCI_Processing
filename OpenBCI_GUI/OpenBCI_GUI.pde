@@ -365,6 +365,7 @@ void syncWithHardware(){
       }
       if(nchan == 16){
         serial_openBCI.write('C');
+        readyToSend = false;
       }
       break;
     case 2: //reset hardware to default registers 
@@ -421,6 +422,7 @@ void syncWithHardware(){
       output("The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
       openBCI.changeState(openBCI.STATE_STOPPED);
       systemMode = 10;
+      //renitialize GUI if nchan has been updated... needs to be built
       break; 
   }
 }
@@ -472,8 +474,6 @@ void initializeGUI(){
   println("5");
   gui.setDecimateFactor(2);
   println("6");
-  // gui.cc.loadDefaultChannelSettings();
-  println("7");
 }
 
 //======================== DRAW LOOP =============================//
@@ -493,7 +493,8 @@ void systemUpdate(){ // for updating data values and variables
     openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
     timeOfLastCommand = millis();
     serial_openBCI.clear();
-    openBCI.defaultChannelSettings = "";
+    openBCI.defaultChannelSettings = ""; //clear channel setting string to be reset upon a new Init System
+    openBCI.daisyOrNot = ""; //clear daisyOrNot string to be reset upon a new Init System
     println("[0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
     serial_openBCI.write('v');
   }
@@ -539,8 +540,6 @@ void systemUpdate(){ // for updating data values and variables
         //   println("eegProcessing.data_std_uV[" + i + "] = " + eegProcessing.data_std_uV[i]);
         // }
         if((millis() - timeOfGUIreinitialize) > reinitializeGUIdelay){ //wait 1 second for GUI to reinitialize
-          // gui.update(eegProcessing.data_std_uV,data_elec_imp_ohm);
-          // println("attempting to update GUI...");
           try{
             gui.update(eegProcessing.data_std_uV,data_elec_imp_ohm);
           } catch (Exception e){
@@ -912,11 +911,11 @@ void mousePressed() {
       switch (gui.guiPage) {
         case Gui_Manager.GUI_PAGE_CHANNEL_ONOFF:
           //check the channel buttons
-          for (int Ibut = 0; Ibut < gui.chanButtons.length; Ibut++) {
-            if (gui.chanButtons[Ibut].isMouseHere()) { 
-              toggleChannelState(Ibut);
-            }
-          }
+          // for (int Ibut = 0; Ibut < gui.chanButtons.length; Ibut++) {
+          //   if (gui.chanButtons[Ibut].isMouseHere()) { 
+          //     toggleChannelState(Ibut);
+          //   }
+          // }
 
           //check the detection button
           //if (gui.detectButton.updateIsMouseHere()) toggleDetectionState();      
@@ -1210,34 +1209,24 @@ int getPlaybackDataFromTable(Table datatable, int currentTableRowIndex, float sc
 }
 
 //toggleChannelState: : Ichan is [0 nchan-1]
-void toggleChannelState(int Ichan) {
-  if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
-    if (isChannelActive(Ichan)) {
-      deactivateChannel(Ichan);      
-    } 
-    else {
-      activateChannel(Ichan);
-    }
-  }
-}
+// void toggleChannelState(int Ichan) {
+//   if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
+//     if (isChannelActive(Ichan)) {
+//       deactivateChannel(Ichan);      
+//     } 
+//     else {
+//       activateChannel(Ichan);
+//     }
+//   }
+// }
 
 //Ichan is zero referenced (not one referenced)
 boolean isChannelActive(int Ichan) {
   boolean return_val = false;
-  
-  //account for 16 channel case...because the channel 9-16 (aka 8-15) are coupled to channels 1-8 (aka 0-7)
-  // if ((Ichan > 7) && (OpenBCI_Nchannels > 8)) Ichan = Ichan - 8;
-  if ((Ichan > 7) && (nchan > 8)) Ichan = Ichan - 8;
-
-    
-  //now check the state of the corresponding channel button
-  if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
-    boolean button_is_pressed = gui.chanButtons[Ichan].isActive();
-    if (button_is_pressed) { //button is pressed, which means the channel was NOT active
-      return_val = false;
-    } else { //button is not pressed, so channel is active
-      return_val = true;
-    }
+  if(channelSettingValues[Ichan][0] == '1'){
+    return_val = false;
+  } else{
+    return_val = true;
   }
   return return_val;
 }
@@ -1252,7 +1241,6 @@ void activateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length){
-    gui.chanButtons[Ichan].setIsActive(false); //an active channel is a light-colored NOT-ACTIVE button
     channelSettingValues[Ichan][0] = '0'; 
     gui.cc.update();
   }
@@ -1266,7 +1254,6 @@ void deactivateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length) {
-    gui.chanButtons[Ichan].setIsActive(true); //a deactivated channel is a dark-colored ACTIVE button
     channelSettingValues[Ichan][0] = '1'; 
     gui.cc.update();
   }

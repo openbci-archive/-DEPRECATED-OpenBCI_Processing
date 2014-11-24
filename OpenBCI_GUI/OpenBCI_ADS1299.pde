@@ -91,7 +91,9 @@ class OpenBCI_ADS1299 {
 
   final char[] EOT = {'$','$','$'};
   char[] prev3chars = {'#','#','#'};
+
   String defaultChannelSettings = "";
+  String daisyOrNot = "";
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -259,6 +261,16 @@ class OpenBCI_ADS1299 {
       prev3chars[1] = prev3chars[2];
       prev3chars[2] = inASCII;
 
+      if(hardwareSyncStep == 1 && inASCII != '$'){
+        daisyOrNot+=inASCII;
+        //if hardware returns 8 because daisy is not attached, switch the GUI mode back to 8 channels
+        // if(nchan == 16 && char(daisyOrNot.substring(daisyOrNot.length() - 1)) == '8'){
+        if(nchan == 16 && daisyOrNot.charAt(daisyOrNot.length() - 1) == '8'){
+          verbosePrint(" received from OpenBCI... Switching to nchan = 8 bc daisy is not present...");
+          nchan = 8;
+        }
+      }
+
       if(hardwareSyncStep == 3 && inASCII != '$'){ //if we're retrieving channel settings from OpenBCI
         defaultChannelSettings+=inASCII;
       }
@@ -269,8 +281,11 @@ class OpenBCI_ADS1299 {
         // hardwareSyncStep++;
         prev3chars[2] = '#';
         if(hardwareSyncStep == 3){
+          println("x");
           println(defaultChannelSettings);
+          println("y");
           gui.cc.loadDefaultChannelSettings();
+          println("z");
         }
         readyToSend = true; 
         // println(hardwareSyncStep);
@@ -409,7 +424,8 @@ class OpenBCI_ADS1299 {
   //activate or deactivate an EEG channel...channel counting is zero through nchan-1
   public void changeChannelState(int Ichan,boolean activate) {
     if (serial_openBCI != null) {
-      if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
+      // if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
+      if ((Ichan >= 0)) {
         if (activate) {
           // serial_openBCI.write(command_activate_channel[Ichan]);
           gui.cc.powerUpChannel(Ichan);

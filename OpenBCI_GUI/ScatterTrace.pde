@@ -100,7 +100,7 @@ class ScatterTrace extends Blank2DTrace {
         //if colorMode == 1 ...
         switch (Ichan % 8) {
         case 0:
-          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          pr.canvas.stroke(129, 129, 129);  //set the new line's color;
           break;
         case 1:
           pr.canvas.stroke(124, 75, 141);  //set the new line's color;
@@ -276,7 +276,7 @@ class ScatterTrace_FFT extends Blank2DTrace {
         //if colorMode == 1 ...
         switch (Ichan % 8) {
         case 0:
-          pr.canvas.stroke(129, 113, 87);  //set the new line's color;
+          pr.canvas.stroke(129, 129, 129);  //set the new line's color;
           break;
         case 1:
           pr.canvas.stroke(124, 75, 141);  //set the new line's color;

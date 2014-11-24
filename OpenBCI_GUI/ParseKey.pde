@@ -54,7 +54,6 @@ void parseKey(char val) {
 
     case 'q':
       if(nchan == 16){
-        println("doing this thing...");
         deactivateChannel(9-1); 
       }
       break;
@@ -123,7 +122,6 @@ void parseKey(char val) {
     //activate channels 9-16 (DAISY MODE ONLY)
     case 'Q':
       if(nchan == 16){
-        println("doing this thing...");
         activateChannel(9-1);
       }
       break;

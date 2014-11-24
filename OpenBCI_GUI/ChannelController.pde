@@ -5,9 +5,14 @@ int numSettingsPerChannel = 6; //each channel has 6 different settings
 char[][] channelSettingValues = new char [nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
 char[][] impedanceCheckValues = new char [nchan][2];
 
+public void updateChannelArrays(int _nchan){
+	channelSettingValues = new char [_nchan][numSettingsPerChannel]; // [channel#][Button#-value] ... this will incfluence text of button
+	impedanceCheckValues = new char [_nchan][2];
+}
+
 // color[] channelColors = new color[16];
 color[] channelColors = {
-	color(129, 113, 87), 
+	color(129, 129, 129), 
 	color(124, 75, 141), 
 	color(54, 87, 158), 
 	color(49, 113, 89),
@@ -97,6 +102,7 @@ class ChannelController {
 	public void loadDefaultChannelSettings(){
 		verbosePrint("loading default channel settings to GUI's channel controller...");
 		for(int i = 0; i < nchan; i++){
+			verbosePrint("chan: " + i + " ");
 			for(int j = 0; j < numSettingsPerChannel; j++){ //channel setting values
 				channelSettingValues[i][j] = char(openBCI.defaultChannelSettings.toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
 				if(j == numSettingsPerChannel - 1){
@@ -109,6 +115,7 @@ class ChannelController {
 				impedanceCheckValues[i][k] = '0';
 			}
 		}
+		verbosePrint("made it!");
 		update(); //update 1 time to refresh button values based on new loaded settings
 	}
 
@@ -171,7 +178,11 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][0].setString("");
-							drawImpedanceValues[i] = true;
+							if(showFullController){
+								drawImpedanceValues[i] = false;
+							}else{
+								drawImpedanceValues[i] = true;
+							}
 						}
 						break;
 					case 1: // N Imp Buttons
@@ -182,7 +193,11 @@ class ChannelController {
 						if(impedanceCheckValues[i][k] == '1'){
 							impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
 							impedanceCheckButtons[i][1].setString("");
-							drawImpedanceValues[i] = true;
+							if(showFullController){
+								drawImpedanceValues[i] = false;
+							}else{
+								drawImpedanceValues[i] = true;
+							}
 						}
 						break;
 				}
@@ -448,7 +463,13 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
-		serial_openBCI.write(command_deactivate_channel[_numChannel]);
+		if(_numChannel < 8){
+			verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
+			serial_openBCI.write(command_deactivate_channel[_numChannel]);
+		}else{ //if a daisy channel
+			verbosePrint("Command: " + command_deactivate_channel_daisy[_numChannel - 8]);
+			serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
+		}
 	}
 
 	public void powerUpChannel(int _numChannel){
@@ -459,7 +480,13 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
-		serial_openBCI.write(command_activate_channel[_numChannel]);
+		if(_numChannel < 8){
+			verbosePrint("Command: " + command_activate_channel[_numChannel]);
+			serial_openBCI.write(command_activate_channel[_numChannel]);
+		} else{ //if a daisy channel
+			verbosePrint("Command: " + command_activate_channel_daisy[_numChannel - 8]);
+			serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
+		}
 	}
 
 	public void initChannelWrite(int _numChannel){
@@ -515,7 +542,12 @@ class ChannelController {
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
-					serial_openBCI.write((char) ('0'+(_numChannel+1)));
+					if(_numChannel < 8){
+						serial_openBCI.write((char)('0'+(_numChannel+1)));
+					}
+					if(_numChannel >= 8){
+						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+					}
 					break;
 				case 2: case 3: case 4: case 5: case 6: case 7:
 					verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
@@ -551,7 +583,12 @@ class ChannelController {
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
-					serial_openBCI.write((char) ('0'+(_numChannel+1)));
+					if(_numChannel < 8){
+						serial_openBCI.write((char)('0'+(_numChannel+1)));
+					}
+					if(_numChannel >= 8){
+						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+					}
 					break;
 				case 2: case 3: 
 					verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
