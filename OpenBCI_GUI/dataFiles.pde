@@ -59,7 +59,7 @@ public class OutputFile_rawtxt {
     output.println("%");
     output.println("%Sample Rate = " + fs_Hz + " Hz");
     output.println("%First Column = SampleIndex");
-    output.println("%Other Columns = EEG data in microvolts with optional columns at end being unscaled Aux data");
+    output.println("%Other Columns = EEG data in microvolts followed by Accel Data (in G) interleaved with Aux Data");
     output.flush();
   }
 
