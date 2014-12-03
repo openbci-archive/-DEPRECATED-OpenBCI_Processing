@@ -1249,7 +1249,7 @@ void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
     if (serial_openBCI != null) {
-      verbosePrint("***");
+      verbosePrint("**");
       openBCI.changeChannelState(Ichan, false); //de-activate
     }
   }
