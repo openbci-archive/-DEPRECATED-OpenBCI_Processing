@@ -1291,7 +1291,7 @@ public void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
     if (serial_openBCI != null) {
-      verbosePrint("***");
+      verbosePrint("**");
       openBCI.changeChannelState(Ichan, false); //de-activate
     }
   }
@@ -5594,6 +5594,7 @@ public class MenuList extends Controller {
 
 
 
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // This class configures and manages the connection to the OpenBCI shield for
@@ -5667,6 +5668,8 @@ class OpenBCI_ADS1299 {
   //byte[] serialBuff;
   //int curBuffIndex = 0;
   DataPacket_ADS1299 dataPacket;
+  DataPacket_ADS1299 prevDataPacket;
+
   int nAuxValues;
   boolean isNewDataPacketAvailable = false;
   OutputStream output; //for debugging  WEA 2014-01-26
@@ -5675,11 +5678,11 @@ class OpenBCI_ADS1299 {
   
   final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
   final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  float ADS1299_gain = 24;  //assumed gain setting for ADS1299.  set by its Arduino code
-  float scale_fac_uVolts_per_count = ADS1299_Vref / (pow(2,23)-1) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  float ADS1299_gain = 24.0f;  //assumed gain setting for ADS1299.  set by its Arduino code
+  float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
-  //final float scale_fac_accel_G_per_count = 0.002;  //data sheet, 2 mg per "digit", which I assume is per "count"
-  final float scale_fac_accel_G_per_count = 1.0f;
+  final float scale_fac_accel_G_per_count = 0.002f / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
+  //final float scale_fac_accel_G_per_count = 1.0;
   final float leadOffDrive_amps = 6.0e-9f;  //6 nA, set by its Arduino code
   
   boolean isBiasAuto = true;
@@ -5712,6 +5715,16 @@ class OpenBCI_ADS1299 {
 
     //allocate space for data packet
     dataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    //set all values to 0 so not null
+    for(int i = 0; i < nEEGValuesPerPacket; i++){
+      dataPacket.values[i] = 0;
+      prevDataPacket.values[i] = 0;
+    }
+    for(int i = 0; i < nAuxValuesPerPacket; i++){
+      dataPacket.auxValues[i] = 0;
+      prevDataPacket.auxValues[i] = 0;
+    }
 
     println(" b");
 
@@ -6117,11 +6130,50 @@ class OpenBCI_ADS1299 {
   }
   
   public int copyDataPacketTo(DataPacket_ADS1299 target) {
-    isNewDataPacketAvailable = false;
-    dataPacket.copyTo(target);
-    return 0;
+    if(nchan == 16){ //if there is a daisy board present...
+      if(dataPacket.sampleIndex % 2 == 1){//if board packet
+        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
+          dataPacket.values[i+8] = prevDataPacket.values[i+8];
+        }
+      }
+      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
+        for(int i = 0; i < 8; i++){
+          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
+        }
+        for(int i = 0; i < 8; i++){
+          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
+        }
+      }
+      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
+        prevDataPacket.values[i] = dataPacket.values[i]; 
+      }
+      for(int i = 0; i < 3; i++){
+        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
+      }
+
+      //print some stuff to keep track of what's going on if you're in verbose mode
+      // if(isVerbose){
+      //   print("dataPacket.values: ");
+      //   for(int i = 0; i < dataPacket.values.length; i++){
+      //     print(dataPacket.values[i] + " ");
+      //   }
+      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
+      //     print(dataPacket.auxValues[i] + " ");
+      //   }
+      //   println();
+      // }
+      
+      isNewDataPacketAvailable = false;
+      dataPacket.copyTo(target);
+      return 0;
+
+    } else{
+      isNewDataPacketAvailable = false;
+      dataPacket.copyTo(target);
+      return 0;
+    }
   }
-};
+};  
   
 //  int measurePacketLength() {
 //    
@@ -7392,7 +7444,7 @@ public class OutputFile_rawtxt {
     output.println("%");
     output.println("%Sample Rate = " + fs_Hz + " Hz");
     output.println("%First Column = SampleIndex");
-    output.println("%Other Columns = EEG data in microvolts with optional columns at end being unscaled Aux data");
+    output.println("%Other Columns = EEG data in microvolts followed by Accel Data (in G) interleaved with Aux Data");
     output.flush();
   }
 
