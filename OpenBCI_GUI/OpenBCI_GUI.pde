@@ -3,7 +3,7 @@
 // GUI for controlling the ADS1299-based OpenBCI
 //
 // Created: Chip Audette, Oct 2013 - May 2014
-// Modified: Conor Russomanno & Joel Murphy, August 2014 - Oct 2014
+// Modified: Conor Russomanno & Joel Murphy, August 2014 - Dec 2014
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/

@@ -12,6 +12,8 @@
 // Created: Chip Audette, Oct 2013
 // Modified: through April 2014
 // Modified again: Conor Russomanno Sept-Oct 2014
+// Modified for Daisy (16-chan) OpenBCI V3: Conor Russomanno Nov 2014
+// Modified Daisy Behaviors: Chip Audette Dec 2014
 //
 // Note: this class now expects the data format produced by OpenBCI V3.
 //
@@ -58,9 +60,9 @@ class OpenBCI_ADS1299 {
   final static int STATE_STOPPED = 4;
   final static int COM_INIT_MSEC = 3000; //you may need to vary this for your computer or your Arduino
   
-  int[] measured_packet_length = {0,0,0,0,0};
-  int measured_packet_length_ind = 0;
-  int known_packet_length_bytes = 0;
+  //int[] measured_packet_length = {0,0,0,0,0};
+  //int measured_packet_length_ind = 0;
+  //int known_packet_length_bytes = 0;
   
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
@@ -70,10 +72,12 @@ class OpenBCI_ADS1299 {
   int state = STATE_NOCOM;
   int dataMode = -1;
   int prevState_millis = 0;
-  //byte[] serialBuff;
-  //int curBuffIndex = 0;
+  
+  int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI boards
+  //int nAuxValuesPerPacket = 3; //defined by the data format sent by openBCI boards
+  DataPacket_ADS1299 rawReceivedDataPacket;
   DataPacket_ADS1299 dataPacket;
-  DataPacket_ADS1299 prevDataPacket;
+  //DataPacket_ADS1299 prevDataPacket;
 
   int nAuxValues;
   boolean isNewDataPacketAvailable = false;
@@ -100,7 +104,7 @@ class OpenBCI_ADS1299 {
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
-  OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerPacket, boolean useAux, int nAuxValuesPerPacket) {
+  OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
     nAuxValues=nAuxValuesPerPacket;
     
     //choose data mode
@@ -119,16 +123,19 @@ class OpenBCI_ADS1299 {
     dataMode = prefered_datamode;
 
     //allocate space for data packet
-    dataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
-    prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    rawReceivedDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);  //this should always be 8 channels
+    dataPacket = new DataPacket_ADS1299(nEEGValuesPerOpenBCI,nAuxValuesPerPacket);            //this could be 8 or 16 channels
+    //prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
     //set all values to 0 so not null
-    for(int i = 0; i < nEEGValuesPerPacket; i++){
-      dataPacket.values[i] = 0;
-      prevDataPacket.values[i] = 0;
+    for(int i = 0; i < nEEGValuesPerPacket; i++) { 
+      rawReceivedDataPacket.values[i] = 0; 
+      //prevDataPacket.values[i] = 0; 
     }
+    for (int i=0; i < nEEGValuesPerOpenBCI; i++) { dataPacket.values[i]=0; }
     for(int i = 0; i < nAuxValuesPerPacket; i++){
+      rawReceivedDataPacket.auxValues[i] = 0;
       dataPacket.auxValues[i] = 0;
-      prevDataPacket.auxValues[i] = 0;
+      //prevDataPacket.auxValues[i] = 0;
     }
 
     println(" b");
@@ -343,8 +350,9 @@ class OpenBCI_ADS1299 {
   byte[] localAdsByteBuffer = {0,0,0};
   byte[] localAccelByteBuffer = {0,0};
 
-  void interpretBinaryStream(byte actbyte)
-  { 
+  void interpretBinaryStream(byte actbyte)  {
+    boolean flag_copyRawDataToFullData = false;
+    
     //println("OpenBCI_ADS1299: interpretBinaryStream: PACKET_readstate " + PACKET_readstate);
     switch (PACKET_readstate) {
       case 0:  
@@ -358,14 +366,14 @@ class OpenBCI_ADS1299 {
         //check the packet counter
         // println("case 1");
         byte inByte = actbyte;
-        dataPacket.sampleIndex = int(inByte); //changed by JAM
-        if ((dataPacket.sampleIndex-prevSampleIndex) != 1) {
-          if(dataPacket.sampleIndex != 0){  // if we rolled over, don't count as error
+        rawReceivedDataPacket.sampleIndex = int(inByte); //changed by JAM
+        if ((rawReceivedDataPacket.sampleIndex-prevSampleIndex) != 1) {
+          if(rawReceivedDataPacket.sampleIndex != 0){  // if we rolled over, don't count as error
             serialErrorCounter++;
-            println("OpenBCI_ADS1299: apparent sampleIndex jump from Serial data: " + prevSampleIndex + " to  " + dataPacket.sampleIndex + ".  Keeping packet. (" + serialErrorCounter + ")");
+            println("OpenBCI_ADS1299: apparent sampleIndex jump from Serial data: " + prevSampleIndex + " to  " + rawReceivedDataPacket.sampleIndex + ".  Keeping packet. (" + serialErrorCounter + ")");
           }
         }
-        prevSampleIndex = dataPacket.sampleIndex;
+        prevSampleIndex = rawReceivedDataPacket.sampleIndex;
         localByteCounter=0;//prepare for next usage of localByteCounter
         localChannelCounter=0; //prepare for next usage of localChannelCounter
         PACKET_readstate++;
@@ -376,7 +384,7 @@ class OpenBCI_ADS1299 {
         localAdsByteBuffer[localByteCounter] = actbyte;
         localByteCounter++;
         if (localByteCounter==3) {
-          dataPacket.values[localChannelCounter] = interpret24bitAsInt32(localAdsByteBuffer);
+          rawReceivedDataPacket.values[localChannelCounter] = interpret24bitAsInt32(localAdsByteBuffer);
           localChannelCounter++;
           if (localChannelCounter==8) { //nDataValuesInPacket) {  
             // all ADS channels arrived !
@@ -398,11 +406,11 @@ class OpenBCI_ADS1299 {
         localAccelByteBuffer[localByteCounter] = actbyte;
         localByteCounter++;
         if (localByteCounter==2) {
-          dataPacket.auxValues[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
+          rawReceivedDataPacket.auxValues[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
           localChannelCounter++;
           if (localChannelCounter==nAuxValues) { //number of accelerometer axis) {  
             // all Accelerometer channels arrived !
-            //println("OpenBCI_ADS1299: interpretBinaryStream: Accel Data: " + dataPacket.auxValues[0] + ", " + dataPacket.auxValues[1] + ", " + dataPacket.auxValues[2]);
+            //println("OpenBCI_ADS1299: interpretBinaryStream: Accel Data: " + rawReceivedDataPacket.auxValues[0] + ", " + rawReceivedDataPacket.auxValues[1] + ", " + rawReceivedDataPacket.auxValues[2]);
             PACKET_readstate++;
             localByteCounter = 0;
             //isNewDataPacketAvailable = true;  //tell the rest of the code that the data packet is complete
@@ -419,6 +427,7 @@ class OpenBCI_ADS1299 {
           // println("... 0xC0 found");
           //println("OpenBCI_ADS1299: interpretBinaryStream: found end byte. Setting isNewDataPacketAvailable to TRUE");
           isNewDataPacketAvailable = true; //original place for this.  but why not put it in the previous case block
+          flag_copyRawDataToFullData = true;  //time to copy the raw data packet into the full data packet (mainly relevant for 16-chan OpenBCI) 
         } else {
           serialErrorCounter++;
           println("Actbyte = " + actbyte);
@@ -430,6 +439,10 @@ class OpenBCI_ADS1299 {
           //println("OpenBCI_ADS1299: Unknown byte: " + actbyte + " .  Continuing...");
           println("OpenBCI_ADS1299: interpretBinaryStream: Unknown byte.  Continuing...");
           PACKET_readstate=0;  // look for next packet
+    }
+    
+    if (flag_copyRawDataToFullData) {
+      copyRawDataToFullData();
     }
   } // end of interpretBinaryStream
 
@@ -534,50 +547,76 @@ class OpenBCI_ADS1299 {
     return newInt;
   }
   
-  public int copyDataPacketTo(DataPacket_ADS1299 target) {
-    if(nchan == 16){ //if there is a daisy board present...
-      if(dataPacket.sampleIndex % 2 == 1){//if board packet
-        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
-          dataPacket.values[i+8] = prevDataPacket.values[i+8];
-        }
+  private int copyRawDataToFullData() {
+    //Prior to the 16-chan OpenBCI, we did NOT have rawReceivedDataPacket along with dataPacket...we just had dataPacket.
+    //With the 16-chan OpenBCI, where the first 8 channels are sent and then the second 8 channels are sent, we introduced
+    //this extra structure so that we could alternate between them.
+    //
+    //This function here decides how to join the latest data (rawReceivedDataPacket) into the full dataPacket
+    
+    if (dataPacket.values.length < 2*rawReceivedDataPacket.values.length) {
+      //simply copy the data
+      return rawReceivedDataPacket.copyTo(dataPacket);
+    } else {
+      //this is 16-channels, so copy the raw data into the correct channels of the new data
+      int offsetInd_values = 0;  //this is correct assuming we just recevied a  "board" packet (ie, channels 1-8)
+      int offsetInd_aux = 0;     //this is correct assuming we just recevied a  "board" packet (ie, channels 1-8)
+      if (rawReceivedDataPacket.sampleIndex % 2 == 0) { // even data packets are from the daisy board
+        offsetInd_values = rawReceivedDataPacket.values.length;  //start copying to the 8th slot
+        offsetInd_aux = rawReceivedDataPacket.auxValues.length;  //start copying to the 3rd slot
       }
-      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
-        for(int i = 0; i < 8; i++){
-          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
-        }
-        for(int i = 0; i < 8; i++){
-          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
-        }
-      }
-      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
-        prevDataPacket.values[i] = dataPacket.values[i]; 
-      }
-      for(int i = 0; i < 3; i++){
-        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
-      }
-
-      //print some stuff to keep track of what's going on if you're in verbose mode
-      // if(isVerbose){
-      //   print("dataPacket.values: ");
-      //   for(int i = 0; i < dataPacket.values.length; i++){
-      //     print(dataPacket.values[i] + " ");
-      //   }
-      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
-      //     print(dataPacket.auxValues[i] + " ");
-      //   }
-      //   println();
-      // }
-      
-      isNewDataPacketAvailable = false;
-      dataPacket.copyTo(target);
-      return 0;
-
-    } else{
-      isNewDataPacketAvailable = false;
-      dataPacket.copyTo(target);
-      return 0;
+      return rawReceivedDataPacket.copyTo(dataPacket,offsetInd_values,offsetInd_aux);
     }
   }
+  
+  public int copyDataPacketTo(DataPacket_ADS1299 target) {
+    return dataPacket.copyTo(target);
+  }
+  
+//  public int copyDataPacketTo(DataPacket_ADS1299 target) {
+//    if(nchan == 16){ //if there is a daisy board present...
+//      if(dataPacket.sampleIndex % 2 == 1){//if board packet
+//        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
+//          dataPacket.values[i+8] = prevDataPacket.values[i+8];
+//        }
+//      }
+//      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
+//        for(int i = 0; i < 8; i++){
+//          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
+//        }
+//        for(int i = 0; i < 8; i++){
+//          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
+//        }
+//      }
+//      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
+//        prevDataPacket.values[i] = dataPacket.values[i]; 
+//      }
+//      for(int i = 0; i < 3; i++){
+//        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
+//      }
+//
+//      //print some stuff to keep track of what's going on if you're in verbose mode
+//      // if(isVerbose){
+//      //   print("dataPacket.values: ");
+//      //   for(int i = 0; i < dataPacket.values.length; i++){
+//      //     print(dataPacket.values[i] + " ");
+//      //   }
+//      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
+//      //     print(dataPacket.auxValues[i] + " ");
+//      //   }
+//      //   println();
+//      // }
+//      
+//      isNewDataPacketAvailable = false;
+//      dataPacket.copyTo(target);
+//      return 0;
+//
+//    } else{
+//      isNewDataPacketAvailable = false;
+//      dataPacket.copyTo(target);
+//      return 0;
+//    }
+//  }
 };  
   
 //  int measurePacketLength() {

@@ -3,7 +3,7 @@
 //
 // This file contains classes that are helfpul in some way.
 //
-// Created: Chip Audette, Oct 2013
+// Created: Chip Audette, Oct 2013 - Dec 2014
 //
 /////////////////////////////////////
 
