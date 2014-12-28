@@ -465,10 +465,10 @@ class ChannelController {
 		channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
 		if(_numChannel < 8){
 			verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
-			serial_openBCI.write(command_deactivate_channel[_numChannel]);
+			openBCI.serial_openBCI.write(command_deactivate_channel[_numChannel]);
 		}else{ //if a daisy channel
 			verbosePrint("Command: " + command_deactivate_channel_daisy[_numChannel - 8]);
-			serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
+			openBCI.serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
 		}
 	}
 
@@ -482,10 +482,10 @@ class ChannelController {
 		channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
 		if(_numChannel < 8){
 			verbosePrint("Command: " + command_activate_channel[_numChannel]);
-			serial_openBCI.write(command_activate_channel[_numChannel]);
+			openBCI.serial_openBCI.write(command_activate_channel[_numChannel]);
 		} else{ //if a daisy channel
 			verbosePrint("Command: " + command_activate_channel_daisy[_numChannel - 8]);
-			serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
+			openBCI.serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
 		}
 	}
 
@@ -538,25 +538,25 @@ class ChannelController {
 			switch (channelWriteCounter){
 				case 0: //start sequence by send 'x'
 					verbosePrint("x" + " :: " + millis());
-					serial_openBCI.write('x');
+					openBCI.serial_openBCI.write('x');
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
 					if(_numChannel < 8){
-						serial_openBCI.write((char)('0'+(_numChannel+1)));
+						openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
 					}
 					if(_numChannel >= 8){
-						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+						openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
 					}
 					break;
 				case 2: case 3: case 4: case 5: case 6: case 7:
 					verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
-					serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+					openBCI.serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
 					//value for ON/OF
 					break;
 				case 8:
 					verbosePrint("X" + " :: " + millis());
-					serial_openBCI.write('X'); // send 'X' to end message sequence
+					openBCI.serial_openBCI.write('X'); // send 'X' to end message sequence
 					break;
 				case 9:
 					verbosePrint("done writing channel.");
@@ -579,25 +579,25 @@ class ChannelController {
 			switch (impWriteCounter){
 				case 0: //start sequence by send 'x'
 					verbosePrint("z" + " :: " + millis());
-					serial_openBCI.write('z');
+					openBCI.serial_openBCI.write('z');
 					break;
 				case 1: //send channel number
 					verbosePrint(str(_numChannel+1) + " :: " + millis());
 					if(_numChannel < 8){
-						serial_openBCI.write((char)('0'+(_numChannel+1)));
+						openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
 					}
 					if(_numChannel >= 8){
-						serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+						openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
 					}
 					break;
 				case 2: case 3: 
 					verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
-					serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
+					openBCI.serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
 					//value for ON/OF
 					break;
 				case 4:
 					verbosePrint("Z" + " :: " + millis());
-					serial_openBCI.write('Z'); // send 'X' to end message sequence
+					openBCI.serial_openBCI.write('Z'); // send 'X' to end message sequence
 					break;
 				case 5:
 					verbosePrint("done writing imp settings.");

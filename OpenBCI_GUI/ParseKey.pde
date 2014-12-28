@@ -183,7 +183,7 @@ void parseKey(char val) {
     case 'd':
       verbosePrint("Updating GUI's channel settings to default...");
       gui.cc.loadDefaultChannelSettings();
-      serial_openBCI.write('d');
+      openBCI.serial_openBCI.write('d');
       break;
       
     // //change the state of the impedance measurements...activate the N-channels
@@ -248,7 +248,7 @@ void parseKey(char val) {
     default:
      println("OpenBCI_GUI: '" + key + "' Pressed...sending to OpenBCI...");
      // if (openBCI.serial_openBCI != null) openBCI.serial_openBCI.write(key);//send the value as ascii with a newline character
-     if (serial_openBCI != null) serial_openBCI.write(key);//send the value as ascii with a newline character
+     if (openBCI.serial_openBCI != null) openBCI.serial_openBCI.write(key);//send the value as ascii with a newline character
     
      break;
   }

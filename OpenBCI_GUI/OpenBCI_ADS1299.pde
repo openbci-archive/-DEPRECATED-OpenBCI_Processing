@@ -67,6 +67,9 @@ class OpenBCI_ADS1299 {
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
   
+  //here is the serial port for this OpenBCI board
+  public Serial serial_openBCI = null; 
+  
   int prefered_datamode = DATAMODE_BIN_WAUX;
   
   int state = STATE_NOCOM;
