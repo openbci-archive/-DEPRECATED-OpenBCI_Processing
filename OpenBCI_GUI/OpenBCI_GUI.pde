@@ -42,6 +42,8 @@ public int eegDataSource = -1; //default to none of the options
 OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
 String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 int openBCI_baud = 115200; //baud rate from the Arduino
+boolean portIsOpen = false; //serial port open or closed(?)
+Serial serial_openBCI = null;
 
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
@@ -91,16 +93,22 @@ float yLittleBuff[] = new float[nPointsPerUpdate];
 float yLittleBuff_uV[][] = new float[nchan][nPointsPerUpdate]; //small buffer used to send data to the filters
 float data_elec_imp_ohm[];
 
-//fft constants
-int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
-FFT fftBuff[] = new FFT[nchan];   //from the minim library
-float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
-int smoothFac_ind = 0;    //initial index into the smoothFac array
+//variables for writing EEG data out to a file
+OutputFile_rawtxt fileoutput;
+String output_fname;
+String fileName = "N/A";
 
 //create objects that'll do the EEG signal processing
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
 
+
+
+//fft constants
+int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
+FFT fftBuff[] = new FFT[nchan];   //from the minim library
+float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
+int smoothFac_ind = 0;    //initial index into the smoothFac array
 
 //plotting constants
 color bgColor = color(1, 18, 41);
@@ -124,15 +132,6 @@ int inByte = -1;    // Incoming serial data
 
 //Help Widget initiation
 HelpWidget helpWidget;
-
-//file writing variables
-OutputFile_rawtxt fileoutput;
-String output_fname;
-String fileName = "N/A";
-
-//serial port open or closed(?)
-boolean portIsOpen = false;
-Serial serial_openBCI = null;
 
 //for screen resizing
 boolean screenHasBeenResized = false;
