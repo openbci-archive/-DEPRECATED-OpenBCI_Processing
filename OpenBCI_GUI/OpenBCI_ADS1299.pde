@@ -267,9 +267,11 @@ class OpenBCI_ADS1299 {
   //read from the serial port
   int read() {  return read(false); }
   int read(boolean echoChar) {
-    // print("State: " + state);
+    //println("OpenBCI_ADS1299: read(): State: " + state);
     //get the byte
+    if (isRunning) println("OpenBCI_ADS1299: read(): getting byte");
     byte inByte = byte(serial_openBCI.read());
+    if (isRunning) println("OpenBCI_ADS1299: read(): got byte " + int(inByte));
 
     //write the most recent char to the console
     if (echoChar){  //if not in interpret binary (NORMAL) mode
