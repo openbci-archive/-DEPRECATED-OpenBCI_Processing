@@ -27,8 +27,6 @@ import java.awt.event.*; //to allow for event listener on screen resize
 
 boolean isVerbose = true; //set true if you want more verbosity in console
 
-long timeOfLastFrame = 0;
-int newPacketCounter = 0;
 
 //used to switch between application states
 int systemMode = 0; /* Modes: 0 = system stopped/control panel setings / 10 = gui / 20 = help guide */
@@ -43,11 +41,8 @@ public int eegDataSource = -1; //default to none of the options
 //Serial communications constants
 OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
 String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
-
 int openBCI_baud = 115200; //baud rate from the Arduino
-// final int OpenBCI_Nchannels = 8; //normal OpenBCI has 8 channels
-//use this for when daisy-chaining two OpenBCI boards
-// public int OpenBCI_Nchannels = 8; //daisy chain has 16 channels
+
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
 String playbackData_fname = "N/A"; //only used if loading input data from a file
@@ -59,59 +54,65 @@ int nextPlayback_millis = -100; //any negative number
 
 // boolean printingRegisters = false;
 
+// define some timing variables for this program's operation
+long timeOfLastFrame = 0;
+int newPacketCounter = 0;
 long timeOfInit;
 long timeSinceStopRunning = 1000;
+int prev_time_millis = 0;
+final int nPointsPerUpdate = 50; //update the GUI after this many data points have been received 
 
-//other data fields
-float dataBuffX[];
-float dataBuffY_uV[][]; //2D array to handle multiple data channels, each row is a new channel so that dataBuffY[3][] is channel 4
-float dataBuffY_filtY_uV[][];
-float data_elec_imp_ohm[];
-
-color bgColor = color(1, 18, 41);
-
-//SD Card setting (if eegDataSource == 0)
-int sdSetting = 0; //0 = do not write; 1 = 5 min; 2 = 15 min; 3 = 30 min; etc...
-String sdSettingString = "Do not write to SD";
-//int nchan = 12; //normally, nchan = OpenBCI_Nchannels.  Choose a smaller number to show fewer on the GUI
-// int nchan = OpenBCI_Nchannels; //normally, nchan = OpenBCI_Nchannels.  Choose a smaller number to show fewer on the GUI
-
-int nchan = 8; //normally, nchan = OpenBCI_Nchannels.  Choose a smaller number to show fewer on the GUI
-// int nchan_active_at_startup = nchan;  //how many channels to be LIVE at startup
+/////Define variables related to OpenBCI board operations
+//define number of channels from openBCI...first EEG channels, then aux channels
+int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
 int n_aux_ifEnabled = 3;  // this is the accelerometer data CHIP 2014-11-03
 
-int prev_time_millis = 0;
-final int nPointsPerUpdate = 50; //update screen after this many data points.  
-float yLittleBuff[] = new float[nPointsPerUpdate];
+//define variables related to warnings to the user about whether the EEG data is nearly railed (and, therefore, of dubious quality)
 DataStatus is_railed[];
 final int threshold_railed = int(pow(2,23)-1000);  //fully railed should be +/- 2^23, so set this threshold close to that value
 final int threshold_railed_warn = int(pow(2,23)*0.75); //set a somewhat smaller value as the warning threshold
 
+//OpenBCI SD Card setting (if eegDataSource == 0)
+int sdSetting = 0; //0 = do not write; 1 = 5 min; 2 = 15 min; 3 = 30 min; etc...
+String sdSettingString = "Do not write to SD";
+
+//openBCI data packet
+final int nDataBackBuff = 3*(int)openBCI.fs_Hz;
+DataPacket_ADS1299 dataPacketBuff[] = new DataPacket_ADS1299[nDataBackBuff]; //allocate the array, but doesn't call constructor.  Still need to call the constructor!
+int curDataPacketInd = -1;
+int lastReadDataPacketInd = -1;
+////// End variables related to the OpenBCI boards
+
+//define some data fields for handling data here in processing
+float dataBuffX[];  //define the size later
+float dataBuffY_uV[][]; //2D array to handle multiple data channels, each row is a new channel so that dataBuffY[3][] is channel 4
+float dataBuffY_filtY_uV[][];
+float yLittleBuff[] = new float[nPointsPerUpdate];
 float yLittleBuff_uV[][] = new float[nchan][nPointsPerUpdate]; //small buffer used to send data to the filters
+float data_elec_imp_ohm[];
+
+//fft constants
+int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
+FFT fftBuff[] = new FFT[nchan];   //from the minim library
+float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
+int smoothFac_ind = 0;    //initial index into the smoothFac array
 
 //create objects that'll do the EEG signal processing
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
 
-//fft constants
-int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
-
-FFT fftBuff[] = new FFT[nchan];   //from the minim library
-float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
-final int N_SMOOTHEFAC = 6;
-int smoothFac_ind = 0;
 
 //plotting constants
+color bgColor = color(1, 18, 41);
 Gui_Manager gui;
-float default_vertScale_uV = 200.0f;
-float displayTime_sec = 5f;
+float default_vertScale_uV = 200.0f;  //used for vertical scale of time-domain montage plot and frequency-domain FFT plot
+float displayTime_sec = 5f;    //define how much time is shown on the time-domain montage plot (and how much is used in the FFT plot?)
 float dataBuff_len_sec = displayTime_sec+3f; //needs to be wider than actual display so that filter startup is hidden
 
 //Control Panel for (re)configuring system settings
 ControlPanel controlPanel;
 Button controlPanelCollapser;
 PlotFontInfo fontInfo;
-
 Playground playground;
 int navBarHeight = 32;
 
@@ -139,11 +140,6 @@ float timeOfLastScreenResize = 0;
 float timeOfGUIreinitialize = 0;
 int reinitializeGUIdelay = 125;
 
-//openBCI data packet
-final int nDataBackBuff = 3*(int)openBCI.fs_Hz;
-DataPacket_ADS1299 dataPacketBuff[] = new DataPacket_ADS1299[nDataBackBuff]; //allocate the array, but doesn't call constructor.  Still need to call the constructor!
-int curDataPacketInd = -1;
-int lastReadDataPacketInd = -1;
 
 void appendAndShift(float[] data, float[] newData) {
   int nshift = newData.length;
@@ -1355,7 +1351,7 @@ void incrementNotchConfiguration() {
   
 void incrementSmoothing() {
   smoothFac_ind++;
-  if (smoothFac_ind >= N_SMOOTHEFAC) smoothFac_ind = 0;
+  if (smoothFac_ind >= smoothFac.length) smoothFac_ind = 0;
   
   //tell the GUI
   gui.setSmoothFac(smoothFac[smoothFac_ind]);
