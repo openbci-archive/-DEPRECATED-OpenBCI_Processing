@@ -215,41 +215,113 @@ class OpenBCI_ADS1299 {
     return 0;
   }
   
-  //start the data transfer using the current mode
-  // int startDataTransfer() {
-  //   println("OpenBCI_ADS1299: startDataTransfer: using current dataMode..." + dataMode);
-  //   return startDataTransfer(dataMode);
-  // }
+    
+  int hardwareSyncStep = 0; //start this at 0...
+  boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+  long timeOfLastCommand = 0;
   
-  // //start data trasnfer using the given mode
-  // int startDataTransfer(int mode) {
-  //   dataMode = mode;
-  //   if (state == STATE_COMINIT) {
-  //     println("OpenBCI_ADS1299: startDataTransfer: cannot start transfer...waiting for comms...");
-  //     return -1;
-  //   }
-  //   // stopDataTransfer();
-  //   // println("OpenBCI_ADS1299: startDataTransfer: received command for mode = " + mode);
-  //   // switch (mode) {
-  //   //   case DATAMODE_BIN:
-  //   //     serial_openBCI.write(command_startBinary);// + "\n");
-  //   //     // serial_openBCI.write(command_startBinary);
-  //   //     println("OpenBCI_ADS1299: startDataTransfer: starting binary transfer");
-  //   //     break;
-  //   //   case DATAMODE_BIN_WAUX:
-  //   //     serial_openBCI.write(command_startBinary_wAux);// + "\n");
-  //   //     println("OpenBCI_ADS1299: startDataTransfer: starting binary transfer (with Aux)");
-  //   //     break;
-  //   // }
-
-  //   return 0;
-  // }
+  public void syncWithHardware(int sdSetting){
+    switch (hardwareSyncStep) {
+      // case 1:
+      //   println("openBCI_GUI: syncWithHardware: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+      //   serial_openBCI.write('v');
+      //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+      case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+        println("OpenBCI_ADS1299: syncWithHardware: [1] Sending channel count (" + nchan + ") to OpenBCI...");
+        if(nchan == 8){
+          serial_openBCI.write('c');
+        }
+        if(nchan == 16){
+          serial_openBCI.write('C');
+          readyToSend = false;
+        }
+        break;
+      case 2: //reset hardware to default registers 
+        println("OpenBCI_ADS1299: syncWithHardware: [2] Reseting OpenBCI registers to default... writing \'d\'...");
+        serial_openBCI.write("d"); 
+        break;
+      case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+        println("OpenBCI_ADS1299: syncWithHardware: [3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
+        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        serial_openBCI.write("D"); 
+        break;
+      case 4: //check existing registers
+        println("OpenBCI_ADS1299: syncWithHardware: [4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
+        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        serial_openBCI.write("?"); 
+        break;
+      case 5:
+        // serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
+        switch (sdSetting){
+          case 0: //"Do not write to SD"
+            //do nothing
+            break;
+          case 1: //"5 min max"
+            serial_openBCI.write("A");
+            break;
+          case 2: //"5 min max"
+            serial_openBCI.write("S");
+            break;
+          case 3: //"5 min max"
+            serial_openBCI.write("F");
+            break;
+          case 4: //"5 min max"
+            serial_openBCI.write("G");
+            break;
+          case 5: //"5 min max"
+            serial_openBCI.write("H");
+            break;
+          case 6: //"5 min max"
+            serial_openBCI.write("J");
+            break;
+          case 7: //"5 min max"
+            serial_openBCI.write("K");
+            break;
+          case 8: //"5 min max"
+            serial_openBCI.write("L");
+            break;
+        }
+        println("OpenBCI_ADS1299: syncWithHardware: [5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
+        if(sdSetting != 0){
+          readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        }
+        break;
+      case 6:
+        output("OpenBCI_ADS1299: syncWithHardware: The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+        changeState(STATE_STOPPED);
+        systemMode = 10;
+        //renitialize GUI if nchan has been updated... needs to be built
+        break; 
+    }
+  }
+  
+  public void updateSyncState(int sdSetting) {
+    //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
+    if ( (millis() - prevState_millis > COM_INIT_MSEC) && (prevState_millis != 0) && (state == openBCI.STATE_COMINIT) ) {
+      state = STATE_SYNCWITHHARDWARE;
+      timeOfLastCommand = millis();
+      serial_openBCI.clear();
+      defaultChannelSettings = ""; //clear channel setting string to be reset upon a new Init System
+      daisyOrNot = ""; //clear daisyOrNot string to be reset upon a new Init System
+      println("OpenBCI_ADS1299: systemUpdate: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+      serial_openBCI.write('v');
+    }
+  
+    //if we are in SYNC WITH HARDWARE state ... trigger a command
+    if ( (state == STATE_SYNCWITHHARDWARE) && (currentlySyncing == false) ) {
+      if(millis() - timeOfLastCommand > 200 && readyToSend == true){
+        timeOfLastCommand = millis();
+        hardwareSyncStep++;
+        syncWithHardware(sdSetting);
+      }
+    }
+  }
 
   void startDataTransfer(){
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
-      openBCI.changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
+      changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
       println("OpenBCI_ADS1299: startDataTransfer: writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
@@ -549,6 +621,7 @@ class OpenBCI_ADS1299 {
     return newInt;
   }
   
+  
   private int copyRawDataToFullData() {
     //Prior to the 16-chan OpenBCI, we did NOT have rawReceivedDataPacket along with dataPacket...we just had dataPacket.
     //With the 16-chan OpenBCI, where the first 8 channels are sent and then the second 8 channels are sent, we introduced
@@ -575,71 +648,6 @@ class OpenBCI_ADS1299 {
   public int copyDataPacketTo(DataPacket_ADS1299 target) {
     return dataPacket.copyTo(target);
   }
-  
-//  public int copyDataPacketTo(DataPacket_ADS1299 target) {
-//    if(nchan == 16){ //if there is a daisy board present...
-//      if(dataPacket.sampleIndex % 2 == 1){//if board packet
-//        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
-//          dataPacket.values[i+8] = prevDataPacket.values[i+8];
-//        }
-//      }
-//      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
-//        for(int i = 0; i < 8; i++){
-//          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
-//        }
-//        for(int i = 0; i < 8; i++){
-//          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
-//        }
-//      }
-//      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
-//        prevDataPacket.values[i] = dataPacket.values[i]; 
-//      }
-//      for(int i = 0; i < 3; i++){
-//        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
-//      }
-//
-//      //print some stuff to keep track of what's going on if you're in verbose mode
-//      // if(isVerbose){
-//      //   print("dataPacket.values: ");
-//      //   for(int i = 0; i < dataPacket.values.length; i++){
-//      //     print(dataPacket.values[i] + " ");
-//      //   }
-//      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
-//      //     print(dataPacket.auxValues[i] + " ");
-//      //   }
-//      //   println();
-//      // }
-//      
-//      isNewDataPacketAvailable = false;
-//      dataPacket.copyTo(target);
-//      return 0;
-//
-//    } else{
-//      isNewDataPacketAvailable = false;
-//      dataPacket.copyTo(target);
-//      return 0;
-//    }
-//  }
+ 
 };  
-  
-//  int measurePacketLength() {
-//    
-//    //assume curBuffIndex has already been incremented to the next open spot
-//    int startInd = curBuffIndex-1;
-//    int endInd = curBuffIndex-1;
-//
-//    //roll backwards to find the start of the packet
-//    while ((startInd >= 0) && (serialBuff[startInd] != BYTE_START)) {
-//      startInd--;
-//    }
-//    if (startInd < 0) {
-//      //didn't find the start byte..so ignore this data packet
-//      return 0;
-//    } else if ((endInd - startInd + 1) < 3) {
-//      //data packet isn't long enough to hold any data...so ignore this data packet
-//      return 0;
-//    } else {
-//      //int n_bytes = int(serialBuff[startInd + 1]); //this is the number of bytes in the payload
-//      //println("OpenBCI_ADS1299: measurePacketLength = " + (endInd-startInd+1));
-//      return endInd-startInd+1;
-//    }
+ 

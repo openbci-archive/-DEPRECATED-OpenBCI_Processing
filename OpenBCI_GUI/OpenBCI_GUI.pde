@@ -82,6 +82,11 @@ final int nDataBackBuff = 3*(int)openBCI.fs_Hz;
 DataPacket_ADS1299 dataPacketBuff[] = new DataPacket_ADS1299[nDataBackBuff]; //allocate the array, but doesn't call constructor.  Still need to call the constructor!
 int curDataPacketInd = -1;
 int lastReadDataPacketInd = -1;
+
+//related to sync'ing communiction to OpenBCI hardware?
+boolean currentlySyncing = false;
+long timeOfLastCommand = 0;
+
 ////// End variables related to the OpenBCI boards
 
 //define some data fields for handling data here in processing
@@ -335,89 +340,10 @@ void initSystem(){
     systemMode = 10; //tell system it's ok to leave control panel and start interfacing GUI
   }
   //sync GUI default settings with OpenBCI's default settings...
-  // syncWithHardware(); //this starts the sequence off ... read in OpenBCI_ADS1299 iterates through the rest based on the ASCII trigger "$$$"
+  // openBCI.syncWithHardware(); //this starts the sequence off ... read in OpenBCI_ADS1299 iterates through the rest based on the ASCII trigger "$$$"
   // verbosePrint("OpenBCI_GUI: initSystem: -- Init 5 [COMPLETE] --");
 }
 
-int hardwareSyncStep = 0; //start this at 0...
-boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
-boolean currentlySyncing = false;
-long timeOfLastCommand = 0;
-
-void syncWithHardware(){
-  switch (hardwareSyncStep) {
-    // case 1:
-    //   println("openBCI_GUI: syncWithHardware: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
-    //   openBCI.serial_openBCI.write('v');
-    //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
-    case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
-      println("openBCI_GUI: syncWithHardware: [1] Sending channel count (" + nchan + ") to OpenBCI...");
-      if(nchan == 8){
-        openBCI.serial_openBCI.write('c');
-      }
-      if(nchan == 16){
-        openBCI.serial_openBCI.write('C');
-        readyToSend = false;
-      }
-      break;
-    case 2: //reset hardware to default registers 
-      println("openBCI_GUI: syncWithHardware: [2] Reseting OpenBCI registers to default... writing \'d\'...");
-      openBCI.serial_openBCI.write("d"); 
-      break;
-    case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
-      println("openBCI_GUI: syncWithHardware: [3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
-      readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
-      openBCI.serial_openBCI.write("D"); 
-      break;
-    case 4: //check existing registers
-      println("openBCI_GUI: syncWithHardware: [4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
-      readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
-      openBCI.serial_openBCI.write("?"); 
-      break;
-    case 5:
-      // openBCI.serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
-      switch (sdSetting){
-        case 0: //"Do not write to SD"
-          //do nothing
-          break;
-        case 1: //"5 min max"
-          openBCI.serial_openBCI.write("A");
-          break;
-        case 2: //"5 min max"
-          openBCI.serial_openBCI.write("S");
-          break;
-        case 3: //"5 min max"
-          openBCI.serial_openBCI.write("F");
-          break;
-        case 4: //"5 min max"
-          openBCI.serial_openBCI.write("G");
-          break;
-        case 5: //"5 min max"
-          openBCI.serial_openBCI.write("H");
-          break;
-        case 6: //"5 min max"
-          openBCI.serial_openBCI.write("J");
-          break;
-        case 7: //"5 min max"
-          openBCI.serial_openBCI.write("K");
-          break;
-        case 8: //"5 min max"
-          openBCI.serial_openBCI.write("L");
-          break;
-      }
-      println("openBCI_GUI: syncWithHardware: [5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
-      if(sdSetting != 0){
-        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
-      }
-      break;
-    case 6:
-      output("openBCI_GUI: syncWithHardware: The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
-      openBCI.changeState(openBCI.STATE_STOPPED);
-      systemMode = 10;
-      //renitialize GUI if nchan has been updated... needs to be built
-      break; 
-  }
-}
 
 void haltSystem(){
   println("openBCI_GUI: haltSystem: Halting system for reconfiguration of settings...");
@@ -442,10 +368,10 @@ void haltSystem(){
       println("Closing any open SD file. Writing 'j' to OpenBCI.");
       openBCI.serial_openBCI.write("j"); // tell the SD file to close if one is open...
       delay(100); //make sure 'j' gets sent to the board
-      readyToSend = false;
+      openBCI.readyToSend = false;
       openBCI.closeSerialPort();   //disconnect from serial port
       openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
-      hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
+      openBCI.hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
     }
   }
   systemMode = 0;
@@ -480,35 +406,17 @@ void draw() {
 
 void systemUpdate(){ // for updating data values and variables
 
-  //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
-  if(millis() - openBCI.prevState_millis > openBCI.COM_INIT_MSEC && openBCI.prevState_millis != 0 && openBCI.state == openBCI.STATE_COMINIT){
-    openBCI.state = openBCI.STATE_SYNCWITHHARDWARE;
-    timeOfLastCommand = millis();
-    openBCI.serial_openBCI.clear();
-    openBCI.defaultChannelSettings = ""; //clear channel setting string to be reset upon a new Init System
-    openBCI.daisyOrNot = ""; //clear daisyOrNot string to be reset upon a new Init System
-    println("OpenBCI_GUI: systemUpdate: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
-    openBCI.serial_openBCI.write('v');
-  }
+  //update the sync state with the OpenBCI hardware
+  openBCI.updateSyncState(sdSetting);
 
-  //if we are in SYNC WITH HARDWARE state ... trigger a command
-  if(openBCI.state == openBCI.STATE_SYNCWITHHARDWARE && currentlySyncing == false){
-    if(millis() - timeOfLastCommand > 200 && readyToSend == true){
-      timeOfLastCommand = millis();
-      hardwareSyncStep++;
-      syncWithHardware();
-    }
-  }
-  
+  //prepare for updating the GUI
   win_x = width;
   win_y = height;
-  // println(width + ", " + height);
   
   //updates while in intro screen
   if(systemMode == 0){
 
   }
-  
   if(systemMode == 10){
     if (isRunning) {
       //get the data, if it is available
