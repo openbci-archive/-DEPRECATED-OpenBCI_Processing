@@ -100,7 +100,7 @@ class ChannelController {
 	}
 
 	public void loadDefaultChannelSettings(){
-		verbosePrint("loading default channel settings to GUI's channel controller...");
+		verbosePrint("ChannelController: loading default channel settings to GUI's channel controller...");
 		for(int i = 0; i < nchan; i++){
 			verbosePrint("chan: " + i + " ");
 			for(int j = 0; j < numSettingsPerChannel; j++){ //channel setting values
@@ -613,7 +613,7 @@ class ChannelController {
 	public void createChannelSettingButtons(){
 		//the size and space of these buttons are dependendant on the size of the screen and full ChannelController
 		
-		verbosePrint("creating channel setting buttons...");
+		verbosePrint("ChannelController: createChannelSettingButtons: creating channel setting buttons...");
 		int buttonW = 0;
 		int buttonX = 0;
 		int buttonH = 0;

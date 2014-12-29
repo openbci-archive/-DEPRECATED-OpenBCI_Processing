@@ -121,7 +121,7 @@ class OpenBCI_ADS1299 {
       }
     }
 
-    println(" a");
+    println("OpenBCI_ADS1299: a");
 
     dataMode = prefered_datamode;
 
@@ -141,17 +141,17 @@ class OpenBCI_ADS1299 {
       //prevDataPacket.auxValues[i] = 0;
     }
 
-    println(" b");
+    println("OpenBCI_ADS1299: b");
 
     //prepare the serial port  ... close if open
-    println("port is open? ... " + portIsOpen);
+    println("OpenBCI_ADS1299: port is open? ... " + portIsOpen);
     if(portIsOpen == true){
       closeSerialPort();
     }
 
-    println(" i");
+    println("OpenBCI_ADS1299: i");
     openSerialPort(applet, comPort, baud);
-    println(" j");
+    println("OpenBCI_ADS1299: j");
     
     //open file for raw bytes
     //output = createOutput("rawByteDumpFromProcessing.bin");  //for debugging  WEA 2014-01-26
@@ -161,17 +161,17 @@ class OpenBCI_ADS1299 {
   private int openSerialPort(PApplet applet, String comPort, int baud) {
     
     try {
-      println("OpenBCI_ADS1299: attempting to open serial port " + openBCI_portName);
+      println("OpenBCI_ADS1299: openSerialPort: attempting to open serial port " + openBCI_portName);
       serial_openBCI = new Serial(applet,comPort,baud); //open the com port
       serial_openBCI.clear(); // clear anything in the com port's buffer    
       portIsOpen = true;
-      println("port is open (t)? ... " + portIsOpen);
+      println("OpenBCI_ADS1299: openSerialPort: port is open (t)? ... " + portIsOpen);
       changeState(STATE_COMINIT);
       return 0;
     } 
     catch (RuntimeException e){
       if (e.getMessage().contains("<init>")) {
-        System.out.println("port in use, trying again later...");
+        System.out.println("OpenBCI_ADS1299: openSerialPort: port in use, trying again later...");
         portIsOpen = false;
       }
       return 0;
@@ -187,10 +187,10 @@ class OpenBCI_ADS1299 {
   int finalizeCOMINIT() {
     // //wait specified time for COM/serial port to initialize
     // if (state == STATE_COMINIT) {
-    //   // println("Initializing Serial: millis() = " + millis());
+    //   // println("OpenBCI_ADS1299: finalizeCOMINIT: Initializing Serial: millis() = " + millis());
     //   if ((millis() - prevState_millis) > COM_INIT_MSEC) {
     //     //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
-    //     println("OpenBCI_ADS1299: State = NORMAL");
+    //     println("OpenBCI_ADS1299: finalizeCOMINIT: State = NORMAL");
         changeState(STATE_NORMAL);
     //     // startRunning();
     //   }
@@ -201,17 +201,17 @@ class OpenBCI_ADS1299 {
   int closeSerialPort() {
 
     // if (serial_openBCI != null) {
-    println(" d");
+    println("OpenBCI_ADS1299: closeSerialPort: d");
     portIsOpen = false;
-    println(" e");
+    println("OpenBCI_ADS1299: closeSerialPort: e");
     serial_openBCI.clear();
-    println(" e2");
+    println("OpenBCI_ADS1299: closeSerialPort: e2");
     serial_openBCI.stop();
-    println(" f");
+    println("OpenBCI_ADS1299: closeSerialPort: f");
     serial_openBCI = null;
-    println(" g");
+    println("OpenBCI_ADS1299: closeSerialPort: g");
     state = STATE_NOCOM;
-    println(" h");
+    println("OpenBCI_ADS1299: closeSerialPort: h");
     return 0;
   }
   
@@ -250,7 +250,7 @@ class OpenBCI_ADS1299 {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
       openBCI.changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
-      println("writing \'" + command_startBinary + "\' to the serial port...");
+      println("OpenBCI_ADS1299: startDataTransfer: writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
   }
@@ -259,7 +259,7 @@ class OpenBCI_ADS1299 {
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
-      println("writing \'" + command_stop + "\' to the serial port...");
+      println("OpenBCI_ADS1299: startDataTransfer: writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
     }
   }
@@ -304,11 +304,11 @@ class OpenBCI_ADS1299 {
         // hardwareSyncStep++;
         prev3chars[2] = '#';
         if(hardwareSyncStep == 3){
-          println("x");
+          println("OpenBCI_ADS1299: read(): x");
           println(defaultChannelSettings);
-          println("y");
+          println("OpenBCI_ADS1299: read(): y");
           gui.cc.loadDefaultChannelSettings();
-          println("z");
+          println("OpenBCI_ADS1299: read(): z");
         }
         readyToSend = true; 
         // println(hardwareSyncStep);
@@ -321,7 +321,7 @@ class OpenBCI_ADS1299 {
       try {
        output.write(inByte);   //for debugging  WEA 2014-01-26
       } catch (IOException e) {
-        System.err.println("OpenBCI_ADS1299: Caught IOException: " + e.getMessage());
+        System.err.println("OpenBCI_ADS1299: read(): Caught IOException: " + e.getMessage());
         //do nothing
       }
     }
@@ -433,14 +433,13 @@ class OpenBCI_ADS1299 {
           flag_copyRawDataToFullData = true;  //time to copy the raw data packet into the full data packet (mainly relevant for 16-chan OpenBCI) 
         } else {
           serialErrorCounter++;
-          println("Actbyte = " + actbyte);
+          println("OpenBCI_ADS1299: interpretBinaryStream: Actbyte = " + actbyte);
           println("OpenBCI_ADS1299: interpretBinaryStream: expecteding end-of-packet byte is missing.  Discarding packet. (" + serialErrorCounter + ")");
         }
         PACKET_readstate=0;  // either way, look for next packet
         break;
       default: 
-          //println("OpenBCI_ADS1299: Unknown byte: " + actbyte + " .  Continuing...");
-          println("OpenBCI_ADS1299: interpretBinaryStream: Unknown byte.  Continuing...");
+          println("OpenBCI_ADS1299: interpretBinaryStream: Unknown byte: " + actbyte + " .  Continuing...");
           PACKET_readstate=0;  // look for next packet
     }
     

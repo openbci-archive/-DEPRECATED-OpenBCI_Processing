@@ -78,7 +78,7 @@ class Playground {
 	}
 
 	boolean isMouseInButton(){
-		verbosePrint("attempting");
+		verbosePrint("Playground: isMouseInButton: attempting");
 		if(mouseX >= collapser.but_x && mouseX <= collapser.but_x+collapser.but_dx && mouseY >= collapser.but_y && mouseY <= collapser.but_y + collapser.but_dy){
 			return true;
 		} else{

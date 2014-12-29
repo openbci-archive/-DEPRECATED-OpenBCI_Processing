@@ -21,7 +21,7 @@ import controlP5.*;
 ControlP5 cp5; //program-wide instance of ControlP5
 CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text field on double-click
     public void controlEvent(CallbackEvent theEvent) {
-    	println("clearing");
+    	println("CallbackListener: controlEvent: clearing");
     	cp5.get(Textfield.class,"fileName").clear();
     }
 };
@@ -294,7 +294,7 @@ class ControlPanel {
 
 	//mouse released in control panel
 	public void CPmouseReleased(){
-		verbosePrint("CPMouseReleased");
+		verbosePrint("CPMouseReleased: CPmouseReleased start...");
 		if(initSystemButton.isMouseHere() && initButtonPressed){
 
 			//if system is not active ... initate system and flip button state
@@ -322,11 +322,11 @@ class ControlPanel {
 				}
 
 				else { //otherwise, initiate system!	
-					println("init");
+					println("ControlPanel: CPmouseReleased: init");
 					initSystemButton.setString("STOP SYSTEM");
 					//global steps to START SYSTEM
 					// prepare the serial port
-				    println("port is open? ... " + portIsOpen);
+				    println("ControlPanel: CPmouseReleased: port is open? ... " + portIsOpen);
 				    if(portIsOpen == true){
 				      openBCI.closeSerialPort();
 				    }
@@ -803,9 +803,9 @@ class InitBox {
 
 void playbackSelected(File selection){
   if (selection == null) {
-    println("Window was closed or the user hit cancel.");
+    println("ControlPanel: playbackSelected: Window was closed or the user hit cancel.");
   } else {
-    println("User selected " + selection.getAbsolutePath());
+    println("ControlPanel: playbackSelected: User selected " + selection.getAbsolutePath());
     output("You have selected \"" + selection.getAbsolutePath() + "\" for playback.");
     playbackData_fname = selection.getAbsolutePath();
   }
