@@ -820,7 +820,6 @@ void processNewData() {
 //pre-allocated dataPacketBuff
 void serialEvent(Serial port) {
   //check to see which serial port it is
-  if (isRunning) println("OpenBCI_GUI: serialEvent() start.");
   if (port == openBCI.serial_openBCI) {
     // println("SE " + millis());
 
@@ -833,14 +832,9 @@ void serialEvent(Serial port) {
       echoBytes = false;
     }
 
-    // openBCI.read(true);
-    if (isRunning) println("OpenBCI_GUI: serialEvent(): openBCI.read()");
     openBCI.read(echoBytes);
     openBCI_byteCount++;
-    if (isRunning) println("OpenBCI_GUI: serialEvent(): openBCI_byteCount = " + openBCI_byteCount);
     if (openBCI.isNewDataPacketAvailable) {
-      if (isRunning) println("OpenBCI_GUI: serialEvent(): openBCI.isNewDataPacketAvailable = " + openBCI.isNewDataPacketAvailable);
-      
       //copy packet into buffer of data packets
       curDataPacketInd = (curDataPacketInd+1) % dataPacketBuff.length; //this is also used to let the rest of the code that it may be time to do something
       openBCI.copyDataPacketTo(dataPacketBuff[curDataPacketInd]);  //resets isNewDataPacketAvailable to false
@@ -853,9 +847,7 @@ void serialEvent(Serial port) {
       // println("nchan = " + nchan);
       newPacketCounter++;
 
-      if (isRunning) println("OpenBCI_GUI: serialEvent(): writing to file");
       fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.scale_fac_uVolts_per_count,openBCI.scale_fac_accel_G_per_count);
-      if (isRunning) println("OpenBCI_GUI: serialEvent(): finished writing to file");
     }
   } 
   else {

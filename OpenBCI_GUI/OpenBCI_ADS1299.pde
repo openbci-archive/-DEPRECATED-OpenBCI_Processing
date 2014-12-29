@@ -269,10 +269,8 @@ class OpenBCI_ADS1299 {
   int read(boolean echoChar) {
     //println("OpenBCI_ADS1299: read(): State: " + state);
     //get the byte
-    if (isRunning) println("OpenBCI_ADS1299: read(): getting byte");
     byte inByte = byte(serial_openBCI.read());
-    if (isRunning) println("OpenBCI_ADS1299: read(): got byte " + int(inByte));
-
+    
     //write the most recent char to the console
     if (echoChar){  //if not in interpret binary (NORMAL) mode
       // print(".");
@@ -560,7 +558,7 @@ class OpenBCI_ADS1299 {
     //This function here decides how to join the latest data (rawReceivedDataPacket) into the full dataPacket
     
     if (dataPacket.values.length < 2*rawReceivedDataPacket.values.length) {
-      //simply copy the data
+      //this is an 8 channel board, so simply copy the data
       return rawReceivedDataPacket.copyTo(dataPacket);
     } else {
       //this is 16-channels, so copy the raw data into the correct channels of the new data
@@ -568,7 +566,8 @@ class OpenBCI_ADS1299 {
       int offsetInd_aux = 0;     //this is correct assuming we just recevied a  "board" packet (ie, channels 1-8)
       if (rawReceivedDataPacket.sampleIndex % 2 == 0) { // even data packets are from the daisy board
         offsetInd_values = rawReceivedDataPacket.values.length;  //start copying to the 8th slot
-        offsetInd_aux = rawReceivedDataPacket.auxValues.length;  //start copying to the 3rd slot
+        //offsetInd_aux = rawReceivedDataPacket.auxValues.length;  //start copying to the 3rd slot
+        offsetInd_aux = 0;  
       }
       return rawReceivedDataPacket.copyTo(dataPacket,offsetInd_values,offsetInd_aux);
     }
