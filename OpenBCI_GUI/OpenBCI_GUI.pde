@@ -253,7 +253,7 @@ int drawLoop_counter = 0;
 //used to init system based on initial settings
 void initSystem(){
 
-  verbosePrint("OpenBCI_GUI: initSystem:-- Init 0 --");
+  verbosePrint("OpenBCI_GUI: initSystem: -- Init 0 --");
   timeOfInit = millis(); //store this for timeout in case init takes too long
 
   //prepare data variables
@@ -364,15 +364,7 @@ void haltSystem(){
 
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)){
     closeLogFile();  //close log file
-    if (openBCI.serial_openBCI != null){
-      println("Closing any open SD file. Writing 'j' to OpenBCI.");
-      openBCI.serial_openBCI.write("j"); // tell the SD file to close if one is open...
-      delay(100); //make sure 'j' gets sent to the board
-      openBCI.readyToSend = false;
-      openBCI.closeSerialPort();   //disconnect from serial port
-      openBCI.prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
-      openBCI.hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
-    }
+    openBCI.closeSDandSerialPort();
   }
   systemMode = 0;
 }
@@ -728,7 +720,7 @@ void processNewData() {
 //pre-allocated dataPacketBuff
 void serialEvent(Serial port) {
   //check to see which serial port it is
-  if (port == openBCI.serial_openBCI) {
+  if (openBCI.isOpenBCISerial(port)) {
     // println("OpenBCI_GUI: serialEvent: millis = " + millis());
 
     // boolean echoBytes = !openBCI.isStateNormal(); 
@@ -986,10 +978,7 @@ void mouseReleased() {
 }
 
 void printRegisters(){
-  if (openBCI.serial_openBCI != null) {
-    println("OpenBCI_GUI: printRegisters: Writing ? to OpenBCI...");
-    openBCI.serial_openBCI.write('?');
-  }
+  openBCI.printRegisters();
   // printingRegisters = true;
 }
 

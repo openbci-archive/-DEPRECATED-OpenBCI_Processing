@@ -303,15 +303,15 @@ class ChannelController {
 			}
 		}
 
-		if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
+		if ((eegDataSource != DATASOURCE_NORMAL) && (eegDataSource != DATASOURCE_NORMAL_W_AUX)) {
 			fill(0,0,0,200);
 			rect(x1 + w1/3 + 1, y1, 2*(w1/3) - 3, h1 - 2);
 		}
 
 		for (int i = 0; i < nchan; i++){
-			if(drawImpedanceValues[i] == true){
+			if (drawImpedanceValues[i] == true) {
 				gui.impValuesMontage[i].draw();  //impedance values on montage plot
-	        }
+	                }
 		}
 
 		popStyle();
@@ -322,11 +322,11 @@ class ChannelController {
 		//if fullChannelController and one of the buttons (other than ON/OFF) is clicked
 
 		//if dataSource is coming from OpenBCI, allow user to interact with channel controller
-		if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
-			if(showFullController){
-				for(int i = 0; i < nchan; i++){ //When [i][j] button is clicked
-					for(int j = 1; j < numSettingsPerChannel; j++){		
-						if(channelSettingButtons[i][j].isMouseHere()){
+		if ( (eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX) ) {
+			if (showFullController) {
+				for (int i = 0; i < nchan; i++) { //When [i][j] button is clicked
+					for (int j = 1; j < numSettingsPerChannel; j++) {		
+						if (channelSettingButtons[i][j].isMouseHere()) {
 							//increment [i][j] channelSettingValue by, until it reaches max values per setting [j], 
 							channelSettingButtons[i][j].wasPressed = true;
 							channelSettingButtons[i][j].isActive = true;
@@ -343,7 +343,7 @@ class ChannelController {
 			}
 
 			//only allow editing of impedance if dataSource == from OpenBCI
-			if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
+			if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
 				if(impedanceCheckButtons[i][0].isMouseHere()){
 					impedanceCheckButtons[i][0].wasPressed = true;
 					impedanceCheckButtons[i][0].isActive = true;
@@ -463,13 +463,14 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
-		if(_numChannel < 8){
+		//if(_numChannel < 8){
 			verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
-			openBCI.serial_openBCI.write(command_deactivate_channel[_numChannel]);
-		}else{ //if a daisy channel
-			verbosePrint("Command: " + command_deactivate_channel_daisy[_numChannel - 8]);
-			openBCI.serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
-		}
+			//openBCI.serial_openBCI.write(command_deactivate_channel[_numChannel]);
+                        openBCI.deactivateChannel(_numChannel);  //assumes numChannel counts from zero (not one)...handles regular and daisy channels
+		//}else{ //if a daisy channel
+		//	verbosePrint("Command: " + command_deactivate_channel_daisy[_numChannel - 8]);
+		//	openBCI.serial_openBCI.write(command_deactivate_channel_daisy[_numChannel - 8]);
+		//}
 	}
 
 	public void powerUpChannel(int _numChannel){
@@ -480,13 +481,14 @@ class ChannelController {
 
 		// initChannelWrite(_numChannel);//writeChannelSettings
 		channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
-		if(_numChannel < 8){
+		//if(_numChannel < 8){
 			verbosePrint("Command: " + command_activate_channel[_numChannel]);
-			openBCI.serial_openBCI.write(command_activate_channel[_numChannel]);
-		} else{ //if a daisy channel
-			verbosePrint("Command: " + command_activate_channel_daisy[_numChannel - 8]);
-			openBCI.serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
-		}
+			//openBCI.serial_openBCI.write(command_activate_channel[_numChannel]);
+                        openBCI.activateChannel(_numChannel);  //assumes numChannel counts from zero (not one)...handles regular and daisy channels//assumes numChannel counts from zero (not one)...handles regular and daisy channels
+		//} else{ //if a daisy channel
+		//	verbosePrint("Command: " + command_activate_channel_daisy[_numChannel - 8]);
+		//	openBCI.serial_openBCI.write(command_activate_channel_daisy[_numChannel - 8]);
+		//}
 	}
 
 	public void initChannelWrite(int _numChannel){
@@ -533,7 +535,7 @@ class ChannelController {
 	}
 
 	public void writeChannelSettings(int _numChannel){
-		if(millis() - timeOfLastChannelWrite >= 50){
+		if(millis() - timeOfLastChannelWrite >= 50){ //wait 50 milliseconds before sending next character
 			verbosePrint("---");
 			switch (channelWriteCounter){
 				case 0: //start sequence by send 'x'
@@ -546,7 +548,8 @@ class ChannelController {
 						openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
 					}
 					if(_numChannel >= 8){
-						openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+						//openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+                                                openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
 					}
 					break;
 				case 2: case 3: case 4: case 5: case 6: case 7:
@@ -574,10 +577,10 @@ class ChannelController {
 			//after clicking any button, write the new settings for that channel to OpenBCI
 		// verbosePrint("Writing impedance settings for channel " + _numChannel + " to OpenBCI!");
 		//write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
-		if(millis() - timeOfLastImpWrite >= 50){
+		if(millis() - timeOfLastImpWrite >= 50){ //wait 50 milliseconds before sending next character
 			verbosePrint("---");
 			switch (impWriteCounter){
-				case 0: //start sequence by send 'x'
+				case 0: //start sequence by sending 'z'
 					verbosePrint("z" + " :: " + millis());
 					openBCI.serial_openBCI.write('z');
 					break;
@@ -587,7 +590,8 @@ class ChannelController {
 						openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
 					}
 					if(_numChannel >= 8){
-						openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+						//openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+                                                openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
 					}
 					break;
 				case 2: case 3: 

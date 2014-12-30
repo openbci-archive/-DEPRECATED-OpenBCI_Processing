@@ -30,11 +30,8 @@ final String command_startBinary_4chan = "v";  // not necessary now
 final String command_activateFilters = "f";  // swithed from 'F' to 'f'  ... but not necessary because taken out of hardware code
 final String command_deactivateFilters = "g";  // not necessary anymore 
 
-final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8"};
-final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};
-
-final String[] command_deactivate_channel_daisy = {"q", "w", "e", "r", "t", "y", "u", "i"};
-final String[] command_activate_channel_daisy = {"Q", "W", "E", "R", "T", "Y", "U", "I"};
+final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8", "q", "w", "e", "r", "t", "y", "u", "i"};
+final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*","Q", "W", "E", "R", "T", "Y", "U", "I"};
 
 //everything below is now deprecated...
 // final String[] command_activate_leadoffP_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};  //shift + 1-8
@@ -104,6 +101,11 @@ class OpenBCI_ADS1299 {
 
   String defaultChannelSettings = "";
   String daisyOrNot = "";
+  
+  int hardwareSyncStep = 0; //start this at 0...
+  boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+  long timeOfLastCommand = 0;
+
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -197,9 +199,28 @@ class OpenBCI_ADS1299 {
     // }
     return 0;
   }    
+  
+  int closeSDandSerialPort() {
+    int returnVal=0;
+    
+    closeSDFile();
+    
+    readyToSend = false;
+    returnVal = closeSerialPort();
+    prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
+    hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
+    
+    return returnVal;
+  }
+  
+  int closeSDFile() {
+    println("Closing any open SD file. Writing 'j' to OpenBCI.");
+    if (serial_openBCI != null) serial_openBCI.write("j"); // tell the SD file to close if one is open...
+    delay(100); //make sure 'j' gets sent to the board
+    return 0;
+  }
 
   int closeSerialPort() {
-
     // if (serial_openBCI != null) {
     println("OpenBCI_ADS1299: closeSerialPort: d");
     portIsOpen = false;
@@ -215,11 +236,7 @@ class OpenBCI_ADS1299 {
     return 0;
   }
   
-    
-  int hardwareSyncStep = 0; //start this at 0...
-  boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
-  long timeOfLastCommand = 0;
-  
+      
   public void syncWithHardware(int sdSetting){
     switch (hardwareSyncStep) {
       // case 1:
@@ -322,7 +339,7 @@ class OpenBCI_ADS1299 {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
       changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
-      println("OpenBCI_ADS1299: startDataTransfer: writing \'" + command_startBinary + "\' to the serial port...");
+      println("OpenBCI_ADS1299: startDataTransfer(): writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
   }
@@ -331,8 +348,23 @@ class OpenBCI_ADS1299 {
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
-      println("OpenBCI_ADS1299: startDataTransfer: writing \'" + command_stop + "\' to the serial port...");
+      println("OpenBCI_ADS1299: startDataTransfer(): writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
+    }
+  }
+  
+  public boolean isOpenBCISerial(Serial port) {
+    if (serial_openBCI == port) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  public void printRegisters() {
+    if (serial_openBCI != null) {
+      println("OpenBCI_ADS1299: printRegisters(): Writing ? to OpenBCI...");
+      openBCI.serial_openBCI.write('?');
     }
   }
   
@@ -539,6 +571,15 @@ class OpenBCI_ADS1299 {
   
   //deactivate an EEG channel...channel counting is zero through nchan-1
   public void deactivateChannel(int Ichan) {
+    if (serial_openBCI != null) {
+      if ((Ichan >= 0) && (Ichan < command_deactivate_channel.length)) {
+        serial_openBCI.write(command_deactivate_channel[Ichan]);
+      }
+    }
+  }
+  
+  //activate an EEG channel...channel counting is zero through nchan-1
+  public void activateChannel(int Ichan) {
     if (serial_openBCI != null) {
       if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
         serial_openBCI.write(command_activate_channel[Ichan]);
