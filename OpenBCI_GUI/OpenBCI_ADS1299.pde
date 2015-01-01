@@ -687,6 +687,7 @@ class OpenBCI_ADS1299 {
   }
   
   public int copyDataPacketTo(DataPacket_ADS1299 target) {
+    isNewDataPacketAvailable = false;
     return dataPacket.copyTo(target);
   }
  

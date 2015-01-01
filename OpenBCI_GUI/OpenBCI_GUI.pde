@@ -618,11 +618,21 @@ int getDataIfAvailable(int pointCounter) {
   return pointCounter;
 }
 
+RunningMean avgBitRate = new RunningMean(10);  //10 point running average...at 5 points per second, this should be 2 second running average
+
 void processNewData() {
 
-  byteRate_perSec = (int)(1000.f * ((float)(openBCI_byteCount - prevBytes)) / ((float)(millis() - prevMillis)));
-  prevBytes = openBCI_byteCount; 
-  prevMillis=millis();
+  //compute instantaneous byte rate
+  float inst_byteRate_perSec = (int)(1000.f * ((float)(openBCI_byteCount - prevBytes)) / ((float)(millis() - prevMillis)));
+
+  prevMillis=millis();           //store for next time
+  prevBytes = openBCI_byteCount; //store for next time
+  
+  //compute smoothed byte rate
+  avgBitRate.addValue(inst_byteRate_perSec);
+  byteRate_perSec = (int)avgBitRate.calcMean();
+
+  //prepare to update the data buffers
   float foo_val;
   float prevFFTdata[] = new float[fftBuff[0].specSize()];
   double foo;
