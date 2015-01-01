@@ -131,76 +131,76 @@ class ChannelController {
       //update buttons based on channelSettingValues[i][j]
       for (int j = 0; j < numSettingsPerChannel; j++) {		
         switch(j) {  //what setting are we looking at
-        case 0: //on/off ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
-          break;
-        case 1: //GAIN ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
-          if (channelSettingValues[i][j] == '2') channelSettingButtons[i][1].setString("x4");
-          if (channelSettingValues[i][j] == '3') channelSettingButtons[i][1].setString("x6");
-          if (channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
-          if (channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
-          if (channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
-          break;
-        case 2: //input type ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
-          if (channelSettingValues[i][j] == '2') channelSettingButtons[i][2].setString("BIAS_MEAS");
-          if (channelSettingValues[i][j] == '3') channelSettingButtons[i][2].setString("MVDD");
-          if (channelSettingValues[i][j] == '4') channelSettingButtons[i][2].setString("Temp.");
-          if (channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
-          if (channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
-          if (channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
-          break;
-        case 3: //BIAS ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
-          break;
-        case 4: // SRB2 ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
-          break;
-        case 5: // SRB1 ??
-          if (channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
-          if (channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
-          break;
+          case 0: //on/off ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][0].setColorNotPressed(channelColors[i%8]);// power down == false, set color to vibrant
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][0].setColorNotPressed(color(75)); // channelSettingButtons[i][0].setString("B"); // power down == true, set color to dark gray, indicating power down
+            break;
+          case 1: //GAIN ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][1].setString("x1");
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][1].setString("x2");
+            if (channelSettingValues[i][j] == '2') channelSettingButtons[i][1].setString("x4");
+            if (channelSettingValues[i][j] == '3') channelSettingButtons[i][1].setString("x6");
+            if (channelSettingValues[i][j] == '4') channelSettingButtons[i][1].setString("x8");
+            if (channelSettingValues[i][j] == '5') channelSettingButtons[i][1].setString("x12");
+            if (channelSettingValues[i][j] == '6') channelSettingButtons[i][1].setString("x24");
+            break;
+          case 2: //input type ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][2].setString("Normal");
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][2].setString("Shorted");
+            if (channelSettingValues[i][j] == '2') channelSettingButtons[i][2].setString("BIAS_MEAS");
+            if (channelSettingValues[i][j] == '3') channelSettingButtons[i][2].setString("MVDD");
+            if (channelSettingValues[i][j] == '4') channelSettingButtons[i][2].setString("Temp.");
+            if (channelSettingValues[i][j] == '5') channelSettingButtons[i][2].setString("Test");
+            if (channelSettingValues[i][j] == '6') channelSettingButtons[i][2].setString("BIAS_DRP");
+            if (channelSettingValues[i][j] == '7') channelSettingButtons[i][2].setString("BIAS_DRN");
+            break;
+          case 3: //BIAS ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][3].setString("Don't Include");
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][3].setString("Include");
+            break;
+          case 4: // SRB2 ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][4].setString("Off");
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][4].setString("On");
+            break;
+          case 5: // SRB1 ??
+            if (channelSettingValues[i][j] == '0') channelSettingButtons[i][5].setString("No");
+            if (channelSettingValues[i][j] == '1') channelSettingButtons[i][5].setString("Yes");
+            break;
         }
       }
 
       for (int k = 0; k < 2; k++) {
         switch(k) {
-        case 0: // P Imp Buttons
-          if (impedanceCheckValues[i][k] == '0') {
-            impedanceCheckButtons[i][0].setColorNotPressed(color(75));
-            impedanceCheckButtons[i][0].setString("");
-          }
-          if (impedanceCheckValues[i][k] == '1') {
-            impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
-            impedanceCheckButtons[i][0].setString("");
-            if (showFullController) {
-              drawImpedanceValues[i] = false;
-            } else {
-              drawImpedanceValues[i] = true;
+          case 0: // P Imp Buttons
+            if (impedanceCheckValues[i][k] == '0') {
+              impedanceCheckButtons[i][0].setColorNotPressed(color(75));
+              impedanceCheckButtons[i][0].setString("");
             }
-          }
-          break;
-        case 1: // N Imp Buttons
-          if (impedanceCheckValues[i][k] == '0') {
-            impedanceCheckButtons[i][1].setColorNotPressed(color(75));
-            impedanceCheckButtons[i][1].setString("");
-          }
-          if (impedanceCheckValues[i][k] == '1') {
-            impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
-            impedanceCheckButtons[i][1].setString("");
-            if (showFullController) {
-              drawImpedanceValues[i] = false;
-            } else {
-              drawImpedanceValues[i] = true;
+            if (impedanceCheckValues[i][k] == '1') {
+              impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
+              impedanceCheckButtons[i][0].setString("");
+              if (showFullController) {
+                drawImpedanceValues[i] = false;
+              } else {
+                drawImpedanceValues[i] = true;
+              }
             }
-          }
-          break;
+            break;
+          case 1: // N Imp Buttons
+            if (impedanceCheckValues[i][k] == '0') {
+              impedanceCheckButtons[i][1].setColorNotPressed(color(75));
+              impedanceCheckButtons[i][1].setString("");
+            }
+            if (impedanceCheckValues[i][k] == '1') {
+              impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
+              impedanceCheckButtons[i][1].setString("");
+              if (showFullController) {
+                drawImpedanceValues[i] = false;
+              } else {
+                drawImpedanceValues[i] = true;
+              }
+            }
+            break;
         }
       }
     }
@@ -534,39 +534,39 @@ class ChannelController {
     if (millis() - timeOfLastChannelWrite >= 50) { //wait 50 milliseconds before sending next character
       verbosePrint("---");
       switch (channelWriteCounter) {
-      case 0: //start sequence by send 'x'
-        verbosePrint("x" + " :: " + millis());
-        openBCI.serial_openBCI.write('x');
-        break;
-      case 1: //send channel number
-        verbosePrint(str(_numChannel+1) + " :: " + millis());
-        if (_numChannel < 8) {
-          openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
-        }
-        if (_numChannel >= 8) {
-          //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
-          openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
-        }
-        break;
-      case 2: 
-      case 3: 
-      case 4: 
-      case 5: 
-      case 6: 
-      case 7:
-        verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
-        openBCI.serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
-        //value for ON/OF
-        break;
-      case 8:
-        verbosePrint("X" + " :: " + millis());
-        openBCI.serial_openBCI.write('X'); // send 'X' to end message sequence
-        break;
-      case 9:
-        verbosePrint("done writing channel.");
-        isWritingChannel = false;
-        channelWriteCounter = -1;
-        break;
+        case 0: //start sequence by send 'x'
+          verbosePrint("x" + " :: " + millis());
+          openBCI.serial_openBCI.write('x');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
+          }
+          break;
+        case 2: 
+        case 3: 
+        case 4: 
+        case 5: 
+        case 6: 
+        case 7:
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          openBCI.serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 8:
+          verbosePrint("X" + " :: " + millis());
+          openBCI.serial_openBCI.write('X'); // send 'X' to end message sequence
+          break;
+        case 9:
+          verbosePrint("done writing channel.");
+          isWritingChannel = false;
+          channelWriteCounter = -1;
+          break;
       }
       timeOfLastChannelWrite = millis();
       channelWriteCounter++;
@@ -581,35 +581,35 @@ class ChannelController {
     if (millis() - timeOfLastImpWrite >= 50) { //wait 50 milliseconds before sending next character
       verbosePrint("---");
       switch (impWriteCounter) {
-      case 0: //start sequence by sending 'z'
-        verbosePrint("z" + " :: " + millis());
-        openBCI.serial_openBCI.write('z');
-        break;
-      case 1: //send channel number
-        verbosePrint(str(_numChannel+1) + " :: " + millis());
-        if (_numChannel < 8) {
-          openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
-        }
-        if (_numChannel >= 8) {
-          //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
-          openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
-        }
-        break;
-      case 2: 
-      case 3: 
-        verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
-        openBCI.serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
-        //value for ON/OF
-        break;
-      case 4:
-        verbosePrint("Z" + " :: " + millis());
-        openBCI.serial_openBCI.write('Z'); // send 'X' to end message sequence
-        break;
-      case 5:
-        verbosePrint("done writing imp settings.");
-        isWritingImp = false;
-        impWriteCounter = -1;
-        break;
+        case 0: //start sequence by sending 'z'
+          verbosePrint("z" + " :: " + millis());
+          openBCI.serial_openBCI.write('z');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
+          }
+          break;
+        case 2: 
+        case 3: 
+          verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
+          openBCI.serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 4:
+          verbosePrint("Z" + " :: " + millis());
+          openBCI.serial_openBCI.write('Z'); // send 'X' to end message sequence
+          break;
+        case 5:
+          verbosePrint("done writing imp settings.");
+          isWritingImp = false;
+          impWriteCounter = -1;
+          break;
       }
       timeOfLastImpWrite = millis();
       impWriteCounter++;
