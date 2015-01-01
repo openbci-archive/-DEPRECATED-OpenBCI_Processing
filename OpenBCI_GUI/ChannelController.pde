@@ -59,16 +59,16 @@ class ChannelController {
   }; // SRB1 :: (0) Yes, (1) No ... this setting affects all channels ... either all on or all off
 
   //variables used for channel write timing in writeChannelSettings()
-  long timeOfLastChannelWrite = 0;
+  //long timeOfLastChannelWrite = 0;
   int channelToWrite = -1;
-  int channelWriteCounter = 0;
-  boolean isWritingChannel = false;
+  //int channelWriteCounter = 0;
+  //boolean isWritingChannel = false;
 
   //variables use for imp write timing with writeImpedanceSettings()
-  long timeOfLastImpWrite = 0;
+  //long timeOfLastImpWrite = 0;
   int impChannelToWrite = -1;
-  int impWriteCounter = 0;
-  boolean isWritingImp = false;
+  //int impWriteCounter = 0;
+  //boolean isWritingImp = false;
 
   boolean rewriteChannelWhenDoneWriting = false;
   int channelToWriteWhenDoneWriting = 0;
@@ -207,20 +207,20 @@ class ChannelController {
     //then reset to 1
 
     //
-    if (isWritingChannel) {
-      writeChannelSettings(channelToWrite);
+    if (openBCI.isWritingChannel) {
+      openBCI.writeChannelSettings(channelToWrite,channelSettingValues);
     }
 
-    if (rewriteChannelWhenDoneWriting == true && isWritingChannel == false) {
+    if (rewriteChannelWhenDoneWriting == true && openBCI.isWritingChannel == false) {
       initChannelWrite(channelToWriteWhenDoneWriting);
       rewriteChannelWhenDoneWriting = false;
     }
 
-    if (isWritingImp) {
-      writeImpedanceSettings(impChannelToWrite);
+    if (openBCI.isWritingImp) {
+      openBCI.writeImpedanceSettings(impChannelToWrite,impedanceCheckValues);
     }
 
-    if (rewriteImpedanceWhenDoneWriting == true && isWritingImp == false) {
+    if (rewriteImpedanceWhenDoneWriting == true && openBCI.isWritingImp == false) {
       initImpWrite(impChannelToWriteWhenDoneWriting, final_pORn, final_onORoff);
       rewriteImpedanceWhenDoneWriting = false;
     }
@@ -368,7 +368,7 @@ class ChannelController {
               channelSettingValues[i][j] = '0';
             }	
             // if you're not currently writing a channel and not waiting to rewrite after you've finished mashing the button
-            if (!isWritingChannel && rewriteChannelWhenDoneWriting == false) {
+            if (!openBCI.isWritingChannel && rewriteChannelWhenDoneWriting == false) {
               initChannelWrite(i);//write new ADS1299 channel row values to OpenBCI
             } else { //else wait until a the current write has finished and then write again ... this is to not overwrite the wrong values while writing a channel
               verbosePrint("CONGRATULATIONS, YOU'RE MASHING BUTTONS!");
@@ -490,19 +490,18 @@ class ChannelController {
 
   public void initChannelWrite(int _numChannel) {
     //after clicking any button, write the new settings for that channel to OpenBCI
-    if (!isWritingImp) { //make sure you aren't currently writing imp settings for a channel
+    if (!openBCI.isWritingImp) { //make sure you aren't currently writing imp settings for a channel
       verbosePrint("Writing channel settings for channel " + str(_numChannel+1) + " to OpenBCI!");
-      timeOfLastChannelWrite = millis();
-      isWritingChannel = true;
+      openBCI.initChannelWrite(_numChannel);
       channelToWrite = _numChannel;
     }
   }
 
   public void initImpWrite(int _numChannel, char pORn, char onORoff) {
     //after clicking any button, write the new settings for that channel to OpenBCI
-    if (!isWritingChannel) { //make sure you aren't currently writing imp settings for a channel
+    if (!openBCI.isWritingChannel) { //make sure you aren't currently writing imp settings for a channel
       // if you're not currently writing a channel and not waiting to rewrite after you've finished mashing the button
-      if (!isWritingImp && rewriteImpedanceWhenDoneWriting == false) {
+      if (!openBCI.isWritingImp && rewriteImpedanceWhenDoneWriting == false) {
         verbosePrint("Writing impedance check settings (" + pORn + "," + onORoff +  ") for channel " + str(_numChannel+1) + " to OpenBCI!");
         if (pORn == 'p') {
           impedanceCheckValues[_numChannel][0] = onORoff;
@@ -510,9 +509,7 @@ class ChannelController {
         if (pORn == 'n') {
           impedanceCheckValues[_numChannel][1] = onORoff;
         }
-
-        timeOfLastImpWrite = millis();
-        isWritingImp = true;
+        openBCI.initImpWrite(_numChannel);
         impChannelToWrite = _numChannel;
       } else { //else wait until a the current write has finished and then write again ... this is to not overwrite the wrong values while writing a channel
         verbosePrint("CONGRATULATIONS, YOU'RE MASHING BUTTONS!");
@@ -530,91 +527,6 @@ class ChannelController {
     }
   }
 
-  public void writeChannelSettings(int _numChannel) {
-    if (millis() - timeOfLastChannelWrite >= 50) { //wait 50 milliseconds before sending next character
-      verbosePrint("---");
-      switch (channelWriteCounter) {
-        case 0: //start sequence by send 'x'
-          verbosePrint("x" + " :: " + millis());
-          openBCI.serial_openBCI.write('x');
-          break;
-        case 1: //send channel number
-          verbosePrint(str(_numChannel+1) + " :: " + millis());
-          if (_numChannel < 8) {
-            openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
-          }
-          if (_numChannel >= 8) {
-            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
-            openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
-          }
-          break;
-        case 2: 
-        case 3: 
-        case 4: 
-        case 5: 
-        case 6: 
-        case 7:
-          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
-          openBCI.serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
-          //value for ON/OF
-          break;
-        case 8:
-          verbosePrint("X" + " :: " + millis());
-          openBCI.serial_openBCI.write('X'); // send 'X' to end message sequence
-          break;
-        case 9:
-          verbosePrint("done writing channel.");
-          isWritingChannel = false;
-          channelWriteCounter = -1;
-          break;
-      }
-      timeOfLastChannelWrite = millis();
-      channelWriteCounter++;
-    }
-  }
-
-  public void writeImpedanceSettings(int _numChannel) {
-    //after clicking an impedance button, write the new impedance settings for that channel to OpenBCI
-    //after clicking any button, write the new settings for that channel to OpenBCI
-    // verbosePrint("Writing impedance settings for channel " + _numChannel + " to OpenBCI!");
-    //write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
-    if (millis() - timeOfLastImpWrite >= 50) { //wait 50 milliseconds before sending next character
-      verbosePrint("---");
-      switch (impWriteCounter) {
-        case 0: //start sequence by sending 'z'
-          verbosePrint("z" + " :: " + millis());
-          openBCI.serial_openBCI.write('z');
-          break;
-        case 1: //send channel number
-          verbosePrint(str(_numChannel+1) + " :: " + millis());
-          if (_numChannel < 8) {
-            openBCI.serial_openBCI.write((char)('0'+(_numChannel+1)));
-          }
-          if (_numChannel >= 8) {
-            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
-            openBCI.serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
-          }
-          break;
-        case 2: 
-        case 3: 
-          verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
-          openBCI.serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
-          //value for ON/OF
-          break;
-        case 4:
-          verbosePrint("Z" + " :: " + millis());
-          openBCI.serial_openBCI.write('Z'); // send 'X' to end message sequence
-          break;
-        case 5:
-          verbosePrint("done writing imp settings.");
-          isWritingImp = false;
-          impWriteCounter = -1;
-          break;
-      }
-      timeOfLastImpWrite = millis();
-      impWriteCounter++;
-    }
-  }
 
   public void createChannelSettingButtons() {
     //the size and space of these buttons are dependendant on the size of the screen and full ChannelController

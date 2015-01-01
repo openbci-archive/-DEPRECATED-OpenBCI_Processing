@@ -690,5 +690,107 @@ class OpenBCI_ADS1299 {
     return dataPacket.copyTo(target);
   }
  
+ 
+  public long timeOfLastChannelWrite = 0;
+  public int channelWriteCounter = 0;
+  public boolean isWritingChannel = false;
+  public void initChannelWrite(int _numChannel) {  //numChannel counts from zero
+      timeOfLastChannelWrite = millis();
+      isWritingChannel = true;
+  }
+  public void writeChannelSettings(int _numChannel,char[][] channelSettingValues) {   //numChannel counts from zero
+    if (millis() - timeOfLastChannelWrite >= 50) { //wait 50 milliseconds before sending next character
+      verbosePrint("---");
+      switch (channelWriteCounter) {
+        case 0: //start sequence by send 'x'
+          verbosePrint("x" + " :: " + millis());
+          serial_openBCI.write('x');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
+          }
+          break;
+        case 2: 
+        case 3: 
+        case 4: 
+        case 5: 
+        case 6: 
+        case 7:
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 8:
+          verbosePrint("X" + " :: " + millis());
+          serial_openBCI.write('X'); // send 'X' to end message sequence
+          break;
+        case 9:
+          verbosePrint("done writing channel.");
+          isWritingChannel = false;
+          channelWriteCounter = -1;
+          break;
+      }
+      timeOfLastChannelWrite = millis();
+      channelWriteCounter++;
+    }
+  }
+  
+  public long timeOfLastImpWrite = 0;
+  public int impWriteCounter = 0;
+  public boolean isWritingImp = false;
+  public void initImpWrite(int _numChannel) {  //numChannel counts from zero
+        timeOfLastImpWrite = millis();
+        isWritingImp = true;
+  }
+  public void writeImpedanceSettings(int _numChannel,char[][] impedanceCheckValues) {  //numChannel counts from zero
+    //after clicking an impedance button, write the new impedance settings for that channel to OpenBCI
+    //after clicking any button, write the new settings for that channel to OpenBCI
+    // verbosePrint("Writing impedance settings for channel " + _numChannel + " to OpenBCI!");
+    //write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
+    if (millis() - timeOfLastImpWrite >= 50) { //wait 50 milliseconds before sending next character
+      verbosePrint("---");
+      switch (impWriteCounter) {
+        case 0: //start sequence by sending 'z'
+          verbosePrint("z" + " :: " + millis());
+          serial_openBCI.write('z');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
+          }
+          break;
+        case 2: 
+        case 3: 
+          verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 4:
+          verbosePrint("Z" + " :: " + millis());
+          serial_openBCI.write('Z'); // send 'X' to end message sequence
+          break;
+        case 5:
+          verbosePrint("done writing imp settings.");
+          isWritingImp = false;
+          impWriteCounter = -1;
+          break;
+      }
+      timeOfLastImpWrite = millis();
+      impWriteCounter++;
+    }
+  }
+
+ 
 };  
  
