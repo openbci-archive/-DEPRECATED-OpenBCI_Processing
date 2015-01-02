@@ -65,47 +65,60 @@ class OpenBCI_ADS1299 {
   final static byte BYTE_END = (byte)0xC0;
   
   //here is the serial port for this OpenBCI board
-  public Serial serial_openBCI = null; 
+  private Serial serial_openBCI = null; 
   
   int prefered_datamode = DATAMODE_BIN_WAUX;
   
-  int state = STATE_NOCOM;
+  private int state = STATE_NOCOM;
   int dataMode = -1;
   int prevState_millis = 0;
   
-  int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI boards
+  private int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI boards
   //int nAuxValuesPerPacket = 3; //defined by the data format sent by openBCI boards
-  DataPacket_ADS1299 rawReceivedDataPacket;
-  DataPacket_ADS1299 dataPacket;
+  private DataPacket_ADS1299 rawReceivedDataPacket;
+  private DataPacket_ADS1299 dataPacket;
   //DataPacket_ADS1299 prevDataPacket;
 
-  int nAuxValues;
-  boolean isNewDataPacketAvailable = false;
-  OutputStream output; //for debugging  WEA 2014-01-26
-  int prevSampleIndex = 0;
-  int serialErrorCounter = 0;
+  private int nAuxValues;
+  private boolean isNewDataPacketAvailable = false;
+  private OutputStream output; //for debugging  WEA 2014-01-26
+  private int prevSampleIndex = 0;
+  private int serialErrorCounter = 0;
   
-  final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
-  final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
-  float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  private final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
+  private final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
+  private float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
+  private float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
-  final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
+  private final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
   //final float scale_fac_accel_G_per_count = 1.0;
-  final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
+  private final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
   
-  boolean isBiasAuto = true;
+  boolean isBiasAuto = true; //not being used?
 
+  //data related to Conor's setup for V3 boards
   final char[] EOT = {'$','$','$'};
   char[] prev3chars = {'#','#','#'};
+  private String defaultChannelSettings = "";
+  private String daisyOrNot = ""; 
+  private int hardwareSyncStep = 0; //start this at 0...
+  private boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+  private long timeOfLastCommand = 0; //used when sync'ing to hardware
 
-  String defaultChannelSettings = "";
-  String daisyOrNot = "";
-  
-  int hardwareSyncStep = 0; //start this at 0...
-  boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
-  long timeOfLastCommand = 0;
-
+  //some get methods
+  public float get_fs_Hz() { return fs_Hz; }
+  public float get_Vref() { return ADS1299_Vref; }
+  public void set_ADS1299_gain(float _gain) { 
+    ADS1299_gain = _gain;  
+    scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+  }
+  public float get_ADS1299_gain() { return ADS1299_gain; }
+  public float get_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
+  public float get_scale_fac_accel_G_per_count() { return scale_fac_accel_G_per_count; }
+  public float get_leadOffDrive_amps() { return leadOffDrive_amps; }
+  public String get_defaultChannelSettings() { return defaultChannelSettings; }
+  public int get_state() { return state;};
+  public boolean get_isNewDataPacketAvailable() { return isNewDataPacketAvailable; }
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -200,7 +213,7 @@ class OpenBCI_ADS1299 {
     return 0;
   }    
   
-  int closeSDandSerialPort() {
+  public int closeSDandSerialPort() {
     int returnVal=0;
     
     closeSDFile();
@@ -213,14 +226,14 @@ class OpenBCI_ADS1299 {
     return returnVal;
   }
   
-  int closeSDFile() {
+  public int closeSDFile() {
     println("Closing any open SD file. Writing 'j' to OpenBCI.");
     if (serial_openBCI != null) serial_openBCI.write("j"); // tell the SD file to close if one is open...
     delay(100); //make sure 'j' gets sent to the board
     return 0;
   }
 
-  int closeSerialPort() {
+  public int closeSerialPort() {
     // if (serial_openBCI != null) {
     println("OpenBCI_ADS1299: closeSerialPort: d");
     portIsOpen = false;
@@ -334,6 +347,12 @@ class OpenBCI_ADS1299 {
     }
   }
 
+  public void sendChar(char val) {
+    if (serial_openBCI != null) {
+      serial_openBCI.write(key);//send the value as ascii (with a newline character?)
+    }
+  }
+  
   void startDataTransfer(){
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
@@ -344,7 +363,7 @@ class OpenBCI_ADS1299 {
     }
   }
   
-  void stopDataTransfer() {
+  public void stopDataTransfer() {
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
@@ -353,6 +372,7 @@ class OpenBCI_ADS1299 {
     }
   }
   
+  public boolean isSerialPortOpen() { return (serial_openBCI != null); }
   public boolean isOpenBCISerial(Serial port) {
     if (serial_openBCI == port) {
       return true;
@@ -369,8 +389,8 @@ class OpenBCI_ADS1299 {
   }
   
   //read from the serial port
-  int read() {  return read(false); }
-  int read(boolean echoChar) {
+  public int read() {  return read(false); }
+  public int read(boolean echoChar) {
     //println("OpenBCI_ADS1299: read(): State: " + state);
     //get the byte
     byte inByte = byte(serial_openBCI.read());
@@ -449,13 +469,13 @@ class OpenBCI_ADS1299 {
   End Indcator    : 0xC0
   TOTAL OF 33 bytes ALL DAY
   ********************************************************************* */
-  int nDataValuesInPacket = 0;
-  int localByteCounter=0;
-  int localChannelCounter=0;
-  int PACKET_readstate = 0;
+  private int nDataValuesInPacket = 0;
+  private int localByteCounter=0;
+  private int localChannelCounter=0;
+  private int PACKET_readstate = 0;
   // byte[] localByteBuffer = {0,0,0,0};
-  byte[] localAdsByteBuffer = {0,0,0};
-  byte[] localAccelByteBuffer = {0,0};
+  private byte[] localAdsByteBuffer = {0,0,0};
+  private byte[] localAccelByteBuffer = {0,0};
 
   void interpretBinaryStream(byte actbyte)  {
     boolean flag_copyRawDataToFullData = false;
@@ -588,7 +608,7 @@ class OpenBCI_ADS1299 {
   }
 
   //return the state
-  boolean isStateNormal() { 
+  public boolean isStateNormal() { 
     if (state == STATE_NORMAL) { 
       return true;
     } else {
@@ -692,9 +712,11 @@ class OpenBCI_ADS1299 {
   }
  
  
-  public long timeOfLastChannelWrite = 0;
-  public int channelWriteCounter = 0;
-  public boolean isWritingChannel = false;
+  private long timeOfLastChannelWrite = 0;
+  private int channelWriteCounter = 0;
+  private boolean isWritingChannel = false;
+  public boolean get_isWritingChannel() { return isWritingChannel; }
+  public void configureAllChannelsToDefault() { serial_openBCI.write('d'); };
   public void initChannelWrite(int _numChannel) {  //numChannel counts from zero
       timeOfLastChannelWrite = millis();
       isWritingChannel = true;
@@ -742,9 +764,10 @@ class OpenBCI_ADS1299 {
     }
   }
   
-  public long timeOfLastImpWrite = 0;
-  public int impWriteCounter = 0;
-  public boolean isWritingImp = false;
+  private long timeOfLastImpWrite = 0;
+  private int impWriteCounter = 0;
+  private boolean isWritingImp = false;
+  public boolean get_isWritingImp() { return isWritingImp; }
   public void initImpWrite(int _numChannel) {  //numChannel counts from zero
         timeOfLastImpWrite = millis();
         isWritingImp = true;

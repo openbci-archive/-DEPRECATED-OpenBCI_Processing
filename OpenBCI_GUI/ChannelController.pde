@@ -105,11 +105,11 @@ class ChannelController {
     for (int i = 0; i < nchan; i++) {
       verbosePrint("chan: " + i + " ");
       for (int j = 0; j < numSettingsPerChannel; j++) { //channel setting values
-        channelSettingValues[i][j] = char(openBCI.defaultChannelSettings.toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
+        channelSettingValues[i][j] = char(openBCI.get_defaultChannelSettings().toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
         if (j == numSettingsPerChannel - 1) {
-          println(char(openBCI.defaultChannelSettings.toCharArray()[j]));
+          println(char(openBCI.get_defaultChannelSettings().toCharArray()[j]));
         } else {
-          print(char(openBCI.defaultChannelSettings.toCharArray()[j]) + ",");
+          print(char(openBCI.get_defaultChannelSettings().toCharArray()[j]) + ",");
         }
       }
       for (int k = 0; k < 2; k++) { //impedance setting values
@@ -207,20 +207,20 @@ class ChannelController {
     //then reset to 1
 
     //
-    if (openBCI.isWritingChannel) {
+    if (openBCI.get_isWritingChannel()) {
       openBCI.writeChannelSettings(channelToWrite,channelSettingValues);
     }
 
-    if (rewriteChannelWhenDoneWriting == true && openBCI.isWritingChannel == false) {
+    if (rewriteChannelWhenDoneWriting == true && openBCI.get_isWritingChannel() == false) {
       initChannelWrite(channelToWriteWhenDoneWriting);
       rewriteChannelWhenDoneWriting = false;
     }
 
-    if (openBCI.isWritingImp) {
+    if (openBCI.get_isWritingImp()) {
       openBCI.writeImpedanceSettings(impChannelToWrite,impedanceCheckValues);
     }
 
-    if (rewriteImpedanceWhenDoneWriting == true && openBCI.isWritingImp == false) {
+    if (rewriteImpedanceWhenDoneWriting == true && openBCI.get_isWritingImp() == false) {
       initImpWrite(impChannelToWriteWhenDoneWriting, final_pORn, final_onORoff);
       rewriteImpedanceWhenDoneWriting = false;
     }
@@ -368,7 +368,7 @@ class ChannelController {
               channelSettingValues[i][j] = '0';
             }	
             // if you're not currently writing a channel and not waiting to rewrite after you've finished mashing the button
-            if (!openBCI.isWritingChannel && rewriteChannelWhenDoneWriting == false) {
+            if (!openBCI.get_isWritingChannel() && rewriteChannelWhenDoneWriting == false) {
               initChannelWrite(i);//write new ADS1299 channel row values to OpenBCI
             } else { //else wait until a the current write has finished and then write again ... this is to not overwrite the wrong values while writing a channel
               verbosePrint("CONGRATULATIONS, YOU'RE MASHING BUTTONS!");
@@ -490,7 +490,7 @@ class ChannelController {
 
   public void initChannelWrite(int _numChannel) {
     //after clicking any button, write the new settings for that channel to OpenBCI
-    if (!openBCI.isWritingImp) { //make sure you aren't currently writing imp settings for a channel
+    if (!openBCI.get_isWritingImp()) { //make sure you aren't currently writing imp settings for a channel
       verbosePrint("Writing channel settings for channel " + str(_numChannel+1) + " to OpenBCI!");
       openBCI.initChannelWrite(_numChannel);
       channelToWrite = _numChannel;
@@ -499,9 +499,9 @@ class ChannelController {
 
   public void initImpWrite(int _numChannel, char pORn, char onORoff) {
     //after clicking any button, write the new settings for that channel to OpenBCI
-    if (!openBCI.isWritingChannel) { //make sure you aren't currently writing imp settings for a channel
+    if (!openBCI.get_isWritingChannel()) { //make sure you aren't currently writing imp settings for a channel
       // if you're not currently writing a channel and not waiting to rewrite after you've finished mashing the button
-      if (!openBCI.isWritingImp && rewriteImpedanceWhenDoneWriting == false) {
+      if (!openBCI.get_isWritingImp() && rewriteImpedanceWhenDoneWriting == false) {
         verbosePrint("Writing impedance check settings (" + pORn + "," + onORoff +  ") for channel " + str(_numChannel+1) + " to OpenBCI!");
         if (pORn == 'p') {
           impedanceCheckValues[_numChannel][0] = onORoff;
