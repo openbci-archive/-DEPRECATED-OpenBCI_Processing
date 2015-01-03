@@ -316,8 +316,8 @@ class ControlPanel {
           initSystemButton.setString("STOP SYSTEM");
           //global steps to START SYSTEM
           // prepare the serial port
-          println("ControlPanel: CPmouseReleased: port is open? ... " + portIsOpen);
-          if (portIsOpen == true) {
+          println("ControlPanel: CPmouseReleased: port is open? ... " + openBCI.isSerialPortOpen());
+          if (openBCI.isSerialPortOpen() == true) {
             openBCI.closeSerialPort();
           }
           fileName = cp5.get(Textfield.class, "fileName").getText(); // store the current text field value of "File Name" to be passed along to dataFiles 
