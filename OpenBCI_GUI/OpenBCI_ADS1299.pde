@@ -67,6 +67,7 @@ class OpenBCI_ADS1299 {
   
   //here is the serial port for this OpenBCI board
   private Serial serial_openBCI = null; 
+  private boolean portIsOpen = false;
   
   int prefered_datamode = DATAMODE_BIN_WAUX;
   
@@ -160,8 +161,9 @@ class OpenBCI_ADS1299 {
     println("OpenBCI_ADS1299: b");
 
     //prepare the serial port  ... close if open
-    println("OpenBCI_ADS1299: port is open? ... " + portIsOpen);
-    if(portIsOpen == true){
+    //println("OpenBCI_ADS1299: port is open? ... " + portIsOpen);
+    //if(portIsOpen == true) {
+    if (isSerialPortOpen()) {
       closeSerialPort();
     }
 
@@ -187,6 +189,7 @@ class OpenBCI_ADS1299 {
     } 
     catch (RuntimeException e){
       if (e.getMessage().contains("<init>")) {
+        serial_openBCI = null;
         System.out.println("OpenBCI_ADS1299: openSerialPort: port in use, trying again later...");
         portIsOpen = false;
       }
@@ -373,7 +376,13 @@ class OpenBCI_ADS1299 {
     }
   }
   
-  public boolean isSerialPortOpen() { return (serial_openBCI != null); }
+  public boolean isSerialPortOpen() { 
+    if (portIsOpen & (serial_openBCI != null)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   public boolean isOpenBCISerial(Serial port) {
     if (serial_openBCI == port) {
       return true;
