@@ -139,8 +139,6 @@ float timeOfLastScreenResize = 0;
 float timeOfGUIreinitialize = 0;
 int reinitializeGUIdelay = 125;
 
-
-
 //set window size
 int win_x = 1024;  //window width
 int win_y = 768; //window height
@@ -195,7 +193,12 @@ void setup() {
 
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
-  controlPanel = new ControlPanel(this); 
+  
+  //from the user's perspective, the program hangs out on the ControlPanel until the user presses "Start System".
+  controlPanel = new ControlPanel(this);  
+  //The effect of "Start System" is that initSystem() gets called, which starts up the conneciton to the OpenBCI
+  //hardware (via the "updateSyncState()" process) as well as initializing the rest of the GUI elements.  
+  //Once the hardware is synchronized, the main GUI is drawn and the user switches over to the main GUI.
 
   logo = loadImage("logo2.png");
 
@@ -212,7 +215,7 @@ int prevMillis=millis();
 int byteRate_perSec = 0;
 int drawLoop_counter = 0;
 
-//used to init system based on initial settings
+//used to init system based on initial settings...Called from the "Start System" button in the GUI's ControlPanel
 void initSystem(){
 
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 0 --");
