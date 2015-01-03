@@ -42,7 +42,6 @@ public int eegDataSource = -1; //default to none of the options
 OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
 String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 int openBCI_baud = 115200; //baud rate from the Arduino
-//boolean portIsOpen = false; //serial port open or closed(?)
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
 String playbackData_fname = "N/A"; //only used if loading input data from a file
@@ -141,42 +140,6 @@ float timeOfGUIreinitialize = 0;
 int reinitializeGUIdelay = 125;
 
 
-void appendAndShift(float[] data, float[] newData) {
-  int nshift = newData.length;
-  int end = data.length-nshift;
-  for (int i=0; i < end; i++) {
-    data[i]=data[i+nshift];  //shift data points down by 1
-  }
-  for (int i=0; i<nshift;i++) {
-    data[end+i] = newData[i];  //append new data
-  }
-}
-
-void prepareData(float[] dataBuffX, float[][] dataBuffY_uV, float fs_Hz) {
-  //initialize the x and y data
-  int xoffset = dataBuffX.length - 1;
-  for (int i=0; i < dataBuffX.length; i++) {
-    dataBuffX[i] = ((float)(i-xoffset)) / fs_Hz; //x data goes from minus time up to zero
-    for (int Ichan = 0; Ichan < nchan; Ichan++) { 
-      dataBuffY_uV[Ichan][i] = 0f;  //make the y data all zeros
-    }
-  }
-}
-
-void initializeFFTObjects(FFT[] fftBuff, float[][] dataBuffY_uV, int N, float fs_Hz) {
-
-  float[] fooData;
-  for (int Ichan=0; Ichan < nchan; Ichan++) {
-    //make the FFT objects...Following "SoundSpectrum" example that came with the Minim library
-    //fftBuff[Ichan] = new FFT(Nfft, fs_Hz);  //I can't have this here...it must be in setup
-    fftBuff[Ichan].window(FFT.HAMMING);
-
-    //do the FFT on the initial data
-    fooData = dataBuffY_uV[Ichan];
-    fooData = Arrays.copyOfRange(fooData, fooData.length-Nfft, fooData.length); 
-    fftBuff[Ichan].forward(fooData); //compute FFT on this channel of data
-  }
-}
 
 //set window size
 int win_x = 1024;  //window width
@@ -343,7 +306,34 @@ void initSystem(){
   // verbosePrint("OpenBCI_GUI: initSystem: -- Init 5 [COMPLETE] --");
 }
 
+//so data initialization routines
+void prepareData(float[] dataBuffX, float[][] dataBuffY_uV, float fs_Hz) {
+  //initialize the x and y data
+  int xoffset = dataBuffX.length - 1;
+  for (int i=0; i < dataBuffX.length; i++) {
+    dataBuffX[i] = ((float)(i-xoffset)) / fs_Hz; //x data goes from minus time up to zero
+    for (int Ichan = 0; Ichan < nchan; Ichan++) { 
+      dataBuffY_uV[Ichan][i] = 0f;  //make the y data all zeros
+    }
+  }
+}
 
+void initializeFFTObjects(FFT[] fftBuff, float[][] dataBuffY_uV, int N, float fs_Hz) {
+
+  float[] fooData;
+  for (int Ichan=0; Ichan < nchan; Ichan++) {
+    //make the FFT objects...Following "SoundSpectrum" example that came with the Minim library
+    //fftBuff[Ichan] = new FFT(Nfft, fs_Hz);  //I can't have this here...it must be in setup
+    fftBuff[Ichan].window(FFT.HAMMING);
+
+    //do the FFT on the initial data
+    fooData = dataBuffY_uV[Ichan];
+    fooData = Arrays.copyOfRange(fooData, fooData.length-Nfft, fooData.length); 
+    fftBuff[Ichan].forward(fooData); //compute FFT on this channel of data
+  }
+}
+
+//halt the data collection
 void haltSystem(){
   println("openBCI_GUI: haltSystem: Halting system for reconfiguration of settings...");
   stopRunning();  //stop data transfer
@@ -617,6 +607,9 @@ int getDataIfAvailable(int pointCounter) {
   return pointCounter;
 }
 
+
+
+
 RunningMean avgBitRate = new RunningMean(10);  //10 point running average...at 5 points per second, this should be 2 second running average
 void processNewData() {
 
@@ -721,6 +714,18 @@ void processNewData() {
 
   //compute the electrode impedance. Do it in a very simple way [rms to amplitude, then uVolt to Volt, then Volt/Amp to Ohm]
   for (int Ichan=0;Ichan < nchan; Ichan++) data_elec_imp_ohm[Ichan] = (sqrt(2.0)*eegProcessing.data_std_uV[Ichan]*1.0e-6) / openBCI.get_leadOffDrive_amps();     
+}
+
+//helper function in handling the EEG data
+void appendAndShift(float[] data, float[] newData) {
+  int nshift = newData.length;
+  int end = data.length-nshift;
+  for (int i=0; i < end; i++) {
+    data[i]=data[i+nshift];  //shift data points down by 1
+  }
+  for (int i=0; i<nshift;i++) {
+    data[end+i] = newData[i];  //append new data
+  }
 }
 
 //here is the routine that listens to the serial port.
