@@ -751,7 +751,7 @@ void serialEvent(Serial port) {
       echoBytes = false;
     }
 
-    openBCI.read(echoBytes);
+    openBCI.read(echoBytes,port); //send it the port for the case when there are multiple OpenBCI boards being used
     openBCI_byteCount++;
     if (openBCI.get_isNewDataPacketAvailable()) {
       //copy packet into buffer of data packets
@@ -1139,13 +1139,23 @@ boolean isChannelActive(int Ichan) {
   return return_val;
 }
 
+void changeChannelState(int Ichan, boolean activate) { //...channel counting is zero through nchan-1
+  if (Ichan >= 0) {
+    if (activate) {
+      gui.cc.powerUpChannel(Ichan);
+    } else {
+      gui.cc.powerDownChannel(Ichan);
+    }
+  } 
+}
+
 //activateChannel: Ichan is [0 nchan-1] (aka zero referenced)
 void activateChannel(int Ichan) {
   println("OpenBCI_GUI: activating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
     if (openBCI.isSerialPortOpen()){
       verbosePrint("**");
-      openBCI.changeChannelState(Ichan, true); //activate
+      changeChannelState(Ichan, true); //activate
     }
   }
   if (Ichan < gui.chanButtons.length){
@@ -1158,7 +1168,7 @@ void deactivateChannel(int Ichan) {
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
     if (openBCI.isSerialPortOpen()) {
       verbosePrint("**");
-      openBCI.changeChannelState(Ichan, false); //de-activate
+      changeChannelState(Ichan, false); //de-activate
     }
   }
   if (Ichan < gui.chanButtons.length) {
@@ -1220,7 +1230,7 @@ void deactivateChannel(int Ichan) {
 //   if (openBCI != null) openBCI.setBiasAutoState(state);
   
 //   //change button text
-//   if (openBCI.isBiasAuto) {
+//   if (openBCI.get_isBiasAuto()) {
 //     gui.biasButton.but_txt = "Bias\nAuto";
 //   } else {
 //     gui.biasButton.but_txt = "Bias\nFixed";
