@@ -535,7 +535,7 @@ void systemDraw(){ //for drawing to the screen
   controlPanelCollapser.draw();
   helpWidget.draw();
 
-  if((openBCI.get_state() == openBCI.STATE_COMINIT || openBCI.get_state() == openBCI.STATE_SYNCWITHHARDWARE) && systemMode == 0){
+  if (openBCI.isState_InitOrSync() && (systemMode == 0)) {
     //make out blink the text "Initalizing GUI..."
     if(millis()%1000 < 500){
       output("Iniitializing communication w/ your OpenBCI board...");

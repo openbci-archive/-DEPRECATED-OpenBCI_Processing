@@ -121,6 +121,7 @@ class OpenBCI_ADS1299 {
   public String get_defaultChannelSettings() { return defaultChannelSettings; }
   public int get_state() { return state;};
   public boolean get_isNewDataPacketAvailable() { return isNewDataPacketAvailable; }
+  public void set_isNewDataPacketAvailable(boolean value) { isNewDataPacketAvailable = value; }
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
@@ -373,6 +374,14 @@ class OpenBCI_ADS1299 {
       openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
       println("OpenBCI_ADS1299: startDataTransfer(): writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
+    }
+  }
+  
+  public boolean isState_InitOrSync() {
+    if ( (state == STATE_COMINIT) || (state == STATE_SYNCWITHHARDWARE) ) {
+      return true;
+    } else {
+      return false;
     }
   }
   
@@ -852,5 +861,71 @@ class OpenBCI_multi {
   public boolean get_isNewDataPacketAvailable() { return openBCIs.get(0).get_isNewDataPacketAvailable(); }
   
   //other methods from OpenBCI_ADS1299 
+  public void updateSyncState(int sdSetting) {
+    //update all
+    for (int i = 0; i < openBCIs.size(); i++) openBCIs.get(i).updateSyncState(sdSetting);
+  }
   
+//  public int get_state() { 
+//    int returnVal = 0;
+//    for (int i = 0; i < openBCIs.size(); i++) {
+//      returnVal |= openBCIs.get(i).closeSDandSerialPort());
+//    }
+//    return returnVal;
+//  }
+
+  public boolean isState_InitOrSync() {
+    //return true if *any* board is in this state
+    for (int i = 0; i < openBCIs.size(); i++) {
+      if (openBCIs.get(i).isState_InitOrSync()) return true;
+    }
+    return false;
+  }
+  
+  public boolean isStateNormal() {
+    //return true if *all* boards are normal
+     for (int i = 0; i < openBCIs.size(); i++) {
+      if (openBCIs.get(i).isStateNormal() == false) return false;
+    }
+    return true;   
+  }
+    
+  public boolean isOpenBCISerial(Serial port) {
+    //return true if *any* board's serial port matches the given on
+    for (int i = 0; i < openBCIs.size(); i++) {
+      if (openBCIs.get(i).isOpenBCISerial(port)) return true;
+    }
+    return false;
+  }
+    
+  public int closeSDandSerialPort() {    
+    //close all SD and serial ports
+    int returnVal = 0;
+    for (int i = 0; i < openBCIs.size(); i++) {
+      returnVal |= openBCIs.get(i).closeSDandSerialPort();  //the OR means any non zero number should result in a non-zero returnVal
+    }
+    return returnVal;
+  }
+  
+  public int copyDataPacketTo(DataPacket_ADS1299 target) {
+    //loop over each data packet and accumulate the data into the target
+    int returnVal = 0;
+    int startInd = 0;
+    int startInd_aux = 0;
+    for (int i = 0; i < openBCIs.size(); i++) {
+      openBCIs.get(i).set_isNewDataPacketAvailable(false);
+      if (i==0) {
+        returnVal |= openBCIs.get(i).dataPacket.copyTo(target, startInd, startInd_aux); //should also reset isDataAvailable to false
+      } else {
+        //don't copy the sample index
+        returnVal |= openBCIs.get(i).dataPacket.copyValuesAndAuxTo(target, startInd, startInd_aux); //should also reset isDataAvailable to false
+      }
+      
+      startInd += openBCIs.get(i).dataPacket.values.length;
+      startInd_aux += openBCIs.get(i).dataPacket.auxValues.length;
+    }
+    return returnVal;
+  }
+  
+      
 };
