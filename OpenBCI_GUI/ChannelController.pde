@@ -177,7 +177,7 @@ class ChannelController {
               impedanceCheckButtons[i][0].setString("");
             }
             if (impedanceCheckValues[i][k] == '1') {
-              impedanceCheckButtons[i][0].setColorNotPressed(greenColor);
+              impedanceCheckButtons[i][0].setColorNotPressed(isSelected_color);
               impedanceCheckButtons[i][0].setString("");
               if (showFullController) {
                 drawImpedanceValues[i] = false;
@@ -192,7 +192,7 @@ class ChannelController {
               impedanceCheckButtons[i][1].setString("");
             }
             if (impedanceCheckValues[i][k] == '1') {
-              impedanceCheckButtons[i][1].setColorNotPressed(greenColor);
+              impedanceCheckButtons[i][1].setColorNotPressed(isSelected_color);
               impedanceCheckButtons[i][1].setString("");
               if (showFullController) {
                 drawImpedanceValues[i] = false;

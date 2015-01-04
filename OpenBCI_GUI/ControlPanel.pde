@@ -37,7 +37,7 @@ MenuList sdTimes;
 color boxColor = color(200);
 // color boxStrokeColor = color(173,183,192);
 color boxStrokeColor = color(138, 146, 153);
-color greenColor = color(184, 220, 105);
+color isSelected_color = color(184, 220, 105);
 
 // Button openClosePort;
 // boolean portButtonPressed;
@@ -259,7 +259,7 @@ class ControlPanel {
         if (chanButton8.isMouseHere()) {
           chanButton8.setIsActive(true);
           chanButton8Pressed = true;
-          chanButton8.color_notPressed = color(184, 220, 105);
+          chanButton8.color_notPressed = isSelected_color;
           chanButton16.color_notPressed = color(255);
         }
 
@@ -267,7 +267,7 @@ class ControlPanel {
           chanButton16.setIsActive(true);
           chanButton16Pressed = true;
           chanButton8.color_notPressed = color(255);
-          chanButton16.color_notPressed = color(184, 220, 105);
+          chanButton16.color_notPressed = isSelected_color;
         }
       }
 
@@ -554,8 +554,8 @@ class DataLogBox {
       .setColor(color(26, 26, 26))
       .setColorBackground(color(255, 255, 255)) // text field bg color
       .setColorValueLabel(color(0, 0, 0))  // text color
-      .setColorForeground(greenColor)  // border color when not selected
-      .setColorActive(greenColor)  // border color when selected
+      .setColorForeground(isSelected_color)  // border color when not selected
+      .setColorActive(isSelected_color)  // border color when selected
       .setColorCursor(color(26, 26, 26)) 
       .setText(getDateString())
       .align(5, 10, 20, 40) 
@@ -599,8 +599,9 @@ class ChannelCountBox {
     padding = _padding;
 
     chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
-    chanButton8.color_notPressed = color(184, 220, 105);
+    if (nchan == 8) chanButton8.color_notPressed = isSelected_color; //make it appear like this one is already selected
     chanButton16 = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
+    if (nchan == 16) chanButton16.color_notPressed = isSelected_color; //make it appear like this one is already selected
   }
 
   public void update() {
@@ -700,9 +701,9 @@ class SDBox {
     textAlign(LEFT, TOP);
     text("WRITE TO SD (Y/N)?", x + padding, y + padding);
     popStyle();
+  
+    //the drawing of the sdTimes is handled earlier in ControlPanel.draw()
 
-    // chanButton8.draw();
-    // chanButton16.draw();
   }
 };
 
@@ -735,7 +736,6 @@ class SDConverterBox {
     popStyle();
 
     selectSDFile.draw();
-    // chanButton16.draw();
   }
 };
 
