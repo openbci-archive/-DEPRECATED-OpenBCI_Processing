@@ -685,6 +685,8 @@ class SDBox {
     sdTimes.addItem(makeItem("4 hour maximum"));
     sdTimes.addItem(makeItem("12 hour maximum"));
     sdTimes.addItem(makeItem("24 hour maximum"));
+    
+    sdTimes.activeItem = sdSetting; //added to indicate default choice (sdSetting is in OpenBCI_GUI)
   }
 
   public void update() {

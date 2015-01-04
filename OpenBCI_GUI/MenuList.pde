@@ -133,7 +133,7 @@ public class MenuList extends Controller {
   }
 
   public void onDrag() {
-    if (getPointer().x()>getWidth()-scrollerWidth) {
+    if (getPointer().x() > (getWidth()-scrollerWidth)) {
       npos= -map(getPointer().y(), 0, getHeight(), 0, items.size()*itemHeight);
       updateMenu = true;
     } else {
