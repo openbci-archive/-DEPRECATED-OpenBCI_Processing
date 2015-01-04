@@ -36,11 +36,13 @@ final int DATASOURCE_NORMAL = 3;  //looking for signal from OpenBCI board via Se
 final int DATASOURCE_PLAYBACKFILE = 1;  //playback from a pre-recorded text file
 final int DATASOURCE_SYNTHETIC = 2;  //Synthetically generated data
 final int DATASOURCE_NORMAL_W_AUX = 0; // new default, data from serial with Accel data CHIP 2014-11-03
-public int eegDataSource = -1; //default to none of the options
+//public int eegDataSource = -1; //default to none of the options
+public int eegDataSource = DATASOURCE_NORMAL_W_AUX; //default to none of the options
 
 //Serial communications constants
 OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
-String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+//String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+String openBCI_portName = "COM11";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 int openBCI_baud = 115200; //baud rate from the Arduino
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
@@ -63,7 +65,8 @@ final int nPointsPerUpdate = 50; //update the GUI after this many data points ha
 
 /////Define variables related to OpenBCI board operations
 //define number of channels from openBCI...first EEG channels, then aux channels
-int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
+//int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
+int nchan = 16;
 int n_aux_ifEnabled = 3;  // this is the accelerometer data CHIP 2014-11-03
 
 //define variables related to warnings to the user about whether the EEG data is nearly railed (and, therefore, of dubious quality)
@@ -194,12 +197,20 @@ void setup() {
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
   
+//  if (true) {
+//    println("setup: pre-loading a configuration...");
+//    eegDataSource = DATASOURCE_NORMAL_W_AUX;
+//    openBCI_portName = "COM11";
+//    nchan = 16;
+//    updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
+//  }
+  
   //from the user's perspective, the program hangs out on the ControlPanel until the user presses "Start System".
   controlPanel = new ControlPanel(this);  
   //The effect of "Start System" is that initSystem() gets called, which starts up the conneciton to the OpenBCI
   //hardware (via the "updateSyncState()" process) as well as initializing the rest of the GUI elements.  
   //Once the hardware is synchronized, the main GUI is drawn and the user switches over to the main GUI.
-
+  
   logo = loadImage("logo2.png");
 
   playground = new Playground(navBarHeight);
