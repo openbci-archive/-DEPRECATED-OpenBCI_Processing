@@ -36,11 +36,14 @@ final int DATASOURCE_NORMAL = 3;  //looking for signal from OpenBCI board via Se
 final int DATASOURCE_PLAYBACKFILE = 1;  //playback from a pre-recorded text file
 final int DATASOURCE_SYNTHETIC = 2;  //Synthetically generated data
 final int DATASOURCE_NORMAL_W_AUX = 0; // new default, data from serial with Accel data CHIP 2014-11-03
-public int eegDataSource = -1; //default to none of the options
+//public int eegDataSource = -1; //default to none of the options
+public int eegDataSource = DATASOURCE_NORMAL_W_AUX; //default to none of the options
 
 //Serial communications constants
-OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
-String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+//OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
+OpenBCI_Multi openBCI = new OpenBCI_Multi(); //dummy creation to get access to constants, create real one later
+//String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+String openBCI_portName = "COM11";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 int openBCI_baud = 115200; //baud rate from the Arduino
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
@@ -63,7 +66,8 @@ final int nPointsPerUpdate = 50; //update the GUI after this many data points ha
 
 /////Define variables related to OpenBCI board operations
 //define number of channels from openBCI...first EEG channels, then aux channels
-int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
+//int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
+int nchan = 16;
 int n_aux_ifEnabled = 3;  // this is the accelerometer data CHIP 2014-11-03
 
 //define variables related to warnings to the user about whether the EEG data is nearly railed (and, therefore, of dubious quality)
@@ -264,7 +268,7 @@ void initSystem(){
       int nEEDataValuesPerPacket = nchan;
       boolean useAux = false;
       if (eegDataSource == DATASOURCE_NORMAL_W_AUX) useAux = true;  //switch this back to true CHIP 2014-11-04
-      openBCI = new OpenBCI_ADS1299(this, openBCI_portName, openBCI_baud, nEEDataValuesPerPacket, useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
+      openBCI = new OpenBCI_Multi(this, openBCI_portName, openBCI_baud, nEEDataValuesPerPacket, useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
       break;
     case DATASOURCE_SYNTHETIC:
       //do nothing
@@ -532,7 +536,7 @@ void systemDraw(){ //for drawing to the screen
   controlPanelCollapser.draw();
   helpWidget.draw();
 
-  if((openBCI.get_state() == openBCI.STATE_COMINIT || openBCI.get_state() == openBCI.STATE_SYNCWITHHARDWARE) && systemMode == 0){
+  if (openBCI.isState_InitOrSync() && (systemMode == 0)) {
     //make out blink the text "Initalizing GUI..."
     if(millis()%1000 < 500){
       output("Iniitializing communication w/ your OpenBCI board...");
@@ -748,7 +752,7 @@ void serialEvent(Serial port) {
       echoBytes = false;
     }
 
-    openBCI.read(echoBytes);
+    openBCI.read(echoBytes,port); //send it the port for the case when there are multiple OpenBCI boards being used
     openBCI_byteCount++;
     if (openBCI.get_isNewDataPacketAvailable()) {
       //copy packet into buffer of data packets
@@ -1136,14 +1140,24 @@ boolean isChannelActive(int Ichan) {
   return return_val;
 }
 
+void changeChannelState(int Ichan, boolean activate) { //...channel counting is zero through nchan-1
+  if (openBCI.isSerialPortOpen(Ichan)) { //give it the channel number so that it can check the openBCI for that channel
+    if (Ichan >= 0) {
+      if (activate) {
+        gui.cc.powerUpChannel(Ichan);
+      } else {
+        gui.cc.powerDownChannel(Ichan);
+      }
+    } 
+  }
+}
+
 //activateChannel: Ichan is [0 nchan-1] (aka zero referenced)
 void activateChannel(int Ichan) {
   println("OpenBCI_GUI: activating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
-    if (openBCI.isSerialPortOpen()){
-      verbosePrint("**");
-      openBCI.changeChannelState(Ichan, true); //activate
-    }
+    verbosePrint("**");
+    changeChannelState(Ichan, true); //activate
   }
   if (Ichan < gui.chanButtons.length){
     channelSettingValues[Ichan][0] = '0'; 
@@ -1153,10 +1167,8 @@ void activateChannel(int Ichan) {
 void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
-    if (openBCI.isSerialPortOpen()) {
-      verbosePrint("**");
-      openBCI.changeChannelState(Ichan, false); //de-activate
-    }
+    verbosePrint("**");
+    changeChannelState(Ichan, false); //de-activate
   }
   if (Ichan < gui.chanButtons.length) {
     channelSettingValues[Ichan][0] = '1'; 
@@ -1217,7 +1229,7 @@ void deactivateChannel(int Ichan) {
 //   if (openBCI != null) openBCI.setBiasAutoState(state);
   
 //   //change button text
-//   if (openBCI.isBiasAuto) {
+//   if (openBCI.get_isBiasAuto()) {
 //     gui.biasButton.but_txt = "Bias\nAuto";
 //   } else {
 //     gui.biasButton.but_txt = "Bias\nFixed";

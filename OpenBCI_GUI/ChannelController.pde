@@ -105,11 +105,11 @@ class ChannelController {
     for (int i = 0; i < nchan; i++) {
       verbosePrint("chan: " + i + " ");
       for (int j = 0; j < numSettingsPerChannel; j++) { //channel setting values
-        channelSettingValues[i][j] = char(openBCI.get_defaultChannelSettings().toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
+        channelSettingValues[i][j] = char(openBCI.get_defaultChannelSettings(i).toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
         if (j == numSettingsPerChannel - 1) {
-          println(char(openBCI.get_defaultChannelSettings().toCharArray()[j]));
+          println(char(openBCI.get_defaultChannelSettings(i).toCharArray()[j]));
         } else {
-          print(char(openBCI.get_defaultChannelSettings().toCharArray()[j]) + ",");
+          print(char(openBCI.get_defaultChannelSettings(i).toCharArray()[j]) + ",");
         }
       }
       for (int k = 0; k < 2; k++) { //impedance setting values
