@@ -21,6 +21,7 @@
 
 //import processing.serial.*;
 import java.io.OutputStream; //for logging raw bytes to an output file
+//import java.util.ArrayList;
 
 final String command_stop = "s";
 // final String command_startText = "x";
@@ -823,7 +824,33 @@ class OpenBCI_ADS1299 {
       impWriteCounter++;
     }
   }
-
- 
 };  
- 
+
+class OpenBCI_multi {
+  private ArrayList<OpenBCI_ADS1299> openBCIs = new ArrayList<OpenBCI_ADS1299>();
+  
+  //constructors
+  OpenBCI_multi(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
+    addUnit(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket);
+  };
+  
+  //methods specific to this class
+  public void addUnit(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
+    openBCIs.add(new OpenBCI_ADS1299(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket));
+  };
+  
+  //some get/set methods extending from OpenBCI_ADS1299...simply get the values for the first OpenBCI unit
+  public float get_fs_Hz() { return openBCIs.get(0).get_fs_Hz(); }
+  public float get_Vref() { return openBCIs.get(0).get_Vref(); }
+  public void set_ADS1299_gain(float _gain) { openBCIs.get(0).set_ADS1299_gain(_gain); }
+  public float get_ADS1299_gain() { return openBCIs.get(0).get_ADS1299_gain(); }
+  public float get_scale_fac_uVolts_per_count() { return openBCIs.get(0).get_scale_fac_uVolts_per_count(); }
+  public float get_scale_fac_accel_G_per_count() { return openBCIs.get(0).get_scale_fac_accel_G_per_count(); }
+  public float get_leadOffDrive_amps() { return openBCIs.get(0).get_leadOffDrive_amps(); }
+  public String get_defaultChannelSettings() { return openBCIs.get(0).get_defaultChannelSettings(); }
+  public int get_state() { return openBCIs.get(0).get_state();};
+  public boolean get_isNewDataPacketAvailable() { return openBCIs.get(0).get_isNewDataPacketAvailable(); }
+  
+  //other methods from OpenBCI_ADS1299 
+  
+};
