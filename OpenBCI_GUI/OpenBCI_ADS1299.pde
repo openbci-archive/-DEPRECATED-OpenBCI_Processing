@@ -13,7 +13,7 @@
 // Modified: through April 2014
 // Modified again: Conor Russomanno Sept-Oct 2014
 // Modified for Daisy (16-chan) OpenBCI V3: Conor Russomanno Nov 2014
-// Modified Daisy Behaviors: Chip Audette Dec 2014
+// Modified Daisy Behaviors: Chip Audette Jan 2015
 //
 // Note: this class now expects the data format produced by OpenBCI V3.
 //
@@ -244,7 +244,7 @@ class OpenBCI_ADS1299 {
     delay(100); //make sure 'j' gets sent to the board
     return 0;
   }
-
+  
   public int closeSerialPort() { return closeSerialPort(""); }
   public int closeSerialPort(String name) {
     // if (serial_openBCI != null) {
@@ -342,7 +342,7 @@ class OpenBCI_ADS1299 {
   public void updateSyncState(int sdSetting) { updateSyncState(sdSetting,""); };  //no name
   public void updateSyncState(int sdSetting, String name) {
     //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
-    if ( (millis() - prevState_millis > COM_INIT_MSEC) && (prevState_millis != 0) && (state == openBCI.STATE_COMINIT) ) {
+    if ( (millis() - prevState_millis > COM_INIT_MSEC) && (prevState_millis != 0) && (state == STATE_COMINIT) ) {
       state = STATE_SYNCWITHHARDWARE;
       timeOfLastCommand = millis();
       serial_openBCI.clear();
@@ -383,7 +383,7 @@ class OpenBCI_ADS1299 {
   public void stopDataTransfer(String name) {
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
-      openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
+      changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
       println("OpenBCI_ADS1299 [" + name + "]: startDataTransfer(): writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
     }
@@ -397,6 +397,7 @@ class OpenBCI_ADS1299 {
     }
   }
   
+  public boolean isSerialPortOpen(int i) { return isSerialPortOpen(); }; //ignore the "i", it is for compatibility only
   public boolean isSerialPortOpen() { 
     if (portIsOpen & (serial_openBCI != null)) {
       return true;
@@ -416,7 +417,7 @@ class OpenBCI_ADS1299 {
   public void printRegisters(String name) {
     if (serial_openBCI != null) {
       println("OpenBCI_ADS1299 [" + name + "]: printRegisters(): Writing ? to OpenBCI...");
-      openBCI.serial_openBCI.write('?');
+      serial_openBCI.write('?');
     }
   }
   
@@ -841,11 +842,15 @@ class OpenBCI_ADS1299 {
 
 
 // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class OpenBCI_multi {
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class OpenBCI_Multi {
   private ArrayList<OpenBCI_ADS1299> openBCIs = new ArrayList<OpenBCI_ADS1299>();
   
   //constructors
-  OpenBCI_multi(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
+  OpenBCI_Multi() { openBCIs.add(new OpenBCI_ADS1299()); }  //dummy constructor to get access to basic properties like fs_Hz and stuff
+  OpenBCI_Multi(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
     addUnit(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket);
   };
   
@@ -867,6 +872,24 @@ class OpenBCI_multi {
   public boolean get_isNewDataPacketAvailable() { return openBCIs.get(0).get_isNewDataPacketAvailable(); }
   
   //other methods from OpenBCI_ADS1299 
+  public boolean isSerialPortOpen() {
+    //return true if ANY board is active
+    for (int i=0; i < openBCIs.size(); i++) {
+      if (openBCIs.get(i).isSerialPortOpen()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public boolean isSerialPortOpen(int Ichan) { //Ichan is zero to all_nchan -1
+    //find board the matches the given channel
+    int ind = findOpenBCI_givenChannel(Ichan);
+    if (ind < 0) return false; // channel not within the acceptable range
+    
+    //check the state of the serial
+    return openBCIs.get(ind).isSerialPortOpen();
+  }
   
   public void set_ADS1299_gain(float _gain) { 
     //set all units
@@ -1003,8 +1026,6 @@ class OpenBCI_multi {
     return openBCIs.get(ind).get_defaultChannelSettings(); 
   }
   
-
-  
   public void startDataTransfer() {
     //start ALL units
     for (int i = 0; i < openBCIs.size(); i++) {
@@ -1036,6 +1057,15 @@ class OpenBCI_multi {
     }
     return returnVal;
   }
+  
+  public int closeSerialPort() {
+    //close ALL serial ports
+     int returnVal = 0;
+    for (int i = 0; i < openBCIs.size(); i++) {
+      returnVal |= openBCIs.get(i).closeSerialPort(str(i));  //the OR means any non zero number should result in a non-zero returnVal
+    }
+    return returnVal;
+  }   
   
   //activate an EEG channel...channel counting is zero through all_nchan-1
   public void activateChannel(int Ichan) {
