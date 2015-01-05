@@ -462,7 +462,8 @@ class ChannelController {
     // initChannelWrite(_numChannel);//writeChannelSettings
     channelSettingValues[_numChannel][0] = '1'; //update powerUp/powerDown value of 2D array
     //if(_numChannel < 8){
-    verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
+    //verbosePrint("Command: " + command_deactivate_channel[_numChannel]);
+    verbosePrint("Command: de-activate channel " + str(_numChannel));
     //openBCI.serial_openBCI.write(command_deactivate_channel[_numChannel]);
     openBCI.deactivateChannel(_numChannel);  //assumes numChannel counts from zero (not one)...handles regular and daisy channels
     //}else{ //if a daisy channel
@@ -480,7 +481,8 @@ class ChannelController {
     // initChannelWrite(_numChannel);//writeChannelSettings
     channelSettingValues[_numChannel][0] = '0'; //update powerUp/powerDown value of 2D array
     //if(_numChannel < 8){
-    verbosePrint("Command: " + command_activate_channel[_numChannel]);
+    //verbosePrint("Command: " + command_activate_channel[_numChannel]);
+    verbosePrint("Command: Power up channel " + str(_numChannel));
     //openBCI.serial_openBCI.write(command_activate_channel[_numChannel]);
     openBCI.activateChannel(_numChannel);  //assumes numChannel counts from zero (not one)...handles regular and daisy channels//assumes numChannel counts from zero (not one)...handles regular and daisy channels
     //} else{ //if a daisy channel

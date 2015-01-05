@@ -121,42 +121,42 @@ void parseKey(char val) {
       
     //activate channels 9-16 (DAISY MODE ONLY)
     case 'Q':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(9-1);
       }
       break;
     case 'W':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(10-1);
       }
       break;
     case 'E':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(11-1);
       }
       break;
     case 'R':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(12-1);
       }
       break;
     case 'T':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(13-1);
       }
       break;
     case 'Y':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(14-1);
       }
       break;
     case 'U':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(15-1);
       }
       break;
     case 'I':
-      if(nchan == 16){
+      if(nchan >= 16){
         activateChannel(16-1);
       }
       break;
