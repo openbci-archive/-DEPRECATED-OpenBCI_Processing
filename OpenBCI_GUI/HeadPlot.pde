@@ -37,9 +37,10 @@ class HeadPlot {
   private boolean plot_color_as_log = true;
   public float smooth_fac = 0.0f;  
   private boolean use_polarity = true;
+  //private int nchan_perHead = 16;
 
   HeadPlot(float x,float y,float w,float h,int win_x,int win_y,int n) {
-    final int n_elec = n;  //8 electrodes assumed....or 16 for 16-channel?  Change this!!!
+    int n_elec = n;  //8 electrodes assumed....or 16 for 16-channel?  Change this!!!
     nose_x = new int[3];
     nose_y = new int[3];
     electrode_xy = new float[n_elec][2];   //x-y position of electrodes (pixels?) 
@@ -181,7 +182,7 @@ class HeadPlot {
     if ((elec_relXY == null) || (elec_relXY.getRowCount() < n_elec_to_load)) {
       println("headPlot: electrode position file not found or was wrong size: " + default_fname);
       println("        : using defaults...");
-      elec_relXY = createDefaultElectrodeLocations(default_fname,elec_relDiam);
+      elec_relXY = createDefaultElectrodeLocations(default_fname,elec_relDiam,n_elec);
     }
     
     //define the actual locations of the electrodes in pixels
@@ -195,10 +196,10 @@ class HeadPlot {
     ref_electrode_xy[1] = circ_y+(int)(elec_relXY.getFloat(elec_relXY.getRowCount()-1,1)*((float)circ_diam));
   }
   
-  private Table createDefaultElectrodeLocations(String fname,float elec_relDiam) {
+  private Table createDefaultElectrodeLocations(String fname,float elec_relDiam, int n_elec) {
     
     //regular electrodes
-    float[][] elec_relXY = new float[16][2]; 
+    float[][] elec_relXY = new float[max(n_elec,16)][2]; 
     elec_relXY[0][0] = -0.125f;             elec_relXY[0][1] = -0.5f + elec_relDiam*(0.5f+0.2f); //FP1
     elec_relXY[1][0] = -elec_relXY[0][0];  elec_relXY[1][1] = elec_relXY[0][1]; //FP2
     
