@@ -75,13 +75,14 @@ class OpenBCI_ADS1299 {
   int dataMode = -1;
   int prevState_millis = 0;
   
-  private int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI boards
+  private int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI...regardless of whether 8 channel or 16 channel board
   //int nAuxValuesPerPacket = 3; //defined by the data format sent by openBCI boards
   private DataPacket_ADS1299 rawReceivedDataPacket;
   private DataPacket_ADS1299 dataPacket;
   //DataPacket_ADS1299 prevDataPacket;
 
   private int nAuxValues;
+  private int startChanInGUI = 0;
   private boolean isNewDataPacketAvailable = false;
   private OutputStream output; //for debugging  WEA 2014-01-26
   private int prevSampleIndex = 0;
@@ -127,11 +128,16 @@ class OpenBCI_ADS1299 {
   public boolean get_isBiasAuto() { return isBiasAuto; };
   public boolean get_isNewDataPacketAvailable() { return isNewDataPacketAvailable; }
   public void set_isNewDataPacketAvailable(boolean value) { isNewDataPacketAvailable = value; }
+  public int get_startChanInGUI() { return startChanInGUI; };
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
+    this(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket,0);
+  }
+  OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket,int _startChanInGUI) { //note startChan is just for reference to the rest of the GUI
     nAuxValues=nAuxValuesPerPacket;
+    startChanInGUI = _startChanInGUI;
     
     //choose data mode
     println("OpenBCI_ADS1299: Constructor: prefered_datamode = " + prefered_datamode + ", nValuesPerPacket = " + nEEGValuesPerPacket);
@@ -185,7 +191,7 @@ class OpenBCI_ADS1299 {
   private int openSerialPort(PApplet applet, String comPort, int baud) {
     
     try {
-      println("OpenBCI_ADS1299: openSerialPort [" + comPort + "]: attempting to open serial port " + openBCI_portName);
+      println("OpenBCI_ADS1299: openSerialPort [" + comPort + "]: attempting to open serial port " + comPort);
       serial_openBCI = new Serial(applet,comPort,baud); //open the com port
       serial_openBCI.clear(); // clear anything in the com port's buffer    
       portIsOpen = true;
@@ -263,6 +269,7 @@ class OpenBCI_ADS1299 {
   }
   
   
+  //private boolean isComplete_SyncWithHardware = false;
   private void syncWithHardware(int sdSetting) { syncWithHardware(sdSetting, ""); };  //no name
   private void syncWithHardware(int sdSetting, String name){
     switch (hardwareSyncStep) {
@@ -333,7 +340,7 @@ class OpenBCI_ADS1299 {
       case 6:
         output("OpenBCI_ADS1299 [" + name + "]: syncWithHardware: The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
         changeState(STATE_STOPPED);
-        systemMode = 10;
+        //systemMode = 10;
         //renitialize GUI if nchan has been updated... needs to be built
         break; 
     }
@@ -422,9 +429,10 @@ class OpenBCI_ADS1299 {
   }
   
   //read from the serial port
-  public int read() {  return read(false,serial_openBCI); } //assume no echo and use the already-known serial port
-  public int read(boolean echoChar) { return read(echoChar,serial_openBCI); }; //use the already-known serial port
-  public int read(boolean echoChar, Serial port) {
+  public int read() {  return read(false,serial_openBCI,""); } //assume no echo and use the already-known serial port
+  public int read(boolean echoChar) { return read(echoChar,serial_openBCI,""); }; //use the already-known serial port
+  public int read(boolean echoChar, String name) { return read(echoChar, serial_openBCI, name); } //use the already-known serial port
+  public int read(boolean echoChar, Serial port, String name) {
     //println("OpenBCI_ADS1299: read(): State: " + state);
     if (port != serial_openBCI) { return -1; };
     
@@ -466,11 +474,11 @@ class OpenBCI_ADS1299 {
         // hardwareSyncStep++;
         prev3chars[2] = '#';
         if(hardwareSyncStep == 3){
-          println("OpenBCI_ADS1299: read(): x");
+          println("OpenBCI_ADS1299 [" + name + "]: read(): hardwareSyncStep 3: println(defaultChannelSettings):");
           println(defaultChannelSettings);
-          println("OpenBCI_ADS1299: read(): y");
-          gui.cc.loadDefaultChannelSettings();
-          println("OpenBCI_ADS1299: read(): z");
+          println("OpenBCI_ADS1299 [" + name + "]: read(): hardwareSyncStep 3: sending defaultChannelSettings to gui.cc");
+          gui.cc.loadDefaultChannelSettings(startChanInGUI,startChanInGUI+get_nChan());
+          println("OpenBCI_ADS1299 [" + name + "]: read(): hardwareSyncStep 3: done with this hardwareSyncStep?");
         }
         readyToSend = true; 
         // println(hardwareSyncStep);
@@ -639,6 +647,15 @@ class OpenBCI_ADS1299 {
       return false;
     }
   }
+  
+  public boolean isStateNormalOrStopped() {
+    if ((state == STATE_NORMAL) || (state == STATE_STOPPED)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+    
   
   // ---- DEPRECATED ---- 
   // public void changeImpedanceState(int Ichan,boolean activate,int code_P_N_Both) {
@@ -856,7 +873,13 @@ class OpenBCI_Multi {
   
   //methods specific to this class
   public void addUnit(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
-    openBCIs.add(new OpenBCI_ADS1299(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket));
+    int startChan = 0;
+    if (openBCIs.size() > 0) {
+      for (int i=0; i < openBCIs.size(); i++) {
+        startChan += openBCIs.get(i).get_nChan();
+      }
+    }
+    openBCIs.add(new OpenBCI_ADS1299(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket,startChan));
   };
   
   //some get/set methods extending from OpenBCI_ADS1299...simply get the values for the first OpenBCI unit
@@ -921,6 +944,14 @@ class OpenBCI_Multi {
     //return true if *all* boards are normal
      for (int i = 0; i < openBCIs.size(); i++) {
       if (openBCIs.get(i).isStateNormal() == false) return false;
+    }
+    return true;   
+  }
+  
+  public boolean isStateNormalOrStopped() {
+    //return true if *all* boards are normal/stopped
+     for (int i = 0; i < openBCIs.size(); i++) {
+      if (openBCIs.get(i).isStateNormalOrStopped() == false) return false;
     }
     return true;   
   }
@@ -995,7 +1026,7 @@ class OpenBCI_Multi {
     if (ind < 0) { return -1; }  //no match!
     
     //now, tell the correct openBCI board to read from its serial port
-    return openBCIs.get(ind).read(echoChar);
+    return openBCIs.get(ind).read(echoChar, str(ind));
   }
   
   public void printRegisters() {

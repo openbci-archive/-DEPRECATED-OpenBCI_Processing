@@ -100,9 +100,10 @@ class ChannelController {
     }
   }
 
-  public void loadDefaultChannelSettings() {
+  public void loadDefaultChannelSettings() { loadDefaultChannelSettings(0,nchan); }
+  public void loadDefaultChannelSettings(int startChan,int endChan) { //startChan (inclusive), endChan (exclusive)
     verbosePrint("ChannelController: loading default channel settings to GUI's channel controller...");
-    for (int i = 0; i < nchan; i++) {
+    for (int i = startChan; i < endChan; i++) {
       verbosePrint("chan: " + i + " ");
       for (int j = 0; j < numSettingsPerChannel; j++) { //channel setting values
         channelSettingValues[i][j] = char(openBCI.get_defaultChannelSettings(i).toCharArray()[j]); //parse defaultChannelSettings string created in the OpenBCI_ADS1299 class
