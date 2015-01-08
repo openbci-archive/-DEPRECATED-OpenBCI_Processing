@@ -1,4 +1,5 @@
 
+
 ///////////////////////////////////////////////////////////////////////////////
 //
 // This class configures and manages the connection to the OpenBCI shield for
@@ -72,6 +73,8 @@ class OpenBCI_ADS1299 {
   //byte[] serialBuff;
   //int curBuffIndex = 0;
   DataPacket_ADS1299 dataPacket;
+  DataPacket_ADS1299 prevDataPacket;
+
   int nAuxValues;
   boolean isNewDataPacketAvailable = false;
   OutputStream output; //for debugging  WEA 2014-01-26
@@ -117,6 +120,16 @@ class OpenBCI_ADS1299 {
 
     //allocate space for data packet
     dataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    //set all values to 0 so not null
+    for(int i = 0; i < nEEGValuesPerPacket; i++){
+      dataPacket.values[i] = 0;
+      prevDataPacket.values[i] = 0;
+    }
+    for(int i = 0; i < nAuxValuesPerPacket; i++){
+      dataPacket.auxValues[i] = 0;
+      prevDataPacket.auxValues[i] = 0;
+    }
 
     println(" b");
 
@@ -522,11 +535,50 @@ class OpenBCI_ADS1299 {
   }
   
   public int copyDataPacketTo(DataPacket_ADS1299 target) {
-    isNewDataPacketAvailable = false;
-    dataPacket.copyTo(target);
-    return 0;
+    if(nchan == 16){ //if there is a daisy board present...
+      if(dataPacket.sampleIndex % 2 == 1){//if board packet
+        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
+          dataPacket.values[i+8] = prevDataPacket.values[i+8];
+        }
+      }
+      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
+        for(int i = 0; i < 8; i++){
+          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
+        }
+        for(int i = 0; i < 8; i++){
+          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
+        }
+      }
+      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
+        prevDataPacket.values[i] = dataPacket.values[i]; 
+      }
+      for(int i = 0; i < 3; i++){
+        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
+      }
+
+      //print some stuff to keep track of what's going on if you're in verbose mode
+      // if(isVerbose){
+      //   print("dataPacket.values: ");
+      //   for(int i = 0; i < dataPacket.values.length; i++){
+      //     print(dataPacket.values[i] + " ");
+      //   }
+      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
+      //     print(dataPacket.auxValues[i] + " ");
+      //   }
+      //   println();
+      // }
+      
+      isNewDataPacketAvailable = false;
+      dataPacket.copyTo(target);
+      return 0;
+
+    } else{
+      isNewDataPacketAvailable = false;
+      dataPacket.copyTo(target);
+      return 0;
+    }
   }
-};
+};  
   
 //  int measurePacketLength() {
 //    
