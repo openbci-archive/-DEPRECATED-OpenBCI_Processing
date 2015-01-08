@@ -5675,11 +5675,11 @@ class OpenBCI_ADS1299 {
   
   final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
   final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  float ADS1299_gain = 24;  //assumed gain setting for ADS1299.  set by its Arduino code
-  float scale_fac_uVolts_per_count = ADS1299_Vref / (pow(2,23)-1) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  float ADS1299_gain = 24.0f;  //assumed gain setting for ADS1299.  set by its Arduino code
+  float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
-  //final float scale_fac_accel_G_per_count = 0.002;  //data sheet, 2 mg per "digit", which I assume is per "count"
-  final float scale_fac_accel_G_per_count = 1.0f;
+  final float scale_fac_accel_G_per_count = 0.002f / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
+  //final float scale_fac_accel_G_per_count = 1.0;
   final float leadOffDrive_amps = 6.0e-9f;  //6 nA, set by its Arduino code
   
   boolean isBiasAuto = true;
@@ -7392,7 +7392,7 @@ public class OutputFile_rawtxt {
     output.println("%");
     output.println("%Sample Rate = " + fs_Hz + " Hz");
     output.println("%First Column = SampleIndex");
-    output.println("%Other Columns = EEG data in microvolts with optional columns at end being unscaled Aux data");
+    output.println("%Other Columns = EEG data in microvolts followed by Accel Data (in G) interleaved with Aux Data");
     output.flush();
   }
 
