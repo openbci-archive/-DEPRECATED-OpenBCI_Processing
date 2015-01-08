@@ -28,23 +28,23 @@ public class MenuList extends Controller {
   int activeItem = -1;
   PFont menuFont = f2; 
   int padding = 7;
-  
+
 
   MenuList(ControlP5 c, String theName, int theWidth, int theHeight, PFont theFont) {
-    
+
     super( c, theName, 0, 0, theWidth, theHeight );
     c.register( this );
-    menu = createGraphics(getWidth(), getHeight() );
+    menu = createGraphics(getWidth(),getHeight());
 
     menuFont = theFont;
 
     setView(new ControllerView<MenuList>() {
 
-      public void display(PGraphics pg, MenuList t ) {
+      public void display(PGraphics pg, MenuList t) {
         if (updateMenu) {
           updateMenu();
         }
-        if (inside() ) {
+        if (inside()) {
           menu.beginDraw();
           int len = -(itemHeight * items.size()) + getHeight();
           int ty = int(map(pos, len, 0, getHeight() - scrollerLength - 2, 2 ) );
@@ -64,7 +64,7 @@ public class MenuList extends Controller {
     int len = -(itemHeight * items.size()) + getHeight();
     npos = constrain(npos, len, 0);
     pos += (npos - pos) * 0.1;
-//    pos += (npos - pos) * 0.1;
+    //    pos += (npos - pos) * 0.1;
     menu.beginDraw();
     menu.noStroke();
     menu.background(255, 64);
@@ -79,32 +79,32 @@ public class MenuList extends Controller {
 
     menu.translate(0, i0*itemHeight);
 
-    for (int i=i0;i<i1;i++) {
-		Map m = items.get(i);
-		menu.fill(255, 100);
-		if(i == hoverItem){
-			menu.fill(127,134,143);
-		}
-		if(i == activeItem){
-			menu.stroke(184,220,105,255);
-			menu.strokeWeight(1);
-			menu.fill(184,220,105,255);
-			menu.rect(0, 0, getWidth()-1, itemHeight-1 );
-			menu.noStroke();
-		} else{
-			menu.rect(0, 0, getWidth(), itemHeight-1 );
-		}
-			menu.fill(bgColor);
-			menu.textFont(menuFont);
-			menu.text(m.get("headline").toString(), 8, itemHeight - padding); // 5/17
-			menu.translate( 0, itemHeight );
+    for (int i=i0; i<i1; i++) {
+      Map m = items.get(i);
+      menu.fill(255, 100);
+      if (i == hoverItem) {
+        menu.fill(127, 134, 143);
+      }
+      if (i == activeItem) {
+        menu.stroke(184, 220, 105, 255);
+        menu.strokeWeight(1);
+        menu.fill(184, 220, 105, 255);
+        menu.rect(0, 0, getWidth()-1, itemHeight-1 );
+        menu.noStroke();
+      } else {
+        menu.rect(0, 0, getWidth(), itemHeight-1 );
+      }
+      menu.fill(bgColor);
+      menu.textFont(menuFont);
+      menu.text(m.get("headline").toString(), 8, itemHeight - padding); // 5/17
+      menu.translate( 0, itemHeight );
     }
     menu.popMatrix();
     menu.popMatrix();
     menu.endDraw();
     updateMenu = abs(npos-pos)>0.01 ? true:false;
   }
-  
+
   /* when detecting a click, check if the click happend to the far right, if yes, scroll to that position, 
    * otherwise do whatever this item of the list is supposed to do.
    */
@@ -112,8 +112,7 @@ public class MenuList extends Controller {
     if (getPointer().x()>getWidth()-scrollerWidth) {
       npos= -map(getPointer().y(), 0, getHeight(), 0, items.size()*itemHeight);
       updateMenu = true;
-    } 
-    else {
+    } else {
       int len = itemHeight * items.size();
       int index = int( map( getPointer().y() - pos, 0, len, 0, items.size() ) ) ;
       setValue(index);
@@ -121,12 +120,11 @@ public class MenuList extends Controller {
     }
     updateMenu = true;
   }
-  
+
   public void onMove() {
     if (getPointer().x()>getWidth() || getPointer().x()<0 || getPointer().y()<0  || getPointer().y()>getHeight() ) {
       hoverItem = -1;
-    } 
-    else {
+    } else {
       int len = itemHeight * items.size();
       int index = int( map( getPointer().y() - pos, 0, len, 0, items.size() ) ) ;
       hoverItem = index;
@@ -135,11 +133,10 @@ public class MenuList extends Controller {
   }
 
   public void onDrag() {
-    if (getPointer().x()>getWidth()-scrollerWidth) {
+    if (getPointer().x() > (getWidth()-scrollerWidth)) {
       npos= -map(getPointer().y(), 0, getHeight(), 0, items.size()*itemHeight);
       updateMenu = true;
-    } 
-    else{
+    } else {
       npos += getPointer().dy() * 2;
       updateMenu = true;
     }
@@ -159,10 +156,9 @@ public class MenuList extends Controller {
     items.remove(m);
     updateMenu = true;
   }
-  
-  Map<String,Object> getItem(int theIndex) {
+
+  Map<String, Object> getItem(int theIndex) {
     return items.get(theIndex);
   }
 };
-
 

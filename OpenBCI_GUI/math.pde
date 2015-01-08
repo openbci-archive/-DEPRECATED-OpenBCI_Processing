@@ -148,4 +148,19 @@ void rereferenceTheMontage(float[][] data) {
   }
 }
   
+class RunningMean {
+  private float[] values;
+  private int cur_ind = 0;
+  RunningMean(int N) {
+    values = new float[N];
+    cur_ind = 0;
+  }
+  public void addValue(float val) {
+    values[cur_ind] = val;
+    cur_ind = (cur_ind + 1) % values.length;
+  }
+  public float calcMean() {
+    return mean(values);
+  }
+};
 

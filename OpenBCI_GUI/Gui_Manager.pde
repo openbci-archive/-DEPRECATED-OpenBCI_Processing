@@ -140,7 +140,7 @@ class Gui_Manager {
     gMontage = new Graph2D(parent, int(axes_x), int(axes_y), false);  //last argument is whether the axes cross at zero
     setupMontagePlot(gMontage, win_x, win_y, axisMontage_relPos,displayTime_sec,fontInfo,filterDescription);
 
-    println("Buttons: " + int(float(win_x)*axisMontage_relPos[0]) + ", " + (int(float(win_y)*axisMontage_relPos[1])-40));
+    println("Gui_Manager: Buttons: " + int(float(win_x)*axisMontage_relPos[0]) + ", " + (int(float(win_y)*axisMontage_relPos[1])-40));
 
     showMontageButton = new Button (int(float(win_x)*axisMontage_relPos[0]) - 1, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "EEG DATA", 14); 
     showMontageButton.makeDropdownButton(true);
@@ -870,7 +870,7 @@ class Gui_Manager {
   }
 
   public void mousePressed(){
-    verbosePrint("gui.mousePressed();");
+    verbosePrint("Gui_Manager: mousePressed: mouse pressed.");
     //if showMontage button pressed
     if(showMontageButton.isMouseHere()){
       //turn off visibility of channel full controller
@@ -891,7 +891,7 @@ class Gui_Manager {
 
     //if cursor inside channel controller
     // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
-      verbosePrint("Channel Controller mouse pressed...");
+      verbosePrint("Gui_Manager: mousePressed: Channel Controller mouse pressed...");
       cc.mousePressed();
     // }
     
@@ -904,10 +904,10 @@ class Gui_Manager {
   }
 
   public void mouseReleased(){
-    verbosePrint("gui.mouseReleased();");
+    //verbosePrint("Gui_Manager: mouseReleased()");
 
     // if(mouseX >= cc.x1 && mouseX <= (cc.x2 - cc.w2) && mouseY >= cc.y1 && mouseY <= (cc.y1 + cc.h1) ){ 
-    verbosePrint("Channel Controller mouse released...");
+    verbosePrint("Gui_Manager: mouseReleased(): Channel Controller mouse released...");
     cc.mouseReleased();
 
 

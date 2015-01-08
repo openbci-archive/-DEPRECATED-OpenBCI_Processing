@@ -3,7 +3,7 @@
 //
 // This file contains classes that are helfpul in some way.
 //
-// Created: Chip Audette, Oct 2013
+// Created: Chip Audette, Oct 2013 - Dec 2014
 //
 /////////////////////////////////////
 
@@ -32,16 +32,20 @@ class DataPacket_ADS1299 {
     println();
     return 0;
   }
-  int copyTo(DataPacket_ADS1299 target) {
+  
+  int copyTo(DataPacket_ADS1299 target) { return copyTo(target, 0, 0); }
+  int copyTo(DataPacket_ADS1299 target, int target_startInd_values, int target_startInd_aux) {
     target.sampleIndex = sampleIndex;
-    //int nvalues = min(values.length, target.values.length); //handles case when nchan < OpenBCI_nchannels
+    return copyValuesAndAuxTo(target, target_startInd_values, target_startInd_aux);
+  }
+  int copyValuesAndAuxTo(DataPacket_ADS1299 target, int target_startInd_values, int target_startInd_aux) {
     int nvalues = values.length;
     for (int i=0; i < nvalues; i++) {
-      target.values[i] = values[i];
+      target.values[target_startInd_values + i] = values[i];
     }
     nvalues = auxValues.length;
     for (int i=0; i < nvalues; i++) {
-      target.auxValues[i] = auxValues[i];
+      target.auxValues[target_startInd_aux + i] = auxValues[i];
     }
     return 0;
   }

@@ -12,6 +12,8 @@
 // Created: Chip Audette, Oct 2013
 // Modified: through April 2014
 // Modified again: Conor Russomanno Sept-Oct 2014
+// Modified for Daisy (16-chan) OpenBCI V3: Conor Russomanno Nov 2014
+// Modified Daisy Behaviors: Chip Audette Dec 2014
 //
 // Note: this class now expects the data format produced by OpenBCI V3.
 //
@@ -28,11 +30,8 @@ final String command_startBinary_4chan = "v";  // not necessary now
 final String command_activateFilters = "f";  // swithed from 'F' to 'f'  ... but not necessary because taken out of hardware code
 final String command_deactivateFilters = "g";  // not necessary anymore 
 
-final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8"};
-final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};
-
-final String[] command_deactivate_channel_daisy = {"q", "w", "e", "r", "t", "y", "u", "i"};
-final String[] command_activate_channel_daisy = {"Q", "W", "E", "R", "T", "Y", "U", "I"};
+final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8", "q", "w", "e", "r", "t", "y", "u", "i"};
+final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*","Q", "W", "E", "R", "T", "Y", "U", "I"};
 
 //everything below is now deprecated...
 // final String[] command_activate_leadoffP_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};  //shift + 1-8
@@ -58,49 +57,73 @@ class OpenBCI_ADS1299 {
   final static int STATE_STOPPED = 4;
   final static int COM_INIT_MSEC = 3000; //you may need to vary this for your computer or your Arduino
   
-  int[] measured_packet_length = {0,0,0,0,0};
-  int measured_packet_length_ind = 0;
-  int known_packet_length_bytes = 0;
+  //int[] measured_packet_length = {0,0,0,0,0};
+  //int measured_packet_length_ind = 0;
+  //int known_packet_length_bytes = 0;
   
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
   
+  //here is the serial port for this OpenBCI board
+  private Serial serial_openBCI = null; 
+  private boolean portIsOpen = false;
+  
   int prefered_datamode = DATAMODE_BIN_WAUX;
   
-  int state = STATE_NOCOM;
+  private int state = STATE_NOCOM;
   int dataMode = -1;
   int prevState_millis = 0;
-  //byte[] serialBuff;
-  //int curBuffIndex = 0;
-  DataPacket_ADS1299 dataPacket;
-  DataPacket_ADS1299 prevDataPacket;
-
-  int nAuxValues;
-  boolean isNewDataPacketAvailable = false;
-  OutputStream output; //for debugging  WEA 2014-01-26
-  int prevSampleIndex = 0;
-  int serialErrorCounter = 0;
   
-  final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
-  final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
-  float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  private int nEEGValuesPerPacket = 8; //defined by the data format sent by openBCI boards
+  //int nAuxValuesPerPacket = 3; //defined by the data format sent by openBCI boards
+  private DataPacket_ADS1299 rawReceivedDataPacket;
+  private DataPacket_ADS1299 dataPacket;
+  //DataPacket_ADS1299 prevDataPacket;
+
+  private int nAuxValues;
+  private boolean isNewDataPacketAvailable = false;
+  private OutputStream output; //for debugging  WEA 2014-01-26
+  private int prevSampleIndex = 0;
+  private int serialErrorCounter = 0;
+  
+  private final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
+  private final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
+  private float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
+  private float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
-  final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
+  private final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
   //final float scale_fac_accel_G_per_count = 1.0;
-  final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
+  private final float leadOffDrive_amps = 6.0e-9;  //6 nA, set by its Arduino code
   
-  boolean isBiasAuto = true;
+  boolean isBiasAuto = true; //not being used?
 
+  //data related to Conor's setup for V3 boards
   final char[] EOT = {'$','$','$'};
   char[] prev3chars = {'#','#','#'};
+  private String defaultChannelSettings = "";
+  private String daisyOrNot = ""; 
+  private int hardwareSyncStep = 0; //start this at 0...
+  private boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
+  private long timeOfLastCommand = 0; //used when sync'ing to hardware
 
-  String defaultChannelSettings = "";
-  String daisyOrNot = "";
+  //some get methods
+  public float get_fs_Hz() { return fs_Hz; }
+  public float get_Vref() { return ADS1299_Vref; }
+  public void set_ADS1299_gain(float _gain) { 
+    ADS1299_gain = _gain;  
+    scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+  }
+  public float get_ADS1299_gain() { return ADS1299_gain; }
+  public float get_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
+  public float get_scale_fac_accel_G_per_count() { return scale_fac_accel_G_per_count; }
+  public float get_leadOffDrive_amps() { return leadOffDrive_amps; }
+  public String get_defaultChannelSettings() { return defaultChannelSettings; }
+  public int get_state() { return state;};
+  public boolean get_isNewDataPacketAvailable() { return isNewDataPacketAvailable; }
   
   //constructors
   OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
-  OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerPacket, boolean useAux, int nAuxValuesPerPacket) {
+  OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
     nAuxValues=nAuxValuesPerPacket;
     
     //choose data mode
@@ -114,34 +137,38 @@ class OpenBCI_ADS1299 {
       }
     }
 
-    println(" a");
+    println("OpenBCI_ADS1299: a");
 
     dataMode = prefered_datamode;
 
     //allocate space for data packet
-    dataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
-    prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
+    rawReceivedDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);  //this should always be 8 channels
+    dataPacket = new DataPacket_ADS1299(nEEGValuesPerOpenBCI,nAuxValuesPerPacket);            //this could be 8 or 16 channels
+    //prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
     //set all values to 0 so not null
-    for(int i = 0; i < nEEGValuesPerPacket; i++){
-      dataPacket.values[i] = 0;
-      prevDataPacket.values[i] = 0;
+    for(int i = 0; i < nEEGValuesPerPacket; i++) { 
+      rawReceivedDataPacket.values[i] = 0; 
+      //prevDataPacket.values[i] = 0; 
     }
+    for (int i=0; i < nEEGValuesPerOpenBCI; i++) { dataPacket.values[i]=0; }
     for(int i = 0; i < nAuxValuesPerPacket; i++){
+      rawReceivedDataPacket.auxValues[i] = 0;
       dataPacket.auxValues[i] = 0;
-      prevDataPacket.auxValues[i] = 0;
+      //prevDataPacket.auxValues[i] = 0;
     }
 
-    println(" b");
+    println("OpenBCI_ADS1299: b");
 
     //prepare the serial port  ... close if open
-    println("port is open? ... " + portIsOpen);
-    if(portIsOpen == true){
+    //println("OpenBCI_ADS1299: port is open? ... " + portIsOpen);
+    //if(portIsOpen == true) {
+    if (isSerialPortOpen()) {
       closeSerialPort();
     }
 
-    println(" i");
+    println("OpenBCI_ADS1299: i");
     openSerialPort(applet, comPort, baud);
-    println(" j");
+    println("OpenBCI_ADS1299: j");
     
     //open file for raw bytes
     //output = createOutput("rawByteDumpFromProcessing.bin");  //for debugging  WEA 2014-01-26
@@ -151,17 +178,18 @@ class OpenBCI_ADS1299 {
   private int openSerialPort(PApplet applet, String comPort, int baud) {
     
     try {
-      println("OpenBCI_ADS1299: attempting to open serial port " + openBCI_portName);
+      println("OpenBCI_ADS1299: openSerialPort: attempting to open serial port " + openBCI_portName);
       serial_openBCI = new Serial(applet,comPort,baud); //open the com port
       serial_openBCI.clear(); // clear anything in the com port's buffer    
       portIsOpen = true;
-      println("port is open (t)? ... " + portIsOpen);
+      println("OpenBCI_ADS1299: openSerialPort: port is open (t)? ... " + portIsOpen);
       changeState(STATE_COMINIT);
       return 0;
     } 
     catch (RuntimeException e){
       if (e.getMessage().contains("<init>")) {
-        System.out.println("port in use, trying again later...");
+        serial_openBCI = null;
+        System.out.println("OpenBCI_ADS1299: openSerialPort: port in use, trying again later...");
         portIsOpen = false;
       }
       return 0;
@@ -177,90 +205,205 @@ class OpenBCI_ADS1299 {
   int finalizeCOMINIT() {
     // //wait specified time for COM/serial port to initialize
     // if (state == STATE_COMINIT) {
-    //   // println("Initializing Serial: millis() = " + millis());
+    //   // println("OpenBCI_ADS1299: finalizeCOMINIT: Initializing Serial: millis() = " + millis());
     //   if ((millis() - prevState_millis) > COM_INIT_MSEC) {
     //     //serial_openBCI.write(command_activates + "\n"); println("Processing: OpenBCI_ADS1299: activating filters");
-    //     println("OpenBCI_ADS1299: State = NORMAL");
+    //     println("OpenBCI_ADS1299: finalizeCOMINIT: State = NORMAL");
         changeState(STATE_NORMAL);
     //     // startRunning();
     //   }
     // }
     return 0;
   }    
+  
+  public int closeSDandSerialPort() {
+    int returnVal=0;
+    
+    closeSDFile();
+    
+    readyToSend = false;
+    returnVal = closeSerialPort();
+    prevState_millis = 0;  //reset OpenBCI_ADS1299 state clock to use as a conditional for timing at the beginnign of systemUpdate()
+    hardwareSyncStep = 0; //reset Hardware Sync step to be ready to go again...
+    
+    return returnVal;
+  }
+  
+  public int closeSDFile() {
+    println("Closing any open SD file. Writing 'j' to OpenBCI.");
+    if (serial_openBCI != null) serial_openBCI.write("j"); // tell the SD file to close if one is open...
+    delay(100); //make sure 'j' gets sent to the board
+    return 0;
+  }
 
-  int closeSerialPort() {
-
+  public int closeSerialPort() {
     // if (serial_openBCI != null) {
-    println(" d");
+    println("OpenBCI_ADS1299: closeSerialPort: d");
     portIsOpen = false;
-    println(" e");
+    println("OpenBCI_ADS1299: closeSerialPort: e");
     serial_openBCI.clear();
-    println(" e2");
+    println("OpenBCI_ADS1299: closeSerialPort: e2");
     serial_openBCI.stop();
-    println(" f");
+    println("OpenBCI_ADS1299: closeSerialPort: f");
     serial_openBCI = null;
-    println(" g");
+    println("OpenBCI_ADS1299: closeSerialPort: g");
     state = STATE_NOCOM;
-    println(" h");
+    println("OpenBCI_ADS1299: closeSerialPort: h");
     return 0;
   }
   
-  //start the data transfer using the current mode
-  // int startDataTransfer() {
-  //   println("OpenBCI_ADS1299: startDataTransfer: using current dataMode..." + dataMode);
-  //   return startDataTransfer(dataMode);
-  // }
+      
+  public void syncWithHardware(int sdSetting){
+    switch (hardwareSyncStep) {
+      // case 1:
+      //   println("openBCI_GUI: syncWithHardware: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+      //   serial_openBCI.write('v');
+      //   readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+      case 1: //send # of channels (8 or 16) ... (regular or daisy setup)
+        println("OpenBCI_ADS1299: syncWithHardware: [1] Sending channel count (" + nchan + ") to OpenBCI...");
+        if(nchan == 8){
+          serial_openBCI.write('c');
+        }
+        if(nchan == 16){
+          serial_openBCI.write('C');
+          readyToSend = false;
+        }
+        break;
+      case 2: //reset hardware to default registers 
+        println("OpenBCI_ADS1299: syncWithHardware: [2] Reseting OpenBCI registers to default... writing \'d\'...");
+        serial_openBCI.write("d"); 
+        break;
+      case 3: //ask for series of channel setting ASCII values to sync with channel setting interface in GUI
+        println("OpenBCI_ADS1299: syncWithHardware: [3] Retrieving OpenBCI's channel settings to sync with GUI... writing \'D\'... waiting for $$$...");
+        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        serial_openBCI.write("D"); 
+        break;
+      case 4: //check existing registers
+        println("OpenBCI_ADS1299: syncWithHardware: [4] Retrieving OpenBCI's full register map for verification... writing \'?\'... waiting for $$$...");
+        readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        serial_openBCI.write("?"); 
+        break;
+      case 5:
+        // serial_openBCI.write("j"); // send OpenBCI's 'j' commaned to make sure any already open SD file is closed before opening another one...
+        switch (sdSetting){
+          case 0: //"Do not write to SD"
+            //do nothing
+            break;
+          case 1: //"5 min max"
+            serial_openBCI.write("A");
+            break;
+          case 2: //"5 min max"
+            serial_openBCI.write("S");
+            break;
+          case 3: //"5 min max"
+            serial_openBCI.write("F");
+            break;
+          case 4: //"5 min max"
+            serial_openBCI.write("G");
+            break;
+          case 5: //"5 min max"
+            serial_openBCI.write("H");
+            break;
+          case 6: //"5 min max"
+            serial_openBCI.write("J");
+            break;
+          case 7: //"5 min max"
+            serial_openBCI.write("K");
+            break;
+          case 8: //"5 min max"
+            serial_openBCI.write("L");
+            break;
+        }
+        println("OpenBCI_ADS1299: syncWithHardware: [5] Writing selected SD setting (" + sdSettingString + ") to OpenBCI...");
+        if(sdSetting != 0){
+          readyToSend = false; //wait for $$$ to iterate... applies to commands expecting a response
+        }
+        break;
+      case 6:
+        output("OpenBCI_ADS1299: syncWithHardware: The GUI is done intializing. Click outside of the control panel to interact with the GUI.");
+        changeState(STATE_STOPPED);
+        systemMode = 10;
+        //renitialize GUI if nchan has been updated... needs to be built
+        break; 
+    }
+  }
   
-  // //start data trasnfer using the given mode
-  // int startDataTransfer(int mode) {
-  //   dataMode = mode;
-  //   if (state == STATE_COMINIT) {
-  //     println("OpenBCI_ADS1299: startDataTransfer: cannot start transfer...waiting for comms...");
-  //     return -1;
-  //   }
-  //   // stopDataTransfer();
-  //   // println("OpenBCI_ADS1299: startDataTransfer: received command for mode = " + mode);
-  //   // switch (mode) {
-  //   //   case DATAMODE_BIN:
-  //   //     serial_openBCI.write(command_startBinary);// + "\n");
-  //   //     // serial_openBCI.write(command_startBinary);
-  //   //     println("OpenBCI_ADS1299: startDataTransfer: starting binary transfer");
-  //   //     break;
-  //   //   case DATAMODE_BIN_WAUX:
-  //   //     serial_openBCI.write(command_startBinary_wAux);// + "\n");
-  //   //     println("OpenBCI_ADS1299: startDataTransfer: starting binary transfer (with Aux)");
-  //   //     break;
-  //   // }
+  public void updateSyncState(int sdSetting) {
+    //has it been 3000 milliseconds since we initiated the serial port? We want to make sure we wait for the OpenBCI board to finish its setup()
+    if ( (millis() - prevState_millis > COM_INIT_MSEC) && (prevState_millis != 0) && (state == openBCI.STATE_COMINIT) ) {
+      state = STATE_SYNCWITHHARDWARE;
+      timeOfLastCommand = millis();
+      serial_openBCI.clear();
+      defaultChannelSettings = ""; //clear channel setting string to be reset upon a new Init System
+      daisyOrNot = ""; //clear daisyOrNot string to be reset upon a new Init System
+      println("OpenBCI_ADS1299: systemUpdate: [0] Sending 'v' to OpenBCI to reset hardware in case of 32bit board...");
+      serial_openBCI.write('v');
+    }
+  
+    //if we are in SYNC WITH HARDWARE state ... trigger a command
+    if ( (state == STATE_SYNCWITHHARDWARE) && (currentlySyncing == false) ) {
+      if(millis() - timeOfLastCommand > 200 && readyToSend == true){
+        timeOfLastCommand = millis();
+        hardwareSyncStep++;
+        syncWithHardware(sdSetting);
+      }
+    }
+  }
 
-  //   return 0;
-  // }
-
+  public void sendChar(char val) {
+    if (serial_openBCI != null) {
+      serial_openBCI.write(key);//send the value as ascii (with a newline character?)
+    }
+  }
+  
   void startDataTransfer(){
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       // stopDataTransfer();
-      openBCI.changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
-      println("writing \'" + command_startBinary + "\' to the serial port...");
+      changeState(STATE_NORMAL);  // make sure it's now interpretting as binary
+      println("OpenBCI_ADS1299: startDataTransfer(): writing \'" + command_startBinary + "\' to the serial port...");
       serial_openBCI.write(command_startBinary);
     }
   }
   
-  void stopDataTransfer() {
+  public void stopDataTransfer() {
     if (serial_openBCI != null) {
       serial_openBCI.clear(); // clear anything in the com port's buffer
       openBCI.changeState(STATE_STOPPED);  // make sure it's now interpretting as binary
-      println("writing \'" + command_stop + "\' to the serial port...");
+      println("OpenBCI_ADS1299: startDataTransfer(): writing \'" + command_stop + "\' to the serial port...");
       serial_openBCI.write(command_stop);// + "\n");
     }
   }
   
+  public boolean isSerialPortOpen() { 
+    if (portIsOpen & (serial_openBCI != null)) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  public boolean isOpenBCISerial(Serial port) {
+    if (serial_openBCI == port) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  
+  public void printRegisters() {
+    if (serial_openBCI != null) {
+      println("OpenBCI_ADS1299: printRegisters(): Writing ? to OpenBCI...");
+      openBCI.serial_openBCI.write('?');
+    }
+  }
+  
   //read from the serial port
-  int read() {  return read(false); }
-  int read(boolean echoChar) {
-    // print("State: " + state);
+  public int read() {  return read(false); }
+  public int read(boolean echoChar) {
+    //println("OpenBCI_ADS1299: read(): State: " + state);
     //get the byte
     byte inByte = byte(serial_openBCI.read());
-
+    
     //write the most recent char to the console
     if (echoChar){  //if not in interpret binary (NORMAL) mode
       // print(".");
@@ -294,11 +437,11 @@ class OpenBCI_ADS1299 {
         // hardwareSyncStep++;
         prev3chars[2] = '#';
         if(hardwareSyncStep == 3){
-          println("x");
+          println("OpenBCI_ADS1299: read(): x");
           println(defaultChannelSettings);
-          println("y");
+          println("OpenBCI_ADS1299: read(): y");
           gui.cc.loadDefaultChannelSettings();
-          println("z");
+          println("OpenBCI_ADS1299: read(): z");
         }
         readyToSend = true; 
         // println(hardwareSyncStep);
@@ -311,7 +454,7 @@ class OpenBCI_ADS1299 {
       try {
        output.write(inByte);   //for debugging  WEA 2014-01-26
       } catch (IOException e) {
-        System.err.println("OpenBCI_ADS1299: Caught IOException: " + e.getMessage());
+        System.err.println("OpenBCI_ADS1299: read(): Caught IOException: " + e.getMessage());
         //do nothing
       }
     }
@@ -335,16 +478,17 @@ class OpenBCI_ADS1299 {
   End Indcator    : 0xC0
   TOTAL OF 33 bytes ALL DAY
   ********************************************************************* */
-  int nDataValuesInPacket = 0;
-  int localByteCounter=0;
-  int localChannelCounter=0;
-  int PACKET_readstate = 0;
+  private int nDataValuesInPacket = 0;
+  private int localByteCounter=0;
+  private int localChannelCounter=0;
+  private int PACKET_readstate = 0;
   // byte[] localByteBuffer = {0,0,0,0};
-  byte[] localAdsByteBuffer = {0,0,0};
-  byte[] localAccelByteBuffer = {0,0};
+  private byte[] localAdsByteBuffer = {0,0,0};
+  private byte[] localAccelByteBuffer = {0,0};
 
-  void interpretBinaryStream(byte actbyte)
-  { 
+  void interpretBinaryStream(byte actbyte)  {
+    boolean flag_copyRawDataToFullData = false;
+    
     //println("OpenBCI_ADS1299: interpretBinaryStream: PACKET_readstate " + PACKET_readstate);
     switch (PACKET_readstate) {
       case 0:  
@@ -358,14 +502,14 @@ class OpenBCI_ADS1299 {
         //check the packet counter
         // println("case 1");
         byte inByte = actbyte;
-        dataPacket.sampleIndex = int(inByte); //changed by JAM
-        if ((dataPacket.sampleIndex-prevSampleIndex) != 1) {
-          if(dataPacket.sampleIndex != 0){  // if we rolled over, don't count as error
+        rawReceivedDataPacket.sampleIndex = int(inByte); //changed by JAM
+        if ((rawReceivedDataPacket.sampleIndex-prevSampleIndex) != 1) {
+          if(rawReceivedDataPacket.sampleIndex != 0){  // if we rolled over, don't count as error
             serialErrorCounter++;
-            println("OpenBCI_ADS1299: apparent sampleIndex jump from Serial data: " + prevSampleIndex + " to  " + dataPacket.sampleIndex + ".  Keeping packet. (" + serialErrorCounter + ")");
+            println("OpenBCI_ADS1299: apparent sampleIndex jump from Serial data: " + prevSampleIndex + " to  " + rawReceivedDataPacket.sampleIndex + ".  Keeping packet. (" + serialErrorCounter + ")");
           }
         }
-        prevSampleIndex = dataPacket.sampleIndex;
+        prevSampleIndex = rawReceivedDataPacket.sampleIndex;
         localByteCounter=0;//prepare for next usage of localByteCounter
         localChannelCounter=0; //prepare for next usage of localChannelCounter
         PACKET_readstate++;
@@ -376,7 +520,7 @@ class OpenBCI_ADS1299 {
         localAdsByteBuffer[localByteCounter] = actbyte;
         localByteCounter++;
         if (localByteCounter==3) {
-          dataPacket.values[localChannelCounter] = interpret24bitAsInt32(localAdsByteBuffer);
+          rawReceivedDataPacket.values[localChannelCounter] = interpret24bitAsInt32(localAdsByteBuffer);
           localChannelCounter++;
           if (localChannelCounter==8) { //nDataValuesInPacket) {  
             // all ADS channels arrived !
@@ -398,11 +542,11 @@ class OpenBCI_ADS1299 {
         localAccelByteBuffer[localByteCounter] = actbyte;
         localByteCounter++;
         if (localByteCounter==2) {
-          dataPacket.auxValues[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
+          rawReceivedDataPacket.auxValues[localChannelCounter]  = interpret16bitAsInt32(localAccelByteBuffer);
           localChannelCounter++;
           if (localChannelCounter==nAuxValues) { //number of accelerometer axis) {  
             // all Accelerometer channels arrived !
-            //println("OpenBCI_ADS1299: interpretBinaryStream: Accel Data: " + dataPacket.auxValues[0] + ", " + dataPacket.auxValues[1] + ", " + dataPacket.auxValues[2]);
+            //println("OpenBCI_ADS1299: interpretBinaryStream: Accel Data: " + rawReceivedDataPacket.auxValues[0] + ", " + rawReceivedDataPacket.auxValues[1] + ", " + rawReceivedDataPacket.auxValues[2]);
             PACKET_readstate++;
             localByteCounter = 0;
             //isNewDataPacketAvailable = true;  //tell the rest of the code that the data packet is complete
@@ -419,17 +563,21 @@ class OpenBCI_ADS1299 {
           // println("... 0xC0 found");
           //println("OpenBCI_ADS1299: interpretBinaryStream: found end byte. Setting isNewDataPacketAvailable to TRUE");
           isNewDataPacketAvailable = true; //original place for this.  but why not put it in the previous case block
+          flag_copyRawDataToFullData = true;  //time to copy the raw data packet into the full data packet (mainly relevant for 16-chan OpenBCI) 
         } else {
           serialErrorCounter++;
-          println("Actbyte = " + actbyte);
+          println("OpenBCI_ADS1299: interpretBinaryStream: Actbyte = " + actbyte);
           println("OpenBCI_ADS1299: interpretBinaryStream: expecteding end-of-packet byte is missing.  Discarding packet. (" + serialErrorCounter + ")");
         }
         PACKET_readstate=0;  // either way, look for next packet
         break;
       default: 
-          //println("OpenBCI_ADS1299: Unknown byte: " + actbyte + " .  Continuing...");
-          println("OpenBCI_ADS1299: interpretBinaryStream: Unknown byte.  Continuing...");
+          println("OpenBCI_ADS1299: interpretBinaryStream: Unknown byte: " + actbyte + " .  Continuing...");
           PACKET_readstate=0;  // look for next packet
+    }
+    
+    if (flag_copyRawDataToFullData) {
+      copyRawDataToFullData();
     }
   } // end of interpretBinaryStream
 
@@ -453,6 +601,15 @@ class OpenBCI_ADS1299 {
   //deactivate an EEG channel...channel counting is zero through nchan-1
   public void deactivateChannel(int Ichan) {
     if (serial_openBCI != null) {
+      if ((Ichan >= 0) && (Ichan < command_deactivate_channel.length)) {
+        serial_openBCI.write(command_deactivate_channel[Ichan]);
+      }
+    }
+  }
+  
+  //activate an EEG channel...channel counting is zero through nchan-1
+  public void activateChannel(int Ichan) {
+    if (serial_openBCI != null) {
       if ((Ichan >= 0) && (Ichan < command_activate_channel.length)) {
         serial_openBCI.write(command_activate_channel[Ichan]);
       }
@@ -460,7 +617,7 @@ class OpenBCI_ADS1299 {
   }
 
   //return the state
-  boolean isStateNormal() { 
+  public boolean isStateNormal() { 
     if (state == STATE_NORMAL) { 
       return true;
     } else {
@@ -534,70 +691,139 @@ class OpenBCI_ADS1299 {
     return newInt;
   }
   
-  public int copyDataPacketTo(DataPacket_ADS1299 target) {
-    if(nchan == 16){ //if there is a daisy board present...
-      if(dataPacket.sampleIndex % 2 == 1){//if board packet
-        for(int i = 0; i < 8; i++){ //copy previous packet's channels 9-16 into current packet's 9-16
-          dataPacket.values[i+8] = prevDataPacket.values[i+8];
-        }
+  
+  private int copyRawDataToFullData() {
+    //Prior to the 16-chan OpenBCI, we did NOT have rawReceivedDataPacket along with dataPacket...we just had dataPacket.
+    //With the 16-chan OpenBCI, where the first 8 channels are sent and then the second 8 channels are sent, we introduced
+    //this extra structure so that we could alternate between them.
+    //
+    //This function here decides how to join the latest data (rawReceivedDataPacket) into the full dataPacket
+    
+    if (dataPacket.values.length < 2*rawReceivedDataPacket.values.length) {
+      //this is an 8 channel board, so simply copy the data
+      return rawReceivedDataPacket.copyTo(dataPacket);
+    } else {
+      //this is 16-channels, so copy the raw data into the correct channels of the new data
+      int offsetInd_values = 0;  //this is correct assuming we just recevied a  "board" packet (ie, channels 1-8)
+      int offsetInd_aux = 0;     //this is correct assuming we just recevied a  "board" packet (ie, channels 1-8)
+      if (rawReceivedDataPacket.sampleIndex % 2 == 0) { // even data packets are from the daisy board
+        offsetInd_values = rawReceivedDataPacket.values.length;  //start copying to the 8th slot
+        //offsetInd_aux = rawReceivedDataPacket.auxValues.length;  //start copying to the 3rd slot
+        offsetInd_aux = 0;  
       }
-      if(dataPacket.sampleIndex % 2 == 0){//if daisy packet
-        for(int i = 0; i < 8; i++){
-          dataPacket.values[i+8] = dataPacket.values[i]; //move 1-8 to 9-16...
-        }
-        for(int i = 0; i < 8; i++){
-          dataPacket.values[i] = prevDataPacket.values[i]; //and then copy previous packet's 1-8 into current packet's 1-8
-        }
-      }
-      for(int i = 0; i < nchan; i++){ // store current data packet to be used to build next data packet
-        prevDataPacket.values[i] = dataPacket.values[i]; 
-      }
-      for(int i = 0; i < 3; i++){
-        prevDataPacket.auxValues[i] = dataPacket.auxValues[i];
-      }
-
-      //print some stuff to keep track of what's going on if you're in verbose mode
-      // if(isVerbose){
-      //   print("dataPacket.values: ");
-      //   for(int i = 0; i < dataPacket.values.length; i++){
-      //     print(dataPacket.values[i] + " ");
-      //   }
-      //   for(int i = 0; i < dataPacket.auxValues.length; i++){
-      //     print(dataPacket.auxValues[i] + " ");
-      //   }
-      //   println();
-      // }
-      
-      isNewDataPacketAvailable = false;
-      dataPacket.copyTo(target);
-      return 0;
-
-    } else{
-      isNewDataPacketAvailable = false;
-      dataPacket.copyTo(target);
-      return 0;
+      return rawReceivedDataPacket.copyTo(dataPacket,offsetInd_values,offsetInd_aux);
     }
   }
-};  
   
-//  int measurePacketLength() {
-//    
-//    //assume curBuffIndex has already been incremented to the next open spot
-//    int startInd = curBuffIndex-1;
-//    int endInd = curBuffIndex-1;
-//
-//    //roll backwards to find the start of the packet
-//    while ((startInd >= 0) && (serialBuff[startInd] != BYTE_START)) {
-//      startInd--;
-//    }
-//    if (startInd < 0) {
-//      //didn't find the start byte..so ignore this data packet
-//      return 0;
-//    } else if ((endInd - startInd + 1) < 3) {
-//      //data packet isn't long enough to hold any data...so ignore this data packet
-//      return 0;
-//    } else {
-//      //int n_bytes = int(serialBuff[startInd + 1]); //this is the number of bytes in the payload
-//      //println("OpenBCI_ADS1299: measurePacketLength = " + (endInd-startInd+1));
-//      return endInd-startInd+1;
-//    }
+  public int copyDataPacketTo(DataPacket_ADS1299 target) {
+    isNewDataPacketAvailable = false;
+    return dataPacket.copyTo(target);
+  }
+ 
+ 
+  private long timeOfLastChannelWrite = 0;
+  private int channelWriteCounter = 0;
+  private boolean isWritingChannel = false;
+  public boolean get_isWritingChannel() { return isWritingChannel; }
+  public void configureAllChannelsToDefault() { serial_openBCI.write('d'); };
+  public void initChannelWrite(int _numChannel) {  //numChannel counts from zero
+      timeOfLastChannelWrite = millis();
+      isWritingChannel = true;
+  }
+  public void writeChannelSettings(int _numChannel,char[][] channelSettingValues) {   //numChannel counts from zero
+    if (millis() - timeOfLastChannelWrite >= 50) { //wait 50 milliseconds before sending next character
+      verbosePrint("---");
+      switch (channelWriteCounter) {
+        case 0: //start sequence by send 'x'
+          verbosePrint("x" + " :: " + millis());
+          serial_openBCI.write('x');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
+          }
+          break;
+        case 2: 
+        case 3: 
+        case 4: 
+        case 5: 
+        case 6: 
+        case 7:
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 8:
+          verbosePrint("X" + " :: " + millis());
+          serial_openBCI.write('X'); // send 'X' to end message sequence
+          break;
+        case 9:
+          verbosePrint("done writing channel.");
+          isWritingChannel = false;
+          channelWriteCounter = -1;
+          break;
+      }
+      timeOfLastChannelWrite = millis();
+      channelWriteCounter++;
+    }
+  }
+  
+  private long timeOfLastImpWrite = 0;
+  private int impWriteCounter = 0;
+  private boolean isWritingImp = false;
+  public boolean get_isWritingImp() { return isWritingImp; }
+  public void initImpWrite(int _numChannel) {  //numChannel counts from zero
+        timeOfLastImpWrite = millis();
+        isWritingImp = true;
+  }
+  public void writeImpedanceSettings(int _numChannel,char[][] impedanceCheckValues) {  //numChannel counts from zero
+    //after clicking an impedance button, write the new impedance settings for that channel to OpenBCI
+    //after clicking any button, write the new settings for that channel to OpenBCI
+    // verbosePrint("Writing impedance settings for channel " + _numChannel + " to OpenBCI!");
+    //write setting 1, delay 5ms.. write setting 2, delay 5ms, etc.
+    if (millis() - timeOfLastImpWrite >= 50) { //wait 50 milliseconds before sending next character
+      verbosePrint("---");
+      switch (impWriteCounter) {
+        case 0: //start sequence by sending 'z'
+          verbosePrint("z" + " :: " + millis());
+          serial_openBCI.write('z');
+          break;
+        case 1: //send channel number
+          verbosePrint(str(_numChannel+1) + " :: " + millis());
+          if (_numChannel < 8) {
+            serial_openBCI.write((char)('0'+(_numChannel+1)));
+          }
+          if (_numChannel >= 8) {
+            //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
+            serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy values
+          }
+          break;
+        case 2: 
+        case 3: 
+          verbosePrint(impedanceCheckValues[_numChannel][impWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(impedanceCheckValues[_numChannel][impWriteCounter-2]);
+          //value for ON/OF
+          break;
+        case 4:
+          verbosePrint("Z" + " :: " + millis());
+          serial_openBCI.write('Z'); // send 'X' to end message sequence
+          break;
+        case 5:
+          verbosePrint("done writing imp settings.");
+          isWritingImp = false;
+          impWriteCounter = -1;
+          break;
+      }
+      timeOfLastImpWrite = millis();
+      impWriteCounter++;
+    }
+  }
+
+ 
+};  
+ 
