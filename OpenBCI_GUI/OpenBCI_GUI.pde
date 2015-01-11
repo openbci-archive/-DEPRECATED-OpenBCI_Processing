@@ -36,8 +36,8 @@ final int DATASOURCE_NORMAL = 3;  //looking for signal from OpenBCI board via Se
 final int DATASOURCE_PLAYBACKFILE = 1;  //playback from a pre-recorded text file
 final int DATASOURCE_SYNTHETIC = 2;  //Synthetically generated data
 final int DATASOURCE_NORMAL_W_AUX = 0; // new default, data from serial with Accel data CHIP 2014-11-03
-//public int eegDataSource = -1; //default to none of the options
-public int eegDataSource = DATASOURCE_NORMAL_W_AUX; //default to none of the options
+public int eegDataSource = -1; //default to none of the options
+//public int eegDataSource = DATASOURCE_NORMAL_W_AUX; //default to none of the options
 
 //Serial communications constants
 //OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
@@ -67,9 +67,10 @@ final int nPointsPerUpdate = 50; //update the GUI after this many data points ha
 /////Define variables related to OpenBCI board operations
 //define number of channels from openBCI...first EEG channels, then aux channels
 //int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
-//int nchan = 16;
-int nchan = 32;
-int n_aux_ifEnabled = 3;  // this is the accelerometer data CHIP 2014-11-03
+int nEEGChannelsPerOpenBCI[] = new int[]{8, 0};  //number of channels for each OpenBCI unit...make room for two boards
+int nchan = 8; //total number of EEG channels summed across all OpenBCI Units.  This default value only matters for DATASOURCE_SYNTHETIC (or maybe DATASOURCE_PLAYBACKFILE)
+int n_aux_ifEnabled = 3;  //number of auxillary data channels per OpenBCI unit 
+
 
 //define variables related to warnings to the user about whether the EEG data is nearly railed (and, therefore, of dubious quality)
 DataStatus is_railed[];
@@ -96,8 +97,8 @@ long timeOfLastCommand = 0;
 float dataBuffX[];  //define the size later
 float dataBuffY_uV[][]; //2D array to handle multiple data channels, each row is a new channel so that dataBuffY[3][] is channel 4
 float dataBuffY_filtY_uV[][];
-float yLittleBuff[] = new float[nPointsPerUpdate];
-float yLittleBuff_uV[][] = new float[nchan][nPointsPerUpdate]; //small buffer used to send data to the filters
+float yLittleBuff[];  // = new float[nPointsPerUpdate];
+float yLittleBuff_uV[][]; // = new float[nchan][nPointsPerUpdate]; //small buffer used to send data to the filters
 float data_elec_imp_ohm[];
 
 //variables for writing EEG data out to a file
@@ -111,7 +112,7 @@ EEG_Processing_User eegProcessing_user;
 
 //fft constants
 int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
-FFT fftBuff[] = new FFT[nchan];   //from the minim library
+FFT fftBuff[]; // = new FFT[nchan];   //from the minim library
 float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
 int smoothFac_ind = 0;    //initial index into the smoothFac array
 
@@ -220,17 +221,27 @@ int prevMillis=millis();
 int byteRate_perSec = 0;
 int drawLoop_counter = 0;
 
+
 //used to init system based on initial settings...Called from the "Start System" button in the GUI's ControlPanel
 void initSystem(){
 
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 0 --");
   timeOfInit = millis(); //store this for timeout in case init takes too long
 
+  //count how many EEG channels there are going to be
+  if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
+    nchan = 0;
+    for (int Iboard = 0; Iboard < nEEGChannelsPerOpenBCI.length; Iboard++) nchan += nEEGChannelsPerOpenBCI[Iboard];
+  }
+
   //prepare data variables
   verbosePrint("OpenBCI_GUI: initSystem: Preparing data variables...");
   dataBuffX = new float[(int)(dataBuff_len_sec * openBCI.get_fs_Hz())];
   dataBuffY_uV = new float[nchan][dataBuffX.length];
   dataBuffY_filtY_uV = new float[nchan][dataBuffX.length];
+  yLittleBuff = new float[nPointsPerUpdate];
+  yLittleBuff_uV = new float[nchan][nPointsPerUpdate]; //small buffer used to send data to the filters
+  fftBuff = new FFT[nchan];   //from the minim library
   //data_std_uV = new float[nchan];
   data_elec_imp_ohm = new float[nchan];
   is_railed = new DataStatus[nchan];
@@ -260,6 +271,9 @@ void initSystem(){
   //prepare some signal processing stuff
   //for (int Ichan=0; Ichan < nchan; Ichan++) { detData_freqDomain[Ichan] = new DetectionData_FreqDomain(); }
 
+  //tell the ChannelController how many channels
+  updateChannelArrays(nchan);
+
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 2 --");
 
   //prepare the source of the input data
@@ -268,14 +282,14 @@ void initSystem(){
       
       // int nDataValuesPerPacket = OpenBCI_Nchannels;
       //int nEEDataValuesPerPacket = nchan;
-      int nEEGValuesPerOpenBCI = 16;  //are we using 8 channel or 16 channel OpenBCI boards?
       boolean useAux = false;
       if (eegDataSource == DATASOURCE_NORMAL_W_AUX) useAux = true;  //switch this back to true CHIP 2014-11-04
-      openBCI = new OpenBCI_Multi(this, openBCI_portName, openBCI_baud, nEEGValuesPerOpenBCI, useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
+      openBCI = new OpenBCI_Multi(this, openBCI_portName, openBCI_baud, nEEGChannelsPerOpenBCI[0], useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
       if (true) {
-        String openBCI_portName2 = "COM12";
+        String openBCI_portName2 = "COM12"; //hardcode this for now
+        nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
         println("OpenBCI_GUI: adding 2nd OpenBCI board at " + openBCI_portName2);
-        openBCI.addUnit(this, openBCI_portName2, openBCI_baud, nEEGValuesPerOpenBCI, useAux, n_aux_ifEnabled);
+        openBCI.addUnit(this, openBCI_portName2, openBCI_baud, nEEGChannelsPerOpenBCI[1], useAux, n_aux_ifEnabled);
       }
       break;
     case DATASOURCE_SYNTHETIC:

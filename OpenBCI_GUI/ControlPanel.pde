@@ -353,19 +353,19 @@ class ControlPanel {
     }
 
     if (chanButton8.isMouseHere() && chanButton8Pressed) {
-      nchan = 8;
-      fftBuff = new FFT[nchan];   //from the minim library
-      yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
-      output("channel count set to " + str(nchan));
-      updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
+      nEEGChannelsPerOpenBCI[0] = 8;
+      //fftBuff = new FFT[nchan];   //from the minim library
+      //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
+      output("OpenBCI channel count set to " + str(nEEGChannelsPerOpenBCI[0]));
+      //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
     }
 
     if (chanButton16.isMouseHere() && chanButton16Pressed) {
-      nchan = 16;
-      fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
-      yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
-      output("channel count set to " + str(nchan));
-      updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels
+      nEEGChannelsPerOpenBCI[0] = 16;
+      //fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
+      //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
+      output("OpenBCI channel count set to " + str(nEEGChannelsPerOpenBCI[0]));
+      //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
     }
 
     if (selectPlaybackFile.isMouseHere() && selectPlaybackFilePressed) {
