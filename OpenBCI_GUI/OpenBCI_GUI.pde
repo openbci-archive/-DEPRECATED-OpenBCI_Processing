@@ -42,8 +42,7 @@ public int eegDataSource = -1; //default to none of the options
 //Serial communications constants
 //OpenBCI_ADS1299 openBCI = new OpenBCI_ADS1299(); //dummy creation to get access to constants, create real one later
 OpenBCI_Multi openBCI = new OpenBCI_Multi(); //dummy creation to get access to constants, create real one later
-String openBCI_portName = "N/A";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
-//String openBCI_portName = "COM11";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+String openBCI_portName[] = {"N/A","N/A"};  //do as array to support mutiple OpenBCI units.  starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 int openBCI_baud = 115200; //baud rate from the Arduino
 
 //here are variables that are used if loading input data from a CSV text file...double slash ("\\") is necessary to make a single slash
@@ -69,7 +68,8 @@ final int nPointsPerUpdate = 50; //update the GUI after this many data points ha
 //int nchan = 8; //Normally, 8 or 16.  Choose a smaller number to show fewer on the GUI
 int nEEGChannelsPerOpenBCI[] = new int[]{8, 0};  //number of channels for each OpenBCI unit...make room for two boards
 int nchan = 8; //total number of EEG channels summed across all OpenBCI Units.  This default value only matters for DATASOURCE_SYNTHETIC (or maybe DATASOURCE_PLAYBACKFILE)
-int n_aux_ifEnabled = 3;  //number of auxillary data channels per OpenBCI unit 
+int nAuxPerBoard = 3;  //number of auxillary data channels per OpenBCI unit
+int nAuxTotal = nAuxPerBoard;
 
 
 //define variables related to warnings to the user about whether the EEG data is nearly railed (and, therefore, of dubious quality)
@@ -224,17 +224,30 @@ int drawLoop_counter = 0;
 
 //used to init system based on initial settings...Called from the "Start System" button in the GUI's ControlPanel
 void initSystem(){
+  
+  boolean useMultipleOpenBCIBoards = true;
+  if (useMultipleOpenBCIBoards) {
+    nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
+    openBCI_portName[1] = "COM12";   //hardcode this for now
+  }
 
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 0 --");
   timeOfInit = millis(); //store this for timeout in case init takes too long
 
   //count how many EEG channels there are going to be
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
-    nchan = 0;
-    for (int Iboard = 0; Iboard < nEEGChannelsPerOpenBCI.length; Iboard++) nchan += nEEGChannelsPerOpenBCI[Iboard];
+    nchan = 0; nAuxTotal = 0;
+    for (int Iboard = 0; Iboard < nEEGChannelsPerOpenBCI.length; Iboard++) {
+      if (nEEGChannelsPerOpenBCI[Iboard] > 0) {
+        //this board exists, so go ahead and add its data into the total
+        nchan += nEEGChannelsPerOpenBCI[Iboard];
+        nAuxTotal += nAuxPerBoard; 
+      }
+    }
+    println("OpenBCI_GUI: initSystem: nchan = " + str(nchan) + ", nAuxTotal = " + str(nAuxTotal));
   }
 
-  //prepare data variables
+  //prepare data variables given the total number of channels
   verbosePrint("OpenBCI_GUI: initSystem: Preparing data variables...");
   dataBuffX = new float[(int)(dataBuff_len_sec * openBCI.get_fs_Hz())];
   dataBuffY_uV = new float[nchan][dataBuffX.length];
@@ -247,10 +260,7 @@ void initSystem(){
   is_railed = new DataStatus[nchan];
   for (int i=0; i<nchan;i++) is_railed[i] = new DataStatus(threshold_railed,threshold_railed_warn);
   for (int i=0; i<nDataBackBuff;i++) { 
-    //dataPacketBuff[i] = new DataPacket_ADS1299(nchan+n_aux_ifEnabled);
-    // dataPacketBuff[i] = new DataPacket_ADS1299(OpenBCI_Nchannels+n_aux_ifEnabled);
-    //dataPacketBuff[i] = new DataPacket_ADS1299(nchan,n_aux_ifEnabled);
-    dataPacketBuff[i] = new DataPacket_ADS1299(nchan,2*n_aux_ifEnabled);
+    dataPacketBuff[i] = new DataPacket_ADS1299(nchan,nAuxTotal);
   }
   eegProcessing = new EEG_Processing(nchan,openBCI.get_fs_Hz());
   eegProcessing_user = new EEG_Processing_User(nchan,openBCI.get_fs_Hz());
@@ -284,12 +294,10 @@ void initSystem(){
       //int nEEDataValuesPerPacket = nchan;
       boolean useAux = false;
       if (eegDataSource == DATASOURCE_NORMAL_W_AUX) useAux = true;  //switch this back to true CHIP 2014-11-04
-      openBCI = new OpenBCI_Multi(this, openBCI_portName, openBCI_baud, nEEGChannelsPerOpenBCI[0], useAux, n_aux_ifEnabled); //this also starts the data transfer after XX seconds
-      if (true) {
-        String openBCI_portName2 = "COM12"; //hardcode this for now
-        nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
-        println("OpenBCI_GUI: adding 2nd OpenBCI board at " + openBCI_portName2);
-        openBCI.addUnit(this, openBCI_portName2, openBCI_baud, nEEGChannelsPerOpenBCI[1], useAux, n_aux_ifEnabled);
+      openBCI = new OpenBCI_Multi(this, openBCI_portName[0], openBCI_baud, nEEGChannelsPerOpenBCI[0], useAux, nAuxPerBoard); //this also starts the data transfer after XX seconds
+      if (useMultipleOpenBCIBoards) {
+        println("OpenBCI_GUI: adding 2nd OpenBCI board at " + openBCI_portName[1]);
+        openBCI.addUnit(this, openBCI_portName[1], openBCI_baud, nEEGChannelsPerOpenBCI[1], useAux, nAuxPerBoard);
       }
       break;
     case DATASOURCE_SYNTHETIC:

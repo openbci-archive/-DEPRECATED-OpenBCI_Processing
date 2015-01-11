@@ -296,7 +296,7 @@ class ControlPanel {
       //if system is not active ... initate system and flip button state
       if (initSystemButton.but_txt == "START SYSTEM") {
 
-        if ((eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX) && openBCI_portName == "N/A") { //if data source == normal && if no serial port selected OR no SD setting selected
+        if ((eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX) && openBCI_portName[0] == "N/A") { //if data source == normal && if no serial port selected OR no SD setting selected
           output("No Serial/COM port selected. Please select your Serial/COM port and retry system initiation.");
           initButtonPressed = false;
           initSystemButton.setIsActive(false);
@@ -409,8 +409,8 @@ public void controlEvent(ControlEvent theEvent) {
 
   if (theEvent.isFrom("serialList")) {
     Map bob = ((MenuList)theEvent.getController()).getItem(int(theEvent.getValue()));
-    openBCI_portName = (String)bob.get("headline");
-    output("OpenBCI Port Name = " + openBCI_portName);
+    openBCI_portName[0] = (String)bob.get("headline");
+    output("OpenBCI Port Name = " + openBCI_portName[0]);
   }
 
   if (theEvent.isFrom("sdTimes")) {
@@ -599,9 +599,9 @@ class ChannelCountBox {
     padding = _padding;
 
     chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
-    if (nchan == 8) chanButton8.color_notPressed = isSelected_color; //make it appear like this one is already selected
+    if (nEEGChannelsPerOpenBCI[0] == 8) chanButton8.color_notPressed = isSelected_color; //make it appear like this one is already selected
     chanButton16 = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
-    if (nchan == 16) chanButton16.color_notPressed = isSelected_color; //make it appear like this one is already selected
+    if (nEEGChannelsPerOpenBCI[0] == 16) chanButton16.color_notPressed = isSelected_color; //make it appear like this one is already selected
   }
 
   public void update() {
@@ -620,7 +620,7 @@ class ChannelCountBox {
     fill(bgColor); //set color to green
     textFont(f1);
     textAlign(LEFT, TOP);
-    text("(" + str(nchan) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
+    text("(" + str(nEEGChannelsPerOpenBCI[0]) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
     popStyle();
 
     chanButton8.draw();
