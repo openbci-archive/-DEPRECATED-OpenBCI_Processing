@@ -74,9 +74,9 @@ class ControlPanel {
 
   //various control panel elements that are unique to specific datasources
   DataSourceBox dataSourceBox;
-  SerialBox serialBox;
+  SerialBox[] serialBox = new SerialBox[2];
   DataLogBox dataLogBox;
-  ChannelCountBox channelCountBox;
+  ChannelCountBox[] channelCountBox = new ChannelCountBox[2];
   InitBox initBox;
 
   PlaybackFileBox playbackFileBox;
@@ -102,21 +102,22 @@ class ControlPanel {
 
     fontInfo = new PlotFontInfo();
 
-    // f1 = createFont("Raleway-SemiBold.otf", 16);
-    // f2 = createFont("Raleway-Regular.otf", 15);
-    // f3 = createFont("Raleway-SemiBold.otf", 15);
-
     globalPadding = 10;  //controls the padding of all elements on the control panel
     globalBorder = 0;   //controls the border of all elements in the control panel ... using processing's stroke() instead
 
     cp5 = new ControlP5(mainClass); 
 
     //boxes active when eegDataSource = Normal (OpenBCI) 
-    dataSourceBox = new DataSourceBox(x, y, w, h, globalPadding);
-    serialBox = new SerialBox(x + w, dataSourceBox.y, w, h, globalPadding);
-    dataLogBox = new DataLogBox(x + w, (serialBox.y + serialBox.h), w, h, globalPadding);
-    channelCountBox = new ChannelCountBox(x + w, (dataLogBox.y + dataLogBox.h), w, h, globalPadding);
-    sdBox = new SDBox(x + w, (channelCountBox.y + channelCountBox.h), w, h, globalPadding);
+    int total_y = 0;
+    dataSourceBox = new DataSourceBox(x, y, w, h, globalPadding); 
+    for (int Iunit = 0; Iunit < serialBox.length; Iunit++) {
+      total_y += dataSourceBox.y;
+      serialBox[Iunit] = new SerialBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += serialBox.h;
+      channelCountBox[Iunit] = new ChannelCountBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += channelCountBox.h;
+    }
+    sdBox = new SDBox(x + w, total_y, w, h, globalPadding);  total_y += sdBox.h;
+    dataLogBox = new DataLogBox(x + w, total_y, w, h, globalPadding);  total_y += dataLogBox.h;
+
 
     //boxes active when eegDataSource = Playback
     playbackFileBox = new PlaybackFileBox(x + w, dataSourceBox.y, w, h, globalPadding);
@@ -139,9 +140,11 @@ class ControlPanel {
 
     //update all boxes if they need to be
     dataSourceBox.update();
-    serialBox.update();
+    for (int Iunit = 0; Iunit < serialBox.length; Iunit++) {
+      serialBox[Iunit].update();
+      channelCountBox[Iunit].update();
+    }
     dataLogBox.update();
-    channelCountBox.update();
     sdBox.update();
     initBox.update();
 
@@ -185,9 +188,11 @@ class ControlPanel {
       drawStopInstructions = false;
       cp5.setVisible(true);//make sure controlP5 elements are visible
       if (eegDataSource == 0) {	//when data source is from OpenBCI
-        serialBox.draw();
+        for (int Iunit = 0; Iunit < serialBox.length; Iunit++){
+          serialBox[Iunit].draw();
+          channelCountBox[Iunit].draw();
+        }
         dataLogBox.draw();
-        channelCountBox.draw();
         sdBox.draw();
         cp5.get(Textfield.class, "fileName").setVisible(true); //make sure the data file field is visible
         cp5.get(MenuList.class, "serialList").setVisible(true); //make sure the serialList menulist is visible
@@ -475,16 +480,18 @@ class DataSourceBox {
 
 class SerialBox {
   int x, y, w, h, padding; //size and position
+  int ID;
   //connect/disconnect button
   //Refresh list button
   //String port status;
 
-  SerialBox(int _x, int _y, int _w, int _h, int _padding) {
+  SerialBox(int _x, int _y, int _w, int _h, int _padding, int _ID) {
     x = _x;
     y = _y;
     w = _w;
     h = 147;
     padding = _padding;
+    ID = _ID;
 
     // openClosePort = new Button (padding + border, y + padding*3 + 13 + 150, (w-padding*3)/2, 24, "OPEN PORT", fontInfo.buttonLabel_size);
     refreshPort = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
@@ -587,16 +594,18 @@ class DataLogBox {
 
 class ChannelCountBox {
   int x, y, w, h, padding; //size and position
+  int ID;
 
   boolean isSystemInitialized;
   // button for init/halt system
 
-  ChannelCountBox(int _x, int _y, int _w, int _h, int _padding) {
+  ChannelCountBox(int _x, int _y, int _w, int _h, int _padding, int _ID) {
     x = _x;
     y = _y;
     w = _w;
     h = 73;
     padding = _padding;
+    ID = _ID;
 
     chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
     if (nEEGChannelsPerOpenBCI[0] == 8) chanButton8.color_notPressed = isSelected_color; //make it appear like this one is already selected

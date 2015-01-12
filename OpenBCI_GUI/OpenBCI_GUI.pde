@@ -225,7 +225,7 @@ int drawLoop_counter = 0;
 //used to init system based on initial settings...Called from the "Start System" button in the GUI's ControlPanel
 void initSystem(){
   
-  boolean useMultipleOpenBCIBoards = true;
+  boolean useMultipleOpenBCIBoards = false;
   if (useMultipleOpenBCIBoards) {
     nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
     openBCI_portName[1] = "COM12";   //hardcode this for now
