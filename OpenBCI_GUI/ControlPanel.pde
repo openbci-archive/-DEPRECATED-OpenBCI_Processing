@@ -29,7 +29,7 @@ CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text
 MenuList sourceList;
 
 //Global buttons and elements for the control panel (changed within the classes below)
-MenuList serialList;
+MenuList[] serialList = new MenuList[2];
 String[] serialPorts = new String[Serial.list().length];
 
 MenuList sdTimes;
@@ -51,11 +51,11 @@ boolean initButtonPressed = false; //default false
 Button autoFileName;
 boolean fileButtonPressed = false;
 
-Button chanButton8;
-boolean chanButton8Pressed = false;
+Button chanButton8[2];
+boolean chanButton8Pressed[2] = {false, false};
 
-Button chanButton16;
-boolean chanButton16Pressed = false;
+Button chanButton16[2];
+boolean chanButton16Pressed = {false, false};
 
 Button selectPlaybackFile;
 boolean selectPlaybackFilePressed = false;
@@ -108,12 +108,12 @@ class ControlPanel {
     cp5 = new ControlP5(mainClass); 
 
     //boxes active when eegDataSource = Normal (OpenBCI) 
-    int total_y = 0;
+    int total_y=0;
     dataSourceBox = new DataSourceBox(x, y, w, h, globalPadding); 
     for (int Iunit = 0; Iunit < serialBox.length; Iunit++) {
-      total_y += dataSourceBox.y;
-      serialBox[Iunit] = new SerialBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += serialBox.h;
-      channelCountBox[Iunit] = new ChannelCountBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += channelCountBox.h;
+      total_y = dataSourceBox.y;
+      serialBox[Iunit] = new SerialBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += serialBox[Iunit].h;
+      channelCountBox[Iunit] = new ChannelCountBox(x + (Iunit+1)*w, total_y, w, h, globalPadding, Iunit);  total_y += channelCountBox[Iunit].h;
     }
     sdBox = new SDBox(x + w, total_y, w, h, globalPadding);  total_y += sdBox.h;
     dataLogBox = new DataLogBox(x + w, total_y, w, h, globalPadding);  total_y += dataLogBox.h;
@@ -142,13 +142,13 @@ class ControlPanel {
     dataSourceBox.update();
     for (int Iunit = 0; Iunit < serialBox.length; Iunit++) {
       serialBox[Iunit].update();
+      serialList[Iunit].updateMenu();
       channelCountBox[Iunit].update();
     }
     dataLogBox.update();
     sdBox.update();
     initBox.update();
 
-    serialList.updateMenu();
 
     //SD File Conversion
     while (convertingSD == true) {
@@ -261,18 +261,20 @@ class ControlPanel {
           fileButtonPressed = true;
         }
 
-        if (chanButton8.isMouseHere()) {
-          chanButton8.setIsActive(true);
-          chanButton8Pressed = true;
-          chanButton8.color_notPressed = isSelected_color;
-          chanButton16.color_notPressed = color(255);
-        }
-
-        if (chanButton16.isMouseHere()) {
-          chanButton16.setIsActive(true);
-          chanButton16Pressed = true;
-          chanButton8.color_notPressed = color(255);
-          chanButton16.color_notPressed = isSelected_color;
+        for (int Iunit = 0; Iunit < chanButton8.length; Iunit++) {
+          if (chanButton8[Iunit].isMouseHere()) {
+            chanButton8[Iunit].setIsActive(true);
+            chanButton8Pressed[Iunit] = true;
+            chanButton8[Iunit].color_notPressed = isSelected_color;
+            chanButton16[Iunit].color_notPressed = color(255);
+          }
+  
+          if (chanButton16[Iunit].isMouseHere()) {
+            chanButton16[Iunit].setIsActive(true);
+            chanButton16Pressed[Iunit] = true;
+            chanButton8[Iunit].color_notPressed = color(255);
+            chanButton16[Iunit].color_notPressed = isSelected_color;
+          }
         }
       }
 
@@ -343,12 +345,12 @@ class ControlPanel {
       output("Serial/COM List Refreshed");
       serialPorts = new String[Serial.list().length];
       serialPorts = Serial.list();
-      serialList.items.clear();
+      serialList[0].items.clear();
       for (int i = 0; i < serialPorts.length; i++) {
         String tempPort = serialPorts[(serialPorts.length-1) - i]; //list backwards... because usually our port is at the bottom
-        serialList.addItem(makeItem(tempPort));
+        serialList[0].addItem(makeItem(tempPort));
       }
-      serialList.updateMenu();
+      serialList[0].updateMenu();
     }
 
     //open or close serial port if serial port button is pressed (left button in serial widget)
@@ -357,7 +359,7 @@ class ControlPanel {
       cp5.get(Textfield.class, "fileName").setText(getDateString());
     }
 
-    if (chanButton8.isMouseHere() && chanButton8Pressed) {
+    if (chanButton8[0].isMouseHere() && chanButton8Pressed[0]) {
       nEEGChannelsPerOpenBCI[0] = 8;
       //fftBuff = new FFT[nchan];   //from the minim library
       //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
@@ -365,7 +367,7 @@ class ControlPanel {
       //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
     }
 
-    if (chanButton16.isMouseHere() && chanButton16Pressed) {
+    if (chanButton16[0].isMouseHere() && chanButton16Pressed[0]) {
       nEEGChannelsPerOpenBCI[0] = 16;
       //fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
       //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
@@ -496,12 +498,12 @@ class SerialBox {
     // openClosePort = new Button (padding + border, y + padding*3 + 13 + 150, (w-padding*3)/2, 24, "OPEN PORT", fontInfo.buttonLabel_size);
     refreshPort = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
 
-    serialList = new MenuList(cp5, "serialList", w - padding*2, 72, f2);
-    serialList.setPosition(x + padding, y + padding*2 + 13);
+    serialList[ID] = new MenuList(cp5, "serialList" + str(ID), w - padding*2, 72, f2);
+    serialList[ID].setPosition(x + padding, y + padding*2 + 13);
     serialPorts = Serial.list();
     for (int i = 0; i < serialPorts.length; i++) {
       String tempPort = serialPorts[(serialPorts.length-1) - i]; //list backwards... because usually our port is at the bottom
-      serialList.addItem(makeItem(tempPort));
+      serialList[ID].addItem(makeItem(tempPort));
     }
   }
 
