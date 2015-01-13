@@ -4,6 +4,7 @@
 //
 // Created: Chip Audette, Oct 2013 - May 2014
 // Modified: Conor Russomanno & Joel Murphy, August 2014 - Dec 2014
+// Additional Mods: Chip Audette Dec 2014-Jan 2015
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/

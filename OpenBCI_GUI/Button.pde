@@ -29,14 +29,19 @@ class Button {
   boolean wasPressed = false;
   public String but_txt;
   PFont buttonFont = f2;
+  int fontSize = 12;
 
-  public Button(int x, int y, int w, int h, String txt, int fontSize) {
+  public Button(int x, int y, int w, int h, String txt) {
+    this(x,y,w,h,txt,12); //default font size is 12
+  }
+  public Button(int x, int y, int w, int h, String txt, int _fontSize) {
     setup(x, y, w, h, txt);
     //println(PFont.list()); //see which fonts are available
     //font = createFont("SansSerif.plain",fontSize);
     //font = createFont("Lucida Sans Regular",fontSize);
     // font = createFont("Arial",fontSize);
     //font = loadFont("SansSerif.plain.vlw");
+    fontSize = _fontSize;
   }
 
   public void setup(int x, int y, int w, int h, String txt) {
@@ -132,7 +137,7 @@ class Button {
     }
     stroke(255);
     textFont(buttonFont);  //load f2 ... from control panel 
-    textSize(12);
+    textSize(fontSize);
     textAlign(CENTER, CENTER);
     textLeading(round(0.9*(textAscent()+textDescent())));
 //    int x1 = but_x+but_dx/2;

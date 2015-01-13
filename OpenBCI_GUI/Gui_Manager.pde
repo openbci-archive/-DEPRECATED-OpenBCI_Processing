@@ -142,7 +142,7 @@ class Gui_Manager {
 
     println("Gui_Manager: Buttons: " + int(float(win_x)*axisMontage_relPos[0]) + ", " + (int(float(win_y)*axisMontage_relPos[1])-40));
 
-    showMontageButton = new Button (int(float(win_x)*axisMontage_relPos[0]) - 1, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "EEG DATA", 14); 
+    showMontageButton = new Button(int(float(win_x)*axisMontage_relPos[0]) - 1, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "EEG DATA"); // did add 14 as the extra parameter, which was ignored
     showMontageButton.makeDropdownButton(true);
     showMontageButton.setColorPressed(color(184,220,105));
     showMontageButton.setColorNotPressed(color(255));
@@ -152,7 +152,7 @@ class Gui_Manager {
     showMontageButton.textColorActive = bgColor;
 
 
-    showChannelControllerButton = new Button (int(float(win_x)*axisMontage_relPos[0])+127, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET", 14);
+    showChannelControllerButton = new Button(int(float(win_x)*axisMontage_relPos[0])+127, int(float(win_y)*axisMontage_relPos[1])-45, 125, 21, "CHAN SET"); // did add 14 as the extra parameter, which was ignored
     showChannelControllerButton.makeDropdownButton(true);
     showChannelControllerButton.setColorPressed(color(184,220,105));
     showChannelControllerButton.setColorNotPressed(color(255));
