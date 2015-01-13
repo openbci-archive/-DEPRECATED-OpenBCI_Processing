@@ -28,8 +28,10 @@ CallbackListener cb = new CallbackListener() { //used by ControlP5 to clear text
 
 MenuList sourceList;
 
+final int max_n_openBCI_boards = 2;
+
 //Global buttons and elements for the control panel (changed within the classes below)
-MenuList[] serialList = new MenuList[2];
+MenuList[] serialList = new MenuList[max_n_openBCI_boards];
 String[] serialPorts = new String[Serial.list().length];
 
 MenuList sdTimes;
@@ -42,8 +44,8 @@ color isSelected_color = color(184, 220, 105);
 // Button openClosePort;
 // boolean portButtonPressed;
 
-Button refreshPort;
-boolean refreshButtonPressed = false;
+Button[] refreshPort = new Button[max_n_openBCI_boards];
+boolean[] refreshButtonPressed = {false, false};
 
 Button initSystemButton;
 boolean initButtonPressed = false; //default false
@@ -51,11 +53,11 @@ boolean initButtonPressed = false; //default false
 Button autoFileName;
 boolean fileButtonPressed = false;
 
-Button chanButton8[2];
-boolean chanButton8Pressed[2] = {false, false};
+Button[] chanButton8 = new Button[max_n_openBCI_boards];
+boolean[] chanButton8Pressed = {false, false};
 
-Button chanButton16[2];
-boolean chanButton16Pressed = {false, false};
+Button[] chanButton16 = new Button[max_n_openBCI_boards];
+boolean[] chanButton16Pressed = {false, false};
 
 Button selectPlaybackFile;
 boolean selectPlaybackFilePressed = false;
@@ -74,9 +76,9 @@ class ControlPanel {
 
   //various control panel elements that are unique to specific datasources
   DataSourceBox dataSourceBox;
-  SerialBox[] serialBox = new SerialBox[2];
+  SerialBox[] serialBox = new SerialBox[max_n_openBCI_boards];
   DataLogBox dataLogBox;
-  ChannelCountBox[] channelCountBox = new ChannelCountBox[2];
+  ChannelCountBox[] channelCountBox = new ChannelCountBox[max_n_openBCI_boards];
   InitBox initBox;
 
   PlaybackFileBox playbackFileBox;
@@ -118,6 +120,7 @@ class ControlPanel {
     sdBox = new SDBox(x + w, total_y, w, h, globalPadding);  total_y += sdBox.h;
     dataLogBox = new DataLogBox(x + w, total_y, w, h, globalPadding);  total_y += dataLogBox.h;
 
+    println("ControlPanel: ControlPanel: OK1");
 
     //boxes active when eegDataSource = Playback
     playbackFileBox = new PlaybackFileBox(x + w, dataSourceBox.y, w, h, globalPadding);
@@ -195,7 +198,7 @@ class ControlPanel {
         dataLogBox.draw();
         sdBox.draw();
         cp5.get(Textfield.class, "fileName").setVisible(true); //make sure the data file field is visible
-        cp5.get(MenuList.class, "serialList").setVisible(true); //make sure the serialList menulist is visible
+        for (int Iunit=0; Iunit < serialList.length; Iunit++) cp5.get(MenuList.class, "serialList" + str(Iunit)).setVisible(true); //make sure the serialList menulist is visible
         cp5.get(MenuList.class, "sdTimes").setVisible(true); //make sure the SD time record options menulist is visible
         //make sure serial list is visible
         //set other CP5 controllers invisible
@@ -204,18 +207,18 @@ class ControlPanel {
         sdConverterBox.draw();
         //set other CP5 controllers invisible
         cp5.get(Textfield.class, "fileName").setVisible(false); //make sure the data file field is visible
-        cp5.get(MenuList.class, "serialList").setVisible(false);
+        for (int Iunit=0; Iunit < serialList.length; Iunit++) cp5.get(MenuList.class, "serialList" + str(Iunit)).setVisible(false);
         cp5.get(MenuList.class, "sdTimes").setVisible(false);
       } else if (eegDataSource == 2) {
         //make sure serial list is visible
         //set other CP5 controllers invisible
         cp5.get(Textfield.class, "fileName").setVisible(false); //make sure the data file field is visible
-        cp5.get(MenuList.class, "serialList").setVisible(false);
+        for (int Iunit=0; Iunit < serialList.length; Iunit++) cp5.get(MenuList.class, "serialList" + str(Iunit)).setVisible(false);
         cp5.get(MenuList.class, "sdTimes").setVisible(false);
       } else {
         //set other CP5 controllers invisible
         cp5.get(Textfield.class, "fileName").setVisible(false); //make sure the data file field is visible
-        cp5.get(MenuList.class, "serialList").setVisible(false);
+        for (int Iunit=0; Iunit < serialList.length; Iunit++) cp5.get(MenuList.class, "serialList" + str(Iunit)).setVisible(false);
         cp5.get(MenuList.class, "sdTimes").setVisible(false);
       }
     } else {
@@ -251,10 +254,6 @@ class ControlPanel {
     if (systemMode != 10) {
       //active buttons during DATASOURCE_NORMAL
       if (eegDataSource == 0) {
-        if (refreshPort.isMouseHere()) {
-          refreshPort.setIsActive(true);
-          refreshButtonPressed = true;
-        }
 
         if (autoFileName.isMouseHere()) {
           autoFileName.setIsActive(true);
@@ -262,6 +261,11 @@ class ControlPanel {
         }
 
         for (int Iunit = 0; Iunit < chanButton8.length; Iunit++) {
+          if (refreshPort[Iunit].isMouseHere()) {
+            refreshPort[Iunit].setIsActive(true);
+            refreshButtonPressed[Iunit] = true;
+          }
+            
           if (chanButton8[Iunit].isMouseHere()) {
             chanButton8[Iunit].setIsActive(true);
             chanButton8Pressed[Iunit] = true;
@@ -341,38 +345,40 @@ class ControlPanel {
     }
 
     //open or close serial port if serial port button is pressed (left button in serial widget)
-    if (refreshPort.isMouseHere() && refreshButtonPressed) {
-      output("Serial/COM List Refreshed");
-      serialPorts = new String[Serial.list().length];
-      serialPorts = Serial.list();
-      serialList[0].items.clear();
-      for (int i = 0; i < serialPorts.length; i++) {
-        String tempPort = serialPorts[(serialPorts.length-1) - i]; //list backwards... because usually our port is at the bottom
-        serialList[0].addItem(makeItem(tempPort));
-      }
-      serialList[0].updateMenu();
-    }
-
-    //open or close serial port if serial port button is pressed (left button in serial widget)
     if (autoFileName.isMouseHere() && fileButtonPressed) {
       output("Autogenerated \"File Name\" based on current date/time");
       cp5.get(Textfield.class, "fileName").setText(getDateString());
     }
 
-    if (chanButton8[0].isMouseHere() && chanButton8Pressed[0]) {
-      nEEGChannelsPerOpenBCI[0] = 8;
-      //fftBuff = new FFT[nchan];   //from the minim library
-      //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
-      output("OpenBCI channel count set to " + str(nEEGChannelsPerOpenBCI[0]));
-      //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
-    }
-
-    if (chanButton16[0].isMouseHere() && chanButton16Pressed[0]) {
-      nEEGChannelsPerOpenBCI[0] = 16;
-      //fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
-      //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
-      output("OpenBCI channel count set to " + str(nEEGChannelsPerOpenBCI[0]));
-      //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
+    for (int Iunit = 0; Iunit < chanButton8.length; Iunit++) {
+      //open or close serial port if serial port button is pressed (left button in serial widget)
+      if (refreshPort[Iunit].isMouseHere() && refreshButtonPressed[Iunit]) {
+        output("Serial/COM List Refreshed");
+        serialPorts = new String[Serial.list().length];
+        serialPorts = Serial.list();
+        serialList[Iunit].items.clear();
+        for (int i = 0; i < serialPorts.length; i++) {
+          String tempPort = serialPorts[(serialPorts.length-1) - i]; //list backwards... because usually our port is at the bottom
+          serialList[Iunit].addItem(makeItem(tempPort));
+        }
+        serialList[Iunit].updateMenu();
+      }
+      
+      if (chanButton8[Iunit].isMouseHere() && chanButton8Pressed[Iunit]) {
+        nEEGChannelsPerOpenBCI[Iunit] = 8;
+        //fftBuff = new FFT[nchan];   //from the minim library
+        //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
+        output("OpenBCI [" + str(Iunit) + "] channel count set to " + str(nEEGChannelsPerOpenBCI[Iunit]));
+        //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
+      }
+  
+      if (chanButton16[Iunit].isMouseHere() && chanButton16Pressed[Iunit]) {
+        nEEGChannelsPerOpenBCI[Iunit] = 16;
+        //fftBuff = new FFT[nchan];  //reinitialize the FFT buffer
+        //yLittleBuff_uV = new float[nchan][nPointsPerUpdate];
+        output("OpenBCI[" + str(Iunit) + "] channel count set to " + str(nEEGChannelsPerOpenBCI[Iunit]));
+        //updateChannelArrays(nchan); //make sure to reinitialize the channel arrays with the right number of channels...this will occur in OpenBCI_GUI initSystem()
+      }
     }
 
     if (selectPlaybackFile.isMouseHere() && selectPlaybackFilePressed) {
@@ -387,16 +393,18 @@ class ControlPanel {
     }
 
     //reset all buttons to false
-    refreshPort.setIsActive(false);
-    refreshButtonPressed = false;
     initSystemButton.setIsActive(false);
     initButtonPressed = false;
     autoFileName.setIsActive(false);
     fileButtonPressed = false;
-    chanButton8.setIsActive(false);
-    chanButton8Pressed = false;
-    chanButton16.setIsActive(false);
-    chanButton16Pressed = false;
+    for (int Iunit = 0; Iunit < chanButton8.length; Iunit++) {
+      refreshPort[Iunit].setIsActive(false);
+      refreshButtonPressed[Iunit] = false;
+      chanButton8[Iunit].setIsActive(false);
+      chanButton8Pressed[Iunit] = false;
+      chanButton16[Iunit].setIsActive(false);
+      chanButton16Pressed[Iunit] = false;
+    }
     selectPlaybackFile.setIsActive(false);
     selectPlaybackFilePressed = false;
     selectSDFile.setIsActive(false);
@@ -414,10 +422,12 @@ public void controlEvent(ControlEvent theEvent) {
     output("The new data source is " + (String)bob.get("headline"));
   }
 
-  if (theEvent.isFrom("serialList")) {
-    Map bob = ((MenuList)theEvent.getController()).getItem(int(theEvent.getValue()));
-    openBCI_portName[0] = (String)bob.get("headline");
-    output("OpenBCI Port Name = " + openBCI_portName[0]);
+  for (int Iunit=0; Iunit < serialList.length; Iunit++) {
+    if (theEvent.isFrom("serialList" + str(Iunit))) {
+      Map bob = ((MenuList)theEvent.getController()).getItem(int(theEvent.getValue()));
+      openBCI_portName[Iunit] = (String)bob.get("headline");
+      output("OpenBCI [" + str(Iunit) + "] Port Name = " + openBCI_portName[Iunit]);
+    }
   }
 
   if (theEvent.isFrom("sdTimes")) {
@@ -496,7 +506,7 @@ class SerialBox {
     ID = _ID;
 
     // openClosePort = new Button (padding + border, y + padding*3 + 13 + 150, (w-padding*3)/2, 24, "OPEN PORT", fontInfo.buttonLabel_size);
-    refreshPort = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
+    refreshPort[ID] = new Button (x + padding, y + padding*3 + 13 + 71, w - padding*2, 24, "REFRESH LIST", fontInfo.buttonLabel_size);
 
     serialList[ID] = new MenuList(cp5, "serialList" + str(ID), w - padding*2, 72, f2);
     serialList[ID].setPosition(x + padding, y + padding*2 + 13);
@@ -524,7 +534,7 @@ class SerialBox {
     popStyle();
 
     // openClosePort.draw();
-    refreshPort.draw();
+    refreshPort[ID].draw();
   }
 
   public void refreshSerialList() {
@@ -609,10 +619,10 @@ class ChannelCountBox {
     padding = _padding;
     ID = _ID;
 
-    chanButton8 = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
-    if (nEEGChannelsPerOpenBCI[0] == 8) chanButton8.color_notPressed = isSelected_color; //make it appear like this one is already selected
-    chanButton16 = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
-    if (nEEGChannelsPerOpenBCI[0] == 16) chanButton16.color_notPressed = isSelected_color; //make it appear like this one is already selected
+    chanButton8[ID] = new Button (x + padding, y + padding*2 + 18, (w-padding*3)/2, 24, "8 CHANNELS", fontInfo.buttonLabel_size);
+    if (nEEGChannelsPerOpenBCI[ID] == 8) chanButton8[ID].color_notPressed = isSelected_color; //make it appear like this one is already selected
+    chanButton16[ID] = new Button (x + padding*2 + (w-padding*3)/2, y + padding*2 + 18, (w-padding*3)/2, 24, "16 CHANNELS", fontInfo.buttonLabel_size);
+    if (nEEGChannelsPerOpenBCI[ID] == 16) chanButton16[ID].color_notPressed = isSelected_color; //make it appear like this one is already selected
   }
 
   public void update() {
@@ -631,11 +641,11 @@ class ChannelCountBox {
     fill(bgColor); //set color to green
     textFont(f1);
     textAlign(LEFT, TOP);
-    text("(" + str(nEEGChannelsPerOpenBCI[0]) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
+    text("(" + str(nEEGChannelsPerOpenBCI[ID]) + ")", x + padding + 142, y + padding); // print the channel count in green next to the box title
     popStyle();
 
-    chanButton8.draw();
-    chanButton16.draw();
+    chanButton8[ID].draw();
+    chanButton16[ID].draw();
   }
 };
 

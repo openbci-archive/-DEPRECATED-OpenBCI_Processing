@@ -225,11 +225,11 @@ int drawLoop_counter = 0;
 //used to init system based on initial settings...Called from the "Start System" button in the GUI's ControlPanel
 void initSystem(){
   
-  boolean useMultipleOpenBCIBoards = false;
-  if (useMultipleOpenBCIBoards) {
-    nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
-    openBCI_portName[1] = "COM12";   //hardcode this for now
-  }
+//  boolean useMultipleOpenBCIBoards = false;
+//  if (useMultipleOpenBCIBoards) {
+//    nEEGChannelsPerOpenBCI[1] = 16;  //hardcode this for now
+//    openBCI_portName[1] = "COM12";   //hardcode this for now
+//  }
 
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 0 --");
   timeOfInit = millis(); //store this for timeout in case init takes too long
@@ -237,10 +237,10 @@ void initSystem(){
   //count how many EEG channels there are going to be
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) {
     nchan = 0; nAuxTotal = 0;
-    for (int Iboard = 0; Iboard < nEEGChannelsPerOpenBCI.length; Iboard++) {
-      if (nEEGChannelsPerOpenBCI[Iboard] > 0) {
+    for (int Iunit = 0; Iunit < nEEGChannelsPerOpenBCI.length; Iunit++) {
+      if (nEEGChannelsPerOpenBCI[Iunit] > 0) {
         //this board exists, so go ahead and add its data into the total
-        nchan += nEEGChannelsPerOpenBCI[Iboard];
+        nchan += nEEGChannelsPerOpenBCI[Iunit];
         nAuxTotal += nAuxPerBoard; 
       }
     }
@@ -295,7 +295,7 @@ void initSystem(){
       boolean useAux = false;
       if (eegDataSource == DATASOURCE_NORMAL_W_AUX) useAux = true;  //switch this back to true CHIP 2014-11-04
       openBCI = new OpenBCI_Multi(this, openBCI_portName[0], openBCI_baud, nEEGChannelsPerOpenBCI[0], useAux, nAuxPerBoard); //this also starts the data transfer after XX seconds
-      if (useMultipleOpenBCIBoards) {
+      if (nEEGChannelsPerOpenBCI[1] > 0) {
         println("OpenBCI_GUI: adding 2nd OpenBCI board at " + openBCI_portName[1]);
         openBCI.addUnit(this, openBCI_portName[1], openBCI_baud, nEEGChannelsPerOpenBCI[1], useAux, nAuxPerBoard);
       }
