@@ -3957,7 +3957,7 @@ class Gui_Manager {
     g.setBorderColour(borderColor,borderColor,borderColor);
     
     // add title
-    titleFFT = new TextBox("EEG Data (As Received)",0,0);
+    titleFFT = new TextBox("FFT Plot",0,0);
     int x2 = x1 + PApplet.parseInt(round(0.5f*axis_relPos[2]*PApplet.parseFloat(win_x)));
     int y2 = y1 - 2;  //deflect two pixels upward
     titleFFT.x = x2;
