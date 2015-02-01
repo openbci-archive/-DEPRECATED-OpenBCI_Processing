@@ -762,15 +762,21 @@ class OpenBCI_ADS1299 {
             serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
           }
           break;
-        case 2: 
-        case 3: 
-        case 4: 
-        case 5: 
-        case 6: 
-        case 7:
-          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+        case 2:  //no "break" means that it cascades down to the next one
+        case 3:  //no "break" means that it cascades down to the next one
+        case 4:  //no "break" means that it cascades down to the next one
+        case 5:  //no "break" means that it cascades down to the next one
+        case 6:  //no "break" means that it cascades down to the next one
+        case 7:  //no "break" means that it cascades down to the next one
+          // soo, all of 2-7 happens here
+          int j = channelWriteCounter-2;  // this is the column of channelSettingValues that we will use
+          verbosePrint(channelSettingValues[_numChannel][j] + " :: " + millis());
+          if (j == 1) { //we are writing the channel gain to the Arduino, so let's update the channel gain here in Processing, too 
+            int ind = Character.getNumericValue(channelSettingValues[_numChannel][j]);  //here is the index into our Gain array
+            set_ADS1299_gain(_numChannel,GAIN_VALUES[ind]);  //now, in Processing, we're setting the gain value
+            //the gain value will get sent to the arduino inthe usual write command below
+          }
           serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
-          //value for ON/OF
           break;
         case 8:
           verbosePrint("X" + " :: " + millis());
