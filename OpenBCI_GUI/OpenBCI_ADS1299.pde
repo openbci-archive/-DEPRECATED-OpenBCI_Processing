@@ -768,7 +768,7 @@ class OpenBCI_ADS1299 {
         case 5:  //no "break" means that it cascades down to the next one
         case 6:  //no "break" means that it cascades down to the next one
         case 7:  //no "break" means that it cascades down to the next one
-          // soo, all of 2-7 happens here
+          // so, all of 2-7 happens here
           int j = channelWriteCounter-2;  // this is the column of channelSettingValues that we will use
           verbosePrint(channelSettingValues[_numChannel][j] + " :: " + millis());
           if (j == 1) { //we are writing the channel gain to the Arduino, so let's update the channel gain here in Processing, too 
