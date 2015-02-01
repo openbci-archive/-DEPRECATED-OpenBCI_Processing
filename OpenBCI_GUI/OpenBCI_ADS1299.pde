@@ -887,6 +887,10 @@ class OpenBCI_ADS1299 {
 class OpenBCI_Multi {
   private ArrayList<OpenBCI_ADS1299> openBCIs = new ArrayList<OpenBCI_ADS1299>();
   
+  //to improve performance, let's make this array to aggregate some of the
+  //data from the individual boards
+  private float[] all_scale_fac_uVolts_per_count;
+  
   //constructors
   OpenBCI_Multi() { openBCIs.add(new OpenBCI_ADS1299()); }  //dummy constructor to get access to basic properties like fs_Hz and stuff
   OpenBCI_Multi(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
@@ -902,6 +906,7 @@ class OpenBCI_Multi {
       }
     }
     openBCIs.add(new OpenBCI_ADS1299(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket,startChan));
+    updateAggregatedADS1299Settings();
   };
   
   //some get/set methods extending from OpenBCI_ADS1299...simply get the values for the first OpenBCI unit
@@ -916,19 +921,7 @@ class OpenBCI_Multi {
     return openBCIs.get(Iboard).get_scale_fac_uVolts_per_count(Ichan-getStartingChanInd_givenBoardInd(Iboard)); 
   }
   public float[] get_all_scale_fac_uVolts_per_count() {
-    int newLen = 0;
-    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) newLen += openBCIs.get(Iboard).get_nChan();
-    float[] all_scale_fac = new float[newLen];
-    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) {
-      System.arraycopy(
-          openBCIs.get(Iboard).get_all_scale_fac_uVolts_per_count(),
-          0,
-          all_scale_fac,
-          getStartingChanInd_givenBoardInd(Iboard),
-          openBCIs.get(Iboard).get_nChan()
-          );
-    }
-    return all_scale_fac;
+    return all_scale_fac_uVolts_per_count;
   }
   public float get_scale_fac_accel_G_per_count() { return openBCIs.get(0).get_scale_fac_accel_G_per_count(); }
   public float get_leadOffDrive_amps() { return openBCIs.get(0).get_leadOffDrive_amps(); }
@@ -936,6 +929,26 @@ class OpenBCI_Multi {
   public String get_defaultChannelSettings() { return get_defaultChannelSettings(0); } //for compatibililty, assume asking for first openBCI unit
   //public int get_state() { return openBCIs.get(0).get_state();};
   public boolean get_isNewDataPacketAvailable() { return openBCIs.get(0).get_isNewDataPacketAvailable(); }
+  
+  //update the variables that aggregate the operating settings from the individual boards
+  void updateAggregatedADS1299Settings() {
+    //compute the length of the new array holding whatever parameters that we'll be aggregating
+    int newLen = 0;
+    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) newLen += openBCIs.get(Iboard).get_nChan();
+    
+    //create an aggregate of the scale factors
+    float[] all_scale_fac_uVolts_per_count = new float[newLen];
+    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) {
+      System.arraycopy(
+          openBCIs.get(Iboard).get_all_scale_fac_uVolts_per_count(), //get this data
+          0, //starting at this index
+          all_scale_fac_uVolts_per_count,  //put it into this array
+          getStartingChanInd_givenBoardInd(Iboard),  //starting at this index
+          openBCIs.get(Iboard).get_nChan()  //going for this many data points
+          );
+    }
+  }
+  
   
   //other methods from OpenBCI_ADS1299 
   public boolean isSerialPortOpen() {
@@ -968,6 +981,9 @@ class OpenBCI_Multi {
     //set this channel
     int local_chan = Ichan - getStartingChanInd_givenBoardInd(Iboard);
     openBCIs.get(Iboard).set_ADS1299_gain(local_chan,(int)_gain);
+    
+    //update the aggregated data because the gain has changed
+    updateAggregatedADS1299Settings();
   }
   
   public void updateSyncState(int sdSetting) {
