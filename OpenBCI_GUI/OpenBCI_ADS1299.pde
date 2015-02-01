@@ -136,13 +136,13 @@ class OpenBCI_ADS1299 {
   public int get_startChanInGUI() { return startChanInGUI; };
   
   //constructors
-  OpenBCI_ADS1299() { initSomeConstants(8); } //only use this if you simply want access to some of the constants
+  OpenBCI_ADS1299() { initSomeConstants(8,3); } //only use this if you simply want access to some of the constants
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
     this(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket,0);
   }
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket,int _startChanInGUI) { //note startChan is just for reference to the rest of the GUI
-    initSomeConstants(nEEGValuesPerOpenBCI);  //per-channel gain values and stuff
     nAuxValues=nAuxValuesPerPacket;
+    initSomeConstants(nEEGValuesPerOpenBCI,nAuxValues);  //per-channel gain values and stuff
     startChanInGUI = _startChanInGUI;
     
     //choose data mode
@@ -160,11 +160,8 @@ class OpenBCI_ADS1299 {
 
     dataMode = prefered_datamode;
 
-    //allocate space for data packet
-    rawReceivedDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);  //this should always be 8 channels
-    dataPacket = new DataPacket_ADS1299(nEEGValuesPerOpenBCI,nAuxValuesPerPacket);            //this could be 8 or 16 channels
     //prevDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);
-    //set all values to 0 so not null
+    //initialize to set all values to 0 so not null
     for(int i = 0; i < nEEGValuesPerPacket; i++) { 
       rawReceivedDataPacket.values[i] = 0; 
       //prevDataPacket.values[i] = 0; 
@@ -193,12 +190,17 @@ class OpenBCI_ADS1299 {
     //output = createOutput("rawByteDumpFromProcessing.bin");  //for debugging  WEA 2014-01-26
   }
   
-  private void initSomeConstants(int nChan) {
-      ADS1299_gain = new float[nChan];
-      scale_fac_uVolts_per_count = new float[nChan];
+  private void initSomeConstants(int nEEGValuesPerOpenBCI, int nAuxValuesPerPacket) {
+      //initialize the gain-related variables
+      ADS1299_gain = new float[nEEGValuesPerOpenBCI];
+      scale_fac_uVolts_per_count = new float[nEEGValuesPerOpenBCI];
       for (int Ichan=0; Ichan < ADS1299_gain.length; Ichan++) {
         set_ADS1299_gain(Ichan,GAIN_VALUES[GAIN_VALUES.length-1]);
-      }  
+      } 
+     
+      //allocate space for the data packets
+      rawReceivedDataPacket = new DataPacket_ADS1299(nEEGValuesPerPacket,nAuxValuesPerPacket);  //this should always be 8 channels
+      dataPacket = new DataPacket_ADS1299(nEEGValuesPerOpenBCI,nAuxValuesPerPacket);            //this could be 8 or 16 channels 
   }
   
   // //manage the serial port  
