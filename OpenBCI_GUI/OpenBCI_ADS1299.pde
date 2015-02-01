@@ -64,6 +64,7 @@ class OpenBCI_ADS1299 {
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
   
+    
   //here is the serial port for this OpenBCI board
   private Serial serial_openBCI = null; 
   private boolean portIsOpen = false;
@@ -88,8 +89,9 @@ class OpenBCI_ADS1299 {
   
   private final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
   private final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  private float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
-  private float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  private float ADS1299_gain[];  // gain setting for each channel of the ADS1299.  deafult set by its Arduino code.  can be changed via serial commands
+  private final int[] GAIN_VALUES = {1, 2, 4, 6, 8, 12, 24};
+  private float scale_fac_uVolts_per_count[];
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
   private final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
   //final float scale_fac_accel_G_per_count = 1.0;
@@ -106,15 +108,18 @@ class OpenBCI_ADS1299 {
   private boolean readyToSend = false; //system waits for $$$ after requesting information from OpenBCI board
   private long timeOfLastCommand = 0; //used when sync'ing to hardware
 
-  //some get methods
+  //some get/set methods
   public float get_fs_Hz() { return fs_Hz; }
   public float get_Vref() { return ADS1299_Vref; }
-  public void set_ADS1299_gain(float _gain) { 
-    ADS1299_gain = _gain;  
-    scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+  public void set_ADS1299_gain(int Ichan, int _gain) { //Ichan counts from zero
+    if ((Ichan >= 0) && (Ichan < ADS1299_gain.length)) { 
+      ADS1299_gain[Ichan] = _gain;
+      scale_fac_uVolts_per_count[Ichan] = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain[Ichan]  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+    }
   }
-  public float get_ADS1299_gain() { return ADS1299_gain; }
-  public float get_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
+  public float get_ADS1299_gain(int Ichan) { return ADS1299_gain[Ichan]; }  //Ichan counts from zero
+  public float get_scale_fac_uVolts_per_count(int Ichan) { return scale_fac_uVolts_per_count[Ichan]; } //Ichan counts from zero
+  public float[] get_all_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
   public float get_scale_fac_accel_G_per_count() { return scale_fac_accel_G_per_count; }
   public float get_leadOffDrive_amps() { return leadOffDrive_amps; }
   public String get_defaultChannelSettings() { return defaultChannelSettings; }
@@ -122,8 +127,9 @@ class OpenBCI_ADS1299 {
   public boolean get_isNewDataPacketAvailable() { return isNewDataPacketAvailable; }
   
   //constructors
-  OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
+  OpenBCI_ADS1299() { initSomeConstants(8); } //only use this if you simply want access to some of the constants
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
+    initSomeConstants(nEEGValuesPerOpenBCI);  //per-channel gain values and stuff
     nAuxValues=nAuxValuesPerPacket;
     
     //choose data mode
@@ -172,6 +178,14 @@ class OpenBCI_ADS1299 {
     
     //open file for raw bytes
     //output = createOutput("rawByteDumpFromProcessing.bin");  //for debugging  WEA 2014-01-26
+  }
+  
+  private void initSomeConstants(int nChan) {
+      ADS1299_gain = new float[nChan];
+      scale_fac_uVolts_per_count = new float[nChan];
+      for (int Ichan=0; Ichan < ADS1299_gain.length; Ichan++) {
+        set_ADS1299_gain(Ichan,GAIN_VALUES[GAIN_VALUES.length-1]);
+      }  
   }
   
   // //manage the serial port  

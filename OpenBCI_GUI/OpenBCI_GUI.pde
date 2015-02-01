@@ -566,7 +566,7 @@ int getDataIfAvailable(int pointCounter) {
         lastReadDataPacketInd = (lastReadDataPacketInd+1) % dataPacketBuff.length;  //increment to read the next packet
         for (int Ichan=0; Ichan < nchan; Ichan++) {   //loop over each cahnnel
           //scale the data into engineering units ("microvolts") and save to the "little buffer"
-          yLittleBuff_uV[Ichan][pointCounter] = dataPacketBuff[lastReadDataPacketInd].values[Ichan] * openBCI.get_scale_fac_uVolts_per_count();
+          yLittleBuff_uV[Ichan][pointCounter] = dataPacketBuff[lastReadDataPacketInd].values[Ichan] * openBCI.get_scale_fac_uVolts_per_count(Ichan);
         } 
         pointCounter++; //increment counter for "little buffer"
       }
@@ -588,10 +588,10 @@ int getDataIfAvailable(int pointCounter) {
         dataPacketBuff[lastReadDataPacketInd].sampleIndex++;
         switch (eegDataSource) {
           case DATASOURCE_SYNTHETIC: //use synthetic data (for GUI debugging)   
-            synthesizeData(nchan, openBCI.get_fs_Hz(), openBCI.get_scale_fac_uVolts_per_count(), dataPacketBuff[lastReadDataPacketInd]);
+            synthesizeData(nchan, openBCI.get_fs_Hz(), openBCI.get_scale_fac_uVolts_per_count(0), dataPacketBuff[lastReadDataPacketInd]);
             break;
           case DATASOURCE_PLAYBACKFILE: 
-            currentTableRowIndex=getPlaybackDataFromTable(playbackData_table,currentTableRowIndex,openBCI.get_scale_fac_uVolts_per_count(), dataPacketBuff[lastReadDataPacketInd]);
+            currentTableRowIndex=getPlaybackDataFromTable(playbackData_table,currentTableRowIndex,openBCI.get_scale_fac_uVolts_per_count(0), dataPacketBuff[lastReadDataPacketInd]);
             break;
           default:
             //no action
@@ -599,7 +599,7 @@ int getDataIfAvailable(int pointCounter) {
         //gather the data into the "little buffer"
         for (int Ichan=0; Ichan < nchan; Ichan++) {
           //scale the data into engineering units..."microvolts"
-          yLittleBuff_uV[Ichan][pointCounter] = dataPacketBuff[lastReadDataPacketInd].values[Ichan]* openBCI.get_scale_fac_uVolts_per_count();
+          yLittleBuff_uV[Ichan][pointCounter] = dataPacketBuff[lastReadDataPacketInd].values[Ichan]* openBCI.get_scale_fac_uVolts_per_count(Ichan);
         }
         pointCounter++;
       } //close the loop over data points
@@ -763,7 +763,7 @@ void serialEvent(Serial port) {
       // println("nchan = " + nchan);
       newPacketCounter++;
 
-      fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.get_scale_fac_uVolts_per_count(),openBCI.get_scale_fac_accel_G_per_count());
+      fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.get_all_scale_fac_uVolts_per_count(),openBCI.get_scale_fac_accel_G_per_count());
     }
   } 
   else {
