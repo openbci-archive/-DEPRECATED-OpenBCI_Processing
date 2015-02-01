@@ -65,6 +65,7 @@ class OpenBCI_ADS1299 {
   final static byte BYTE_START = (byte)0xA0;
   final static byte BYTE_END = (byte)0xC0;
   
+    
   //here is the serial port for this OpenBCI board
   private Serial serial_openBCI = null; 
   private boolean portIsOpen = false;
@@ -90,8 +91,9 @@ class OpenBCI_ADS1299 {
   
   private final float fs_Hz = 250.0f;  //sample rate used by OpenBCI board...set by its Arduino code
   private final float ADS1299_Vref = 4.5f;  //reference voltage for ADC in ADS1299.  set by its hardware
-  private float ADS1299_gain = 24.0;  //assumed gain setting for ADS1299.  set by its Arduino code
-  private float scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.f; //ADS1299 datasheet Table 7, confirmed through experiment
+  private float ADS1299_gain[];  // gain setting for each channel of the ADS1299.  deafult set by its Arduino code.  can be changed via serial commands
+  private final int[] GAIN_VALUES = {1, 2, 4, 6, 8, 12, 24};
+  private float scale_fac_uVolts_per_count[];
   //float LIS3DH_full_scale_G = 4;  // +/- 4G, assumed full scale setting for the accelerometer
   private final float scale_fac_accel_G_per_count = 0.002 / ((float)pow(2,4));  //assume set to +/4G, so 2 mG per digit (datasheet). Account for 4 bits unused
   //final float scale_fac_accel_G_per_count = 1.0;
@@ -109,17 +111,20 @@ class OpenBCI_ADS1299 {
   private long timeOfLastCommand = 0; //used when sync'ing to hardware
   
 
-  //some get methods
+  //some get/set methods
   public int get_nChan() { return dataPacket.values.length; };
   public int get_nAuxChan() { return dataPacket.auxValues.length; };
   public float get_fs_Hz() { return fs_Hz; }
   public float get_Vref() { return ADS1299_Vref; }
-  public void set_ADS1299_gain(float _gain) { 
-    ADS1299_gain = _gain;  
-    scale_fac_uVolts_per_count = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+  public void set_ADS1299_gain(int Ichan, int _gain) { //Ichan counts from zero
+    if ((Ichan >= 0) && (Ichan < ADS1299_gain.length)) { 
+      ADS1299_gain[Ichan] = _gain;
+      scale_fac_uVolts_per_count[Ichan] = ADS1299_Vref / ((float)(pow(2,23)-1)) / ADS1299_gain[Ichan]  * 1000000.0; //ADS1299 datasheet Table 7, confirmed through experiment
+    }
   }
-  public float get_ADS1299_gain() { return ADS1299_gain; }
-  public float get_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
+  public float get_ADS1299_gain(int Ichan) { return ADS1299_gain[Ichan]; }  //Ichan counts from zero
+  public float get_scale_fac_uVolts_per_count(int Ichan) { return scale_fac_uVolts_per_count[Ichan]; } //Ichan counts from zero
+  public float[] get_all_scale_fac_uVolts_per_count() { return scale_fac_uVolts_per_count; }
   public float get_scale_fac_accel_G_per_count() { return scale_fac_accel_G_per_count; }
   public float get_leadOffDrive_amps() { return leadOffDrive_amps; }
   public String get_defaultChannelSettings(int i) { return get_defaultChannelSettings(); }; //ignore i, for compatibility only
@@ -131,11 +136,12 @@ class OpenBCI_ADS1299 {
   public int get_startChanInGUI() { return startChanInGUI; };
   
   //constructors
-  OpenBCI_ADS1299() {};  //only use this if you simply want access to some of the constants
+  OpenBCI_ADS1299() { initSomeConstants(8); } //only use this if you simply want access to some of the constants
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket) {
     this(applet, comPort, baud, nEEGValuesPerOpenBCI, useAux, nAuxValuesPerPacket,0);
   }
   OpenBCI_ADS1299(PApplet applet, String comPort, int baud, int nEEGValuesPerOpenBCI, boolean useAux, int nAuxValuesPerPacket,int _startChanInGUI) { //note startChan is just for reference to the rest of the GUI
+    initSomeConstants(nEEGValuesPerOpenBCI);  //per-channel gain values and stuff
     nAuxValues=nAuxValuesPerPacket;
     startChanInGUI = _startChanInGUI;
     
@@ -185,6 +191,14 @@ class OpenBCI_ADS1299 {
     
     //open file for raw bytes
     //output = createOutput("rawByteDumpFromProcessing.bin");  //for debugging  WEA 2014-01-26
+  }
+  
+  private void initSomeConstants(int nChan) {
+      ADS1299_gain = new float[nChan];
+      scale_fac_uVolts_per_count = new float[nChan];
+      for (int Ichan=0; Ichan < ADS1299_gain.length; Ichan++) {
+        set_ADS1299_gain(Ichan,GAIN_VALUES[GAIN_VALUES.length-1]);
+      }  
   }
   
   // //manage the serial port  
@@ -780,15 +794,21 @@ class OpenBCI_ADS1299 {
             serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
           }
           break;
-        case 2: 
-        case 3: 
-        case 4: 
-        case 5: 
-        case 6: 
-        case 7:
-          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+        case 2:  //no "break" means that it cascades down to the next one
+        case 3:  //no "break" means that it cascades down to the next one
+        case 4:  //no "break" means that it cascades down to the next one
+        case 5:  //no "break" means that it cascades down to the next one
+        case 6:  //no "break" means that it cascades down to the next one
+        case 7:  //no "break" means that it cascades down to the next one
+          // so, all of 2-7 happens here
+          int j = channelWriteCounter-2;  // this is the column of channelSettingValues that we will use
+          verbosePrint(channelSettingValues[_numChannel][j] + " :: " + millis());
+          if (j == 1) { //we are writing the channel gain to the Arduino, so let's update the channel gain here in Processing, too 
+            int ind = Character.getNumericValue(channelSettingValues[_numChannel][j]);  //here is the index into our Gain array
+            set_ADS1299_gain(_numChannel,GAIN_VALUES[ind]);  //now, in Processing, we're setting the gain value
+            //the gain value will get sent to the arduino inthe usual write command below
+          }
           serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
-          //value for ON/OF
           break;
         case 8:
           verbosePrint("X" + " :: " + millis());
@@ -885,8 +905,29 @@ class OpenBCI_Multi {
   //some get/set methods extending from OpenBCI_ADS1299...simply get the values for the first OpenBCI unit
   public float get_fs_Hz() { return openBCIs.get(0).get_fs_Hz(); }
   public float get_Vref() { return openBCIs.get(0).get_Vref(); }
-  public float get_ADS1299_gain() { return openBCIs.get(0).get_ADS1299_gain(); }
-  public float get_scale_fac_uVolts_per_count() { return openBCIs.get(0).get_scale_fac_uVolts_per_count(); }
+  public float get_ADS1299_gain(int Ichan) { 
+    int Iboard = findOpenBCI_givenChannel(Ichan);
+    return openBCIs.get(Iboard).get_ADS1299_gain(Ichan-getStartingChanInd_givenBoardInd(Iboard)); 
+  }
+  public float get_scale_fac_uVolts_per_count(int Ichan) { 
+    int Iboard = findOpenBCI_givenChannel(Ichan);
+    return openBCIs.get(Iboard).get_scale_fac_uVolts_per_count(Ichan-getStartingChanInd_givenBoardInd(Iboard)); 
+  }
+  public float[] get_all_scale_fac_uVolts_per_count() {
+    int newLen = 0;
+    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) newLen += openBCIs.get(Iboard).get_nChan();
+    float[] all_scale_fac = new float[newLen];
+    for (int Iboard = 0; Iboard < openBCIs.size(); Iboard++) {
+      System.arraycopy(
+          openBCIs.get(Iboard).get_all_scale_fac_uVolts_per_count(),
+          0,
+          all_scale_fac,
+          getStartingChanInd_givenBoardInd(Iboard),
+          openBCIs.get(Iboard).get_nChan()
+          );
+    }
+    return all_scale_fac;
+  }
   public float get_scale_fac_accel_G_per_count() { return openBCIs.get(0).get_scale_fac_accel_G_per_count(); }
   public float get_leadOffDrive_amps() { return openBCIs.get(0).get_leadOffDrive_amps(); }
   public boolean get_isBiasAuto() { return openBCIs.get(0).get_isBiasAuto(); };
@@ -914,9 +955,17 @@ class OpenBCI_Multi {
     return openBCIs.get(ind).isSerialPortOpen();
   }
   
-  public void set_ADS1299_gain(float _gain) { 
-    //set all units
-    for (int i = 0; i < openBCIs.size(); i++) openBCIs.get(i).set_ADS1299_gain(_gain);
+//  public void set_ADS1299_gain(float _gain) { 
+//    //set all units
+//    for (int i = 0; i < openBCIs.size(); i++) openBCIs.get(i).set_ADS1299_gain(_gain);
+//  }
+  public void set_ADS1299_gain(int Ichan,float _gain) { 
+    //find board the matches the given channel
+    int Iboard = findOpenBCI_givenChannel(Ichan);
+    
+    //set this channel
+    int local_chan = Ichan - getStartingChanInd_givenBoardInd(Iboard);
+    openBCIs.get(Iboard).set_ADS1299_gain(local_chan,(int)_gain);
   }
   
   public void updateSyncState(int sdSetting) {

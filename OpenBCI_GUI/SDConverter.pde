@@ -71,7 +71,7 @@ public void convertSDFile() {
 
         //if not first column(sample #) or columns 9-11 (accelerometer), convert to uV
         if (i>=1 && i<=8) {
-          intData[i] *= openBCI.get_scale_fac_uVolts_per_count();
+          intData[i] *= openBCI.get_scale_fac_uVolts_per_count(0);  //what was the gain used in recording to the SD?  Here is a HUGE (and probably) assumption
         }
 
         //print the current channel value
