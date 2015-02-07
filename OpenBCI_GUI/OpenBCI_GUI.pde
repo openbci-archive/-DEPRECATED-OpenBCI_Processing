@@ -103,6 +103,11 @@ String fileName = "N/A";
 //create objects that'll do the EEG signal processing
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
+
+//define hexbug
+String hexBug_portName = "COM14";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+Serial hexBug_serial;
+int hexBug_baud = 115200; //baud rate from the Arduino
 HexBug hexBug;
 
 //fft constants
@@ -204,6 +209,14 @@ void setup() {
   logo = loadImage("logo2.png");
 
   playground = new Playground(navBarHeight);
+  
+   try {
+      println("OpenBCI_GUI:  attempting to open serial port for hexBug using name = " + hexBug_portName);
+      hexBug_serial = new Serial(this,hexBug_portName,hexBug_baud); //open the com port
+      hexBug_serial.clear(); // clear anything in the com port's buffer    
+   } catch (RuntimeException e){
+     println("OpenBCI_GUI: *** ERROR ***: Could not open " + hexBug_portName);
+   }
 
 }
 //====================== END--OF ==========================//
@@ -237,7 +250,7 @@ void initSystem(){
     dataPacketBuff[i] = new DataPacket_ADS1299(nchan,n_aux_ifEnabled);
   }
   eegProcessing = new EEG_Processing(nchan,openBCI.get_fs_Hz());
-  hexBug = new HexBug(openBCI.serial_openBCI);
+  hexBug = new HexBug(hexBug_serial);
   eegProcessing_user = new EEG_Processing_User(nchan,openBCI.get_fs_Hz(),hexBug);
 
 
@@ -768,8 +781,9 @@ void serialEvent(Serial port) {
 
       fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.get_all_scale_fac_uVolts_per_count(),openBCI.get_scale_fac_accel_G_per_count());
     }
-  } 
-  else {
+  }  else if (port == hexBug_serial) {
+    
+  }  else {
     println("OpenBCI_GUI: serialEvent: received serial data NOT from OpenBCI.");
     inByte = port.read();
   }
