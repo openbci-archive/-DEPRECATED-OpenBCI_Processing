@@ -5,12 +5,13 @@ class EEG_Processing_User {
   private int nchan;  
   
   //add your own variables here
-  
+  float[] my_EEG_value_uV = new float[8];
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
       nchan = NCHAN;
-    fs_Hz = sample_rate_Hz;
+      fs_Hz = sample_rate_Hz;
+      my_EEG_value_uV = new float[nchan];
   }
   
   //add some functions here...if you'd like
@@ -21,37 +22,68 @@ class EEG_Processing_User {
         float[][] data_forDisplay_uV, //this data has been filtered and is ready for plotting on the screen
         FFT[] fftData) {              //holds the FFT (frequency spectrum) of the latest data
 
-    //for example, you could loop over each EEG channel to do some sort of time-domain processing 
-    //using the sample values that have already been filtered, as will be plotted on the display
-    float EEG_value_uV;
-    for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each NEW sample
-      int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
-      for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
-        EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
-        
-        //add your processing here...
-        
-        
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
+    
+    //pick which channel to pay attention to
+    int myChannel = 0;  //count from zero!
+       
+    
+    //loop over all channels and get the max (in the absolute value sense) for each channel
+    //only look over the most recent XX samples
+    int window_samples = 50;
+    for (int Ichan = 0; Ichan < data_forDisplay_uV.length;  Ichan++) {
+      my_EEG_value_uV[Ichan] = 0.0;  //initialize my search to zero
+      for (int Isamp=data_forDisplay_uV[Ichan].length - window_samples; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
+        if (abs(data_forDisplay_uV[Ichan][Isamp]) > my_EEG_value_uV[Ichan]) {
+          my_EEG_value_uV[Ichan] = data_forDisplay_uV[myChannel][Isamp];
+        }
       }
     }
+
         
-    //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
-    float FFT_freq_Hz, FFT_value_uV;
-    for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each new sample
-      for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++){
-        FFT_freq_Hz = fftData[Ichan].indexToFreq(Ibin);
-        FFT_value_uV = fftData[Ichan].getBand(Ibin);
-        
-        //add your processing here...
-        
-        
-        
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
-      }
-    }  
+//    //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
+//    float FFT_freq_Hz, FFT_value_uV;
+//    for (int Ichan=0;Ichan < nchan; Ichan++) {
+//      //loop over each new sample
+//      for (int Ibin=0; Ibin < fftBuff[Ichan].specSize(); Ibin++){
+//        FFT_freq_Hz = fftData[Ichan].indexToFreq(Ibin);
+//        FFT_value_uV = fftData[Ichan].getBand(Ibin);
+//        
+//        //add your processing here...
+//        
+//        
+//        
+//        //println("EEG_Processing_User: Ichan = " + Ichan + ", Freq = " + FFT_freq_Hz + "Hz, FFT Value = " + FFT_value_uV + "uV/bin");
+//      }
+//    }  
+  }
+  
+  //call this from the Processing's main draw() routine
+  int x_circle = 0, y_circle = 0;
+  public void draw() {
+    
+    // DO WHATEVER YOU WANT HERE!!! ...this is just one crappy example
+             
+    //define the center of he screen
+    int x_center = win_x / 2;  //win_x is defined way back in the OpenBCI_GUI.ped file (look in the "OpenBCI_GUI" tab)
+    int y_center = win_y / 2;  //win_y is defined way back in the OpenBCI_GUI.ped file (look in the "OpenBCI_GUI" tab)
+    
+    //Here's one plan...let's draw a circle who's x-position is based on the EEG value in channel 0
+    float scale_factor_uV_per_screen_width = 200.0;
+    int myChannel = 1;  //which channel...count from zero!
+    int x_circle = x_center + (int)(((float)win_x)*my_EEG_value_uV[myChannel]/scale_factor_uV_per_screen_width);  //my_EEG_value_uV was computed 
+    int y_circle = y_center + 0;  //do whatever you'd like here
+    
+    //limit position to ensure that it stays on the screen
+    x_circle = max(1,x_circle); x_circle = min(x_circle,win_x);
+    y_circle = max(1,y_circle); y_circle = min(y_circle,win_x);
+    
+    //println("EEG_Processing: my_EEG_value_uV = " + str(my_EEG_value_uV[myChannel]) + ", circle (x,y) = " + str(x_circle) + " " + str(y_circle));
+          
+    //draw the circle
+    int radius = 50;
+    fill(color(255,255,255));  //set the color of the of the ellipse as an (R,G,B) value
+    ellipse(x_circle,y_circle,radius,radius);
+    
   }
 }
    

@@ -777,42 +777,44 @@ class Gui_Manager {
   }
   
   public void draw() {
-    headPlot1.draw();
-    
-    //draw montage or spectrogram
-    if (showSpectrogram == false) {
-
-      //show time-domain montage, only if full channel controller is not visible, to save some processing
-      gMontage.draw(); 
-    
-      //add annotations
-      if (showMontageValues) {
-        for (int Ichan = 0; Ichan < chanValuesMontage.length; Ichan++) {
-          chanValuesMontage[Ichan].draw();
+    if (!hideDefaultGUI) {
+      headPlot1.draw();
+      
+      //draw montage or spectrogram
+      if (showSpectrogram == false) {
+  
+        //show time-domain montage, only if full channel controller is not visible, to save some processing
+        gMontage.draw(); 
+      
+        //add annotations
+        if (showMontageValues) {
+          for (int Ichan = 0; Ichan < chanValuesMontage.length; Ichan++) {
+            chanValuesMontage[Ichan].draw();
+          }
         }
+      } else {
+        //show the spectrogram
+        gSpectrogram.draw();  //draw the spectrogram axes
+        titleSpectrogram.draw(); //draw the spectrogram title
+  
+        //draw the spectrogram image
+        PVector pos = gSpectrogram.position;
+        Axis2D ax = gSpectrogram.getXAxis();
+        int x = ax.valueToPosition(ax.getMinValue())+(int)pos.x;
+        int w = ax.valueToPosition(ax.getMaxValue());
+        ax = gSpectrogram.getYAxis();
+        int y =  (int) pos.y - ax.valueToPosition(ax.getMinValue()); //position needs top-left.  The MAX value is at the top-left for this plot.
+        int h = ax.valueToPosition(ax.getMaxValue());
+        //println("gui_Manager.draw(): x,y,w,h = " + x + " " + y + " " + w + " " + h);
+        float max_freq_Hz = gSpectrogram.getYAxis().getMaxValue()-0.5f;
+        spectrogram.draw(x,y,w,h,max_freq_Hz);
       }
-    } else {
-      //show the spectrogram
-      gSpectrogram.draw();  //draw the spectrogram axes
-      titleSpectrogram.draw(); //draw the spectrogram title
-
-      //draw the spectrogram image
-      PVector pos = gSpectrogram.position;
-      Axis2D ax = gSpectrogram.getXAxis();
-      int x = ax.valueToPosition(ax.getMinValue())+(int)pos.x;
-      int w = ax.valueToPosition(ax.getMaxValue());
-      ax = gSpectrogram.getYAxis();
-      int y =  (int) pos.y - ax.valueToPosition(ax.getMinValue()); //position needs top-left.  The MAX value is at the top-left for this plot.
-      int h = ax.valueToPosition(ax.getMaxValue());
-      //println("gui_Manager.draw(): x,y,w,h = " + x + " " + y + " " + w + " " + h);
-      float max_freq_Hz = gSpectrogram.getYAxis().getMaxValue()-0.5f;
-      spectrogram.draw(x,y,w,h,max_freq_Hz);
+  
+      //draw the regular FFT spectrum display
+      gFFT.draw(); 
+      titleFFT.draw();//println("completed FFT draw..."); 
     }
-
-    //draw the regular FFT spectrum display
-    gFFT.draw(); 
-    titleFFT.draw();//println("completed FFT draw..."); 
-   
+    
     //draw the UI buttons and other elements 
     stopButton.draw();
 
@@ -849,23 +851,26 @@ class Gui_Manager {
         //spectrogramButton.draw();
     }
     
-    if (showMontageValues) {
-      for (int Ichan = 0; Ichan < chanValuesMontage.length; Ichan++) {
-        chanValuesMontage[Ichan].draw();
+    if (!hideDefaultGUI) {
+      
+      if (showMontageValues) {
+        for (int Ichan = 0; Ichan < chanValuesMontage.length; Ichan++) {
+          chanValuesMontage[Ichan].draw();
+        }
       }
+  
+      // if(controlPanelCollapser.isActive){
+      //   controlPanel.draw();
+      // }
+      // controlPanelCollapser.draw();
+  
+      cc.draw();
+      if(cc.showFullController == false){
+        titleMontage.draw();
+      }
+      showMontageButton.draw();
+      showChannelControllerButton.draw();
     }
-
-    // if(controlPanelCollapser.isActive){
-    //   controlPanel.draw();
-    // }
-    // controlPanelCollapser.draw();
-
-    cc.draw();
-    if(cc.showFullController == false){
-      titleMontage.draw();
-    }
-    showMontageButton.draw();
-    showChannelControllerButton.draw();
 
   }
 

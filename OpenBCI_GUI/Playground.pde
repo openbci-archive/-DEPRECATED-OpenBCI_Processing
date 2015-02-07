@@ -64,6 +64,7 @@ class Playground {
     fill(255, 0, 0);
     collapser.draw(int(x - collapser.but_dx), int(topMargin + (h-collapser.but_dy)/2));
     popStyle();
+
   }
 
   boolean isMouseHere() {

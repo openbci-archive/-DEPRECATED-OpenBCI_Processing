@@ -27,6 +27,7 @@ import java.awt.event.*; //to allow for event listener on screen resize
 
 boolean isVerbose = false; //set true if you want more verbosity in console
 
+boolean hideDefaultGUI = true;
 
 //used to switch between application states
 int systemMode = 0; /* Modes: 0 = system stopped/control panel setings / 10 = gui / 20 = help guide */
@@ -386,6 +387,7 @@ void draw() {
   drawLoop_counter++;
   systemUpdate();
   systemDraw();
+  
 }
 
 void systemUpdate(){ // for updating data values and variables
@@ -509,6 +511,8 @@ void systemDraw(){ //for drawing to the screen
           rect(0, 0, width, navBarHeight);
         popStyle();
         gui.draw(); //draw the GUI
+       
+        
         // playground.draw();
       } catch (Exception e){
         println(e.getMessage());
@@ -522,6 +526,8 @@ void systemDraw(){ //for drawing to the screen
     }
 
     playground.draw();
+          
+    if (!(eegProcessing_user==null)) eegProcessing_user.draw();//draw user stuff from the EEG_processing_user
 
   }
 
