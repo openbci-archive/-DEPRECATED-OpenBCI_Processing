@@ -103,6 +103,7 @@ String fileName = "N/A";
 //create objects that'll do the EEG signal processing
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
+HexBug hexBug;
 
 //fft constants
 int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
@@ -236,7 +237,9 @@ void initSystem(){
     dataPacketBuff[i] = new DataPacket_ADS1299(nchan,n_aux_ifEnabled);
   }
   eegProcessing = new EEG_Processing(nchan,openBCI.get_fs_Hz());
-  eegProcessing_user = new EEG_Processing_User(nchan,openBCI.get_fs_Hz());
+  hexBug = new HexBug(openBCI.serial_openBCI);
+  eegProcessing_user = new EEG_Processing_User(nchan,openBCI.get_fs_Hz(),hexBug);
+
 
   //initialize the data
   prepareData(dataBuffX, dataBuffY_uV,openBCI.get_fs_Hz());
