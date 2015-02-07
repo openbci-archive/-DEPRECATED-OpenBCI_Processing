@@ -78,7 +78,7 @@ class EEG_Processing_User {
   float[][] data_forDisplay_uV, //this data has been filtered and is ready for plotting on the screen
   FFT[] fftData) {  
 
-    if (false) {
+    if (true) {
       //one person...detect different brain frequencies to drive the hex bug
       processSinglePerson(data_newest_uV, data_long_uV, data_forDisplay_uV, fftData);
     } else {
@@ -174,8 +174,8 @@ class EEG_Processing_User {
     int Ichan = 2-1;  //which channel to act on
     if (fftData != null) findPeakFrequency(fftData, Ichan); //find the frequency for each channel with the peak amplitude
     if (useClassfier_2DTraining) {
-          //new processing for improved selectivity
-          if (fftData != null) findBestFrequency_2DTraining(fftData,Ichan);      
+      //new processing for improved selectivity
+      if (fftData != null) findBestFrequency_2DTraining(fftData, Ichan);
     }
 
     //issue new command to the Hex Bug, if there is a peak that was detected

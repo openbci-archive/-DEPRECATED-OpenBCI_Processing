@@ -105,13 +105,13 @@ EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
 
 //define hexbug
-String hexBug_portName = "COM14";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+String hexBug_portName = "COM13";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 Serial hexBug_serial;
 int hexBug_baud = 115200; //baud rate from the Arduino
 HexBug hexBug;
 
 //fft constants
-int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
+int Nfft = 256*2; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
 FFT fftBuff[] = new FFT[nchan];   //from the minim library
 float[] smoothFac = new float[]{0.75, 0.9, 0.95, 0.98, 0.0, 0.5};
 int smoothFac_ind = 0;    //initial index into the smoothFac array
@@ -210,13 +210,13 @@ void setup() {
 
   playground = new Playground(navBarHeight);
   
-   try {
-      println("OpenBCI_GUI:  attempting to open serial port for hexBug using name = " + hexBug_portName);
-      hexBug_serial = new Serial(this,hexBug_portName,hexBug_baud); //open the com port
-      hexBug_serial.clear(); // clear anything in the com port's buffer    
-   } catch (RuntimeException e){
-     println("OpenBCI_GUI: *** ERROR ***: Could not open " + hexBug_portName);
-   }
+   //try {
+    //  println("OpenBCI_GUI:  attempting to open serial port for hexBug using name = " + hexBug_portName);
+    //  hexBug_serial = new Serial(this,hexBug_portName,hexBug_baud); //open the com port
+    //  hexBug_serial.clear(); // clear anything in the com port's buffer    
+   //} catch (RuntimeException e){
+   //  println("OpenBCI_GUI: *** ERROR ***: Could not open " + hexBug_portName);
+  // }
 
 }
 //====================== END--OF ==========================//
