@@ -38,40 +38,44 @@ class HexBug {
     }
   } //close definition of class Command
     
-  private Command command_fire, command_forward, command_left, command_right; 
+  private Command command_forward, command_climb, command_dive, command_left, command_right; 
   private int prev_command = -1;
   
   //Constructor, pass in an already-opened serial port
   HexBug(Serial serialPort) {
     int ID = 0;
-    command_fire = new Command(serialPort,"|","Fire!",ID++);
+    command_forward = new Command(serialPort,"O","Swim!",ID++);
+    command_right = new Command(serialPort,"|","Right",ID++);
     command_left = new Command(serialPort,"{","Left",ID++);
-    command_right = new Command(serialPort,"}","Right",ID++);
-    command_forward = new Command(serialPort,"P","Forward",ID++);
+    command_climb = new Command(serialPort,"}","Climb",ID++);
+    command_dive = new Command(serialPort,"P","Dive",ID++);
   }
   
-  public void fire() {
-    prev_command = command_fire.issue();
+  public void climb() {
+    prev_command = command_climb.issue();
+  }
+  public void dive() {
+    prev_command = command_dive.issue();
   }
   public void forward() {
-    if (fireBetweenMoves & (prev_command != command_forward.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+    //if (fireBetweenMoves & (prev_command != command_forward.ID)) {
+    //  prev_command = command_fire.issue();  //issue a FIRE command on a transition
+    //  waitMilliseconds(wait_millis);
+    //}
     prev_command = command_forward.issue();
   }
   public void left() {
-    if (fireBetweenMoves & (prev_command != command_left.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+    //if (fireBetweenMoves & (prev_command != command_left.ID)) {
+    //  prev_command = command_fire.issue();  //issue a FIRE command on a transition
+    //  waitMilliseconds(wait_millis);
+    //}
     prev_command = command_left.issue();
   }
   public void right() {
-    if (fireBetweenMoves & (prev_command != command_right.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+    //if (fireBetweenMoves & (prev_command != command_right.ID)) {
+    //  prev_command = command_fire.issue();  //issue a FIRE command on a transition
+    //  waitMilliseconds(wait_millis);
+    //}
     prev_command = command_right.issue();
   }
   
