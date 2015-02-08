@@ -105,7 +105,7 @@ EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
 
 //define hexbug
-String hexBug_portName = "COM13";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
+String hexBug_portName = "COM16";  //starts as N/A but is selected from control panel to match your OpenBCI USB Dongle's serial/COM
 Serial hexBug_serial;
 int hexBug_baud = 115200; //baud rate from the Arduino
 HexBug hexBug;
@@ -210,13 +210,13 @@ void setup() {
 
   playground = new Playground(navBarHeight);
   
-   //try {
-    //  println("OpenBCI_GUI:  attempting to open serial port for hexBug using name = " + hexBug_portName);
-    //  hexBug_serial = new Serial(this,hexBug_portName,hexBug_baud); //open the com port
-    //  hexBug_serial.clear(); // clear anything in the com port's buffer    
-   //} catch (RuntimeException e){
-   //  println("OpenBCI_GUI: *** ERROR ***: Could not open " + hexBug_portName);
-  // }
+  try {
+    println("OpenBCI_GUI:  attempting to open serial port for hexBug using name = " + hexBug_portName);
+    hexBug_serial = new Serial(this,hexBug_portName,hexBug_baud); //open the com port
+    hexBug_serial.clear(); // clear anything in the com port's buffer    
+   } catch (RuntimeException e){
+    println("OpenBCI_GUI: *** ERROR ***: Could not open " + hexBug_portName);
+  }
 
 }
 //====================== END--OF ==========================//
