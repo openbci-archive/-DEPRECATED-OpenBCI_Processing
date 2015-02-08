@@ -1,0 +1,1 @@
+For this setup, you need an Arduino connected to a hacked remote control for the air-swimming shark.  The code in this directory is for the swimming shark.
