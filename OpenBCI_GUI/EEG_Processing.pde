@@ -78,7 +78,7 @@ class EEG_Processing_User {
   float[][] data_forDisplay_uV, //this data has been filtered and is ready for plotting on the screen
   FFT[] fftData) {  
 
-    if (true) {
+    if (false) {
       //one person...detect different brain frequencies to drive the hex bug
       processSinglePerson(data_newest_uV, data_long_uV, data_forDisplay_uV, fftData);
     } else {
