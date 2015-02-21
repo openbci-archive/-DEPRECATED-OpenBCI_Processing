@@ -54,24 +54,24 @@ class HexBug {
     prev_command = command_fire.issue();
   }
   public void forward() {
-    if (fireBetweenMoves & (prev_command != command_forward.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+//    if (fireBetweenMoves & (prev_command != command_forward.ID)) {
+//      prev_command = command_fire.issue();  //issue a FIRE command on a transition
+//      waitMilliseconds(wait_millis);
+//    }
     prev_command = command_forward.issue();
   }
   public void left() {
-    if (fireBetweenMoves & (prev_command != command_left.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+//    if (fireBetweenMoves & (prev_command != command_left.ID)) {
+//      prev_command = command_fire.issue();  //issue a FIRE command on a transition
+//      waitMilliseconds(wait_millis);
+//    }
     prev_command = command_left.issue();
   }
   public void right() {
-    if (fireBetweenMoves & (prev_command != command_right.ID)) {
-      prev_command = command_fire.issue();  //issue a FIRE command on a transition
-      waitMilliseconds(wait_millis);
-    }
+//    if (fireBetweenMoves & (prev_command != command_right.ID)) {
+//      prev_command = command_fire.issue();  //issue a FIRE command on a transition
+//      waitMilliseconds(wait_millis);
+//    }
     prev_command = command_right.issue();
   }
   

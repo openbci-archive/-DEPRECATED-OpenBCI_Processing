@@ -111,7 +111,7 @@ class EEG_Processing_User {
         isDetected = true;
       }
     } else {
-      Ichan = (4-1);
+      Ichan = (2-1);
       findPeakFrequency(fftData, Ichan);
       if ((detectedPeak[Ichan].freq_Hz >= processing_band_low_Hz[3-1]) && (detectedPeak[Ichan].freq_Hz < processing_band_high_Hz[3-1])) { //look in alpha band
         if (detectedPeak[Ichan].SNR_dB >= detection_thresh_dB) {
@@ -123,7 +123,7 @@ class EEG_Processing_User {
         }
       } else {
         //did not detect forward, try left
-        Ichan = (2-1);
+        Ichan = (1-1);
         findPeakFrequency(fftData, Ichan);
         if ((detectedPeak[Ichan].freq_Hz >= processing_band_low_Hz[3-1]) && (detectedPeak[Ichan].freq_Hz < processing_band_high_Hz[3-1])) {
           if (detectedPeak[Ichan].SNR_dB >= detection_thresh_dB) {
@@ -135,7 +135,7 @@ class EEG_Processing_User {
           }
         } else {
           //did not detect left, try right
-          Ichan = (6-1);
+          Ichan = (3-1);
           findPeakFrequency(fftData, Ichan);
           if ((detectedPeak[Ichan].freq_Hz >= processing_band_low_Hz[3-1]) && (detectedPeak[Ichan].freq_Hz < processing_band_high_Hz[3-1])) {
             if (detectedPeak[Ichan].SNR_dB >= detection_thresh_dB) {
