@@ -777,7 +777,7 @@ class Gui_Manager {
   }
   
   public void draw() {
-    headPlot1.draw();
+    // headPlot1.draw();
     
     //draw montage or spectrogram
     if (showSpectrogram == false) {

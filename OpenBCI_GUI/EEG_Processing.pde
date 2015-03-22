@@ -5,11 +5,16 @@ class EEG_Processing_User {
   private int nchan;  
   
   //add your own variables here
-  
+  boolean isTriggered = false;
+  float upperThreshold = 150;
+  float lowerThreshold = 75;
+  int averagePeriod = 125;
+  int ourChan = 4 - 1;
+  float myAverage = 0.0;  
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
-      nchan = NCHAN;
+    nchan = NCHAN;
     fs_Hz = sample_rate_Hz;
   }
   
@@ -24,18 +29,37 @@ class EEG_Processing_User {
     //for example, you could loop over each EEG channel to do some sort of time-domain processing 
     //using the sample values that have already been filtered, as will be plotted on the display
     float EEG_value_uV;
-    for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each NEW sample
-      int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
-      for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
-        EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
+    // for (int Ichan=0;Ichan < nchan; Ichan++) {
+    //   //loop over each NEW sample
+    //   int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
+    //   for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
+    //     EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
         
-        //add your processing here...
+    //     //add your processing here...
         
         
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
-      }
+    //     //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
+    //   }
+    // }
+
+
+    // InMoov EMG output code ... to be sent over Arduino on Serial/COM port 2
+    for(int i = data_forDisplay_uV[ourChan].length - averagePeriod; i < data_forDisplay_uV[ourChan].length; i++){
+       myAverage += abs(data_forDisplay_uV[ourChan][i]);
     }
+    myAverage = myAverage / float(averagePeriod); //finishing the average
+    
+    if(myAverage >= upperThreshold && isTriggered == false){
+      isTriggered = true;
+      println("SENDING O!");
+      openBCI.serial_openBCI.write('o'); 
+    }
+    if(myAverage <= lowerThreshold && isTriggered == true){
+      isTriggered = false;
+      println("SENDING G!");
+      openBCI.serial_openBCI.write('g'); 
+    }  
+
         
     //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
     float FFT_freq_Hz, FFT_value_uV;
@@ -53,9 +77,29 @@ class EEG_Processing_User {
       }
     }  
   }
-}
-   
 
+  //Draw function added to render EMG feedback visualizer
+  public void draw(){
+    pushStyle();
+
+      //circle for outer threshold
+      noFill();
+      stroke(0,255,0);
+      strokeWeight(2);
+      ellipse(3*(width/4), height/4, upperThreshold, upperThreshold);
+
+      //circle for inner threshold
+      stroke(0,255,255);
+      ellipse(3*(width/4), height/4, lowerThreshold, lowerThreshold);
+
+      fill(255,0,0, 125);
+      noStroke();
+      ellipse(3*(width/4), height/4, myAverage, myAverage);
+
+    popStyle();
+  }
+
+}
 
 class EEG_Processing {
   private float fs_Hz;  //sample rate

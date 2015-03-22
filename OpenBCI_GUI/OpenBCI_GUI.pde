@@ -1,9 +1,12 @@
 ///////////////////////////////////////////////
 //
+// InMoov Robotic Hand Output Edition!
+// 
 // GUI for controlling the ADS1299-based OpenBCI
 //
 // Created: Chip Audette, Oct 2013 - May 2014
 // Modified: Conor Russomanno & Joel Murphy, August 2014 - Dec 2014
+// Modified again: Conor Russomanno March 2015 (at Hack The Brain UK)
 //
 // Requires gwoptics graphing library for processing.  Built on V0.5.0
 // http://www.gwoptics.org/processing/gwoptics_p5lib/
@@ -103,6 +106,9 @@ String fileName = "N/A";
 //create objects that'll do the EEG signal processing
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
+
+// Create InMoov Object & Serial Port
+
 
 //fft constants
 int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
@@ -522,6 +528,7 @@ void systemDraw(){ //for drawing to the screen
     }
 
     playground.draw();
+    eegProcessing_user.draw(); 
 
   }
 
