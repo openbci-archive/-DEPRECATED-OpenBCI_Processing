@@ -1,3 +1,5 @@
+For the full getting started guide, go to [our Docs page](http://docs.openbci.com/tutorials/01-GettingStarted).
+
 ### 1. Download Processing for your operating system
 
 ![Processing IDE](readme-assets/Processing.png)
