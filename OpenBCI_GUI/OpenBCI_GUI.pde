@@ -464,6 +464,7 @@ void systemUpdate(){ // for updating data values and variables
       println("systemUpdate: reinitializing GUI");
       timeOfGUIreinitialize = millis();
       initializeGUI();
+      playground.x = width; //reset the x for the playground...
     }
 
     playground.update();
@@ -1273,7 +1274,7 @@ void toggleShowPolarity() {
   gui.headPlot1.use_polarity = !gui.headPlot1.use_polarity;
   
   //update the button
-  gui.showPolarityButton.but_txt = "Show Polarity\n" + gui.headPlot1.getUsePolarityTrueFalse();
+  gui.showPolarityButton.but_txt = "Polarity\n" + gui.headPlot1.getUsePolarityTrueFalse();
 }
 
 void fileSelected(File selection) {  //called by the Open File dialog box after a file has been selected
