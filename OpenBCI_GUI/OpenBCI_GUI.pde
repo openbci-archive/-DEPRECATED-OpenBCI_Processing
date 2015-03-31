@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 import processing.serial.*;  //for serial communication to Arduino/OpenBCI
 import java.awt.event.*; //to allow for event listener on screen resize
 
-boolean isVerbose = false; //set true if you want more verbosity in console
+boolean isVerbose = true; //set true if you want more verbosity in console
 
 
 //used to switch between application states

@@ -33,6 +33,8 @@ final String command_deactivateFilters = "g";  // not necessary anymore
 final String[] command_deactivate_channel = {"1", "2", "3", "4", "5", "6", "7", "8", "q", "w", "e", "r", "t", "y", "u", "i"};
 final String[] command_activate_channel = {"!", "@", "#", "$", "%", "^", "&", "*","Q", "W", "E", "R", "T", "Y", "U", "I"};
 
+int channelDeactivateCounter = 0; //used for re-deactivating channels after switching settings...
+
 //everything below is now deprecated...
 // final String[] command_activate_leadoffP_channel = {"!", "@", "#", "$", "%", "^", "&", "*"};  //shift + 1-8
 // final String[] command_deactivate_leadoffP_channel = {"Q", "W", "E", "R", "T", "Y", "U", "I"};   //letters (plus shift) right below 1-8
@@ -730,6 +732,8 @@ class OpenBCI_ADS1299 {
       timeOfLastChannelWrite = millis();
       isWritingChannel = true;
   }
+
+  // FULL DISCLAIMER: this method is messy....... very messy... we had to brute force a firmware miscue
   public void writeChannelSettings(int _numChannel,char[][] channelSettingValues) {   //numChannel counts from zero
     if (millis() - timeOfLastChannelWrite >= 50) { //wait 50 milliseconds before sending next character
       verbosePrint("---");
@@ -737,6 +741,8 @@ class OpenBCI_ADS1299 {
         case 0: //start sequence by send 'x'
           verbosePrint("x" + " :: " + millis());
           serial_openBCI.write('x');
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
           break;
         case 1: //send channel number
           verbosePrint(str(_numChannel+1) + " :: " + millis());
@@ -747,29 +753,194 @@ class OpenBCI_ADS1299 {
             //openBCI.serial_openBCI.write((command_activate_channel_daisy[_numChannel-8]));
             serial_openBCI.write((command_activate_channel[_numChannel])); //command_activate_channel holds non-daisy and daisy
           }
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
           break;
-        case 2: 
+        case 2:  
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
+          break;
         case 3: 
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
+          break;
         case 4: 
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
+          break;
         case 5: 
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
+          break;
         case 6: 
+          verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
+          serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
+          //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
+          break;
         case 7:
           verbosePrint(channelSettingValues[_numChannel][channelWriteCounter-2] + " :: " + millis());
           serial_openBCI.write(channelSettingValues[_numChannel][channelWriteCounter-2]);
           //value for ON/OF
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
           break;
         case 8:
           verbosePrint("X" + " :: " + millis());
           serial_openBCI.write('X'); // send 'X' to end message sequence
+          timeOfLastChannelWrite = millis();
+          channelWriteCounter++;
           break;
         case 9:
-          verbosePrint("done writing channel.");
-          isWritingChannel = false;
-          channelWriteCounter = -1;
+          //turn back off channels that were not active before changing channel settings
+          switch(channelDeactivateCounter){
+            case 0:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 1:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 2:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 3:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 4:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 5:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 6: 
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 7:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              //check to see if it's 8chan or 16chan ... stop the switch case here if it's 8 chan, otherwise keep going
+              if(nchan == 8){
+                verbosePrint("done writing channel.");
+                isWritingChannel = false;
+                channelWriteCounter = 0;
+                channelDeactivateCounter = 0;
+              } else{
+                //keep going
+              }
+              break;
+            case 8:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 9:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 10:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 11:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 12:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 13: 
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 14:
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              channelDeactivateCounter++;
+              break;
+            case 15: 
+              if(channelSettingValues[channelDeactivateCounter][0] == '1'){
+                verbosePrint("deactivating channel: " + str(channelDeactivateCounter + 1));
+                serial_openBCI.write(command_deactivate_channel[channelDeactivateCounter]);
+              }
+              verbosePrint("done writing channel.");
+              isWritingChannel = false;
+              channelWriteCounter = 0;
+              channelDeactivateCounter = 0;
+              break;
+          }
+
+          // verbosePrint("done writing channel.");
+          // isWritingChannel = false;
+          // channelWriteCounter = -1;
+          timeOfLastChannelWrite = millis();
           break;
       }
-      timeOfLastChannelWrite = millis();
-      channelWriteCounter++;
+      // timeOfLastChannelWrite = millis();
+      // channelWriteCounter++;
     }
   }
   
