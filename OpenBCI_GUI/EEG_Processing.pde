@@ -5,17 +5,29 @@ class EEG_Processing_User {
   private int nchan;  
   
   //add your own variables here
+  
+  InMoov inMoov;
+  
   boolean isTriggered = false;
-  float upperThreshold = 150;
-  float lowerThreshold = 75;
-  int averagePeriod = 125;
+  float upperThreshold = 25;
+  float lowerThreshold = 0;
+  int averagePeriod = 75;
+  int thresholdPeriod = 1250;
   int ourChan = 4 - 1;
   float myAverage = 0.0;  
+  float acceptableLimitUV = 255;
+  
+  float inMoov_output = 0; //value between 0-255 that is the relative position of the current uV average between the rolling lower and upper uV thresholds
+  float inMoov_output_normalized = 0;
  
   //class constructor
-  EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
+  EEG_Processing_User(int NCHAN, float sample_rate_Hz, InMoov _inMoov) {
+    
     nchan = NCHAN;
     fs_Hz = sample_rate_Hz;
+    
+    inMoov = _inMoov;
+    
   }
   
   //add some functions here...if you'd like
@@ -44,21 +56,61 @@ class EEG_Processing_User {
 
 
     // InMoov EMG output code ... to be sent over Arduino on Serial/COM port 2
-    for(int i = data_forDisplay_uV[ourChan].length - averagePeriod; i < data_forDisplay_uV[ourChan].length; i++){
-       myAverage += abs(data_forDisplay_uV[ourChan][i]);
+    
+    //keep track of highest and lowest uV values over entire data_forDisplay array ... use as upper and lower bounds of "flex" range...
+//    upperThreshold = 35;
+//    lowerThreshold = 25;
+//    for(int i = data_forDisplay_uV[ourChan].length - thresholdPeriod; i < data_forDisplay_uV[ourChan].length; i++){
+//      if(abs(data_forDisplay_uV[ourChan][i]) >= upperThreshold && abs(data_forDisplay_uV[ourChan][i]) <= 255){
+//        upperThreshold = (int)abs(data_forDisplay_uV[ourChan][i]); //reset upperThreshold if there is something bigger
+//        println("New upperThreshold = " + upperThreshold);
+//      }
+//      if(abs(data_forDisplay_uV[ourChan][i]) <= lowerThreshold){
+//        lowerThreshold = (int)abs(data_forDisplay_uV[ourChan][i]);
+//        println("New lowerThreshold = " + lowerThreshold);
+//      }
+//    } 
+    
+    for(int i = data_forDisplay_uV[ourChan].length - 1235678; i < data_forDisplay_uV[ourChan].length; i++){
+       if(data_forDisplay_uV[ourChan][i] <= acceptableLimitUV){ //prevent BIG spikes from effecting the average
+         myAverage += abs(data_forDisplay_uV[ourChan][i]);
+       }
     }
+
     myAverage = myAverage / float(averagePeriod); //finishing the average
     
-    if(myAverage >= upperThreshold && isTriggered == false){
-      isTriggered = true;
-      println("SENDING O!");
-      openBCI.serial_openBCI.write('o'); 
+    if(myAverage >= upperThreshold && myAverage <= acceptableLimitUV){ // 
+       upperThreshold = myAverage; 
     }
-    if(myAverage <= lowerThreshold && isTriggered == true){
-      isTriggered = false;
-      println("SENDING G!");
-      openBCI.serial_openBCI.write('g'); 
-    }  
+    
+    if(myAverage <= lowerThreshold){
+       lowerThreshold = myAverage; 
+    }
+    
+    if(upperThreshold >= 25){
+      upperThreshold -= (upperThreshold - 25)/(frameRate * 5); //have upper threshold creep downwards to keep range tight
+    }
+    
+    if(lowerThreshold <= 15){
+      lowerThreshold += (15 - lowerThreshold)/(frameRate * 5); //have lower threshold creep upwards to keep range tight
+    }
+    
+    println("inMoov_output: | " + inMoov_output + " |");
+    inMoov_serial.write((char)inMoov_output);
+    
+//    if(myAverage >= upperThreshold && isTriggered == false){
+//      isTriggered = true;
+//      println("SENDING O!");
+//      openBCI.serial_openBCI.write('o'); 
+//    }
+//    if(myAverage <= lowerThreshold && isTriggered == true){
+//      isTriggered = false;
+//      println("SENDING G!");
+//      openBCI.serial_openBCI.write('g'); 
+//    }  
+    
+    inMoov_output = map(myAverage, lowerThreshold, upperThreshold, 0, 250);
+    inMoov_output_normalized = map(myAverage, lowerThreshold, upperThreshold, 0, 1);
 
         
     //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
@@ -86,15 +138,25 @@ class EEG_Processing_User {
       noFill();
       stroke(0,255,0);
       strokeWeight(2);
-      ellipse(3*(width/4), height/4, upperThreshold, upperThreshold);
+      float scaleFactor = 1.0;
+      ellipse(3*(width/4), height/4, scaleFactor * upperThreshold, scaleFactor * upperThreshold);
 
       //circle for inner threshold
       stroke(0,255,255);
-      ellipse(3*(width/4), height/4, lowerThreshold, lowerThreshold);
-
+      ellipse(3*(width/4), height/4, scaleFactor * lowerThreshold, scaleFactor * lowerThreshold);
+  
+      //realtime 
       fill(255,0,0, 125);
       noStroke();
-      ellipse(3*(width/4), height/4, myAverage, myAverage);
+      ellipse(3*(width/4), height/4, scaleFactor * myAverage, scaleFactor * myAverage);
+      
+      //draw background bar for mapped uV value indication
+      fill(0,255,255,125);
+      rect(7*(width/8), height/8, (width/32), (height/4));
+      
+      //draw real time bar of actually mapped value
+      fill(0,255,255);
+      rect(7*(width/8), 3*(height/8), (width/32), map(inMoov_output_normalized, 0, 1, 0, (-1) * (height/4)));
 
     popStyle();
   }
