@@ -11,7 +11,7 @@ class EEG_Processing_User {
   boolean isTriggered = false;
   float upperThreshold = 25;
   float lowerThreshold = 0;
-  int averagePeriod = 75;
+  int averagePeriod = 25;
   int thresholdPeriod = 1250;
   int ourChan = 4 - 1;
   float myAverage = 0.0;  
@@ -71,7 +71,7 @@ class EEG_Processing_User {
 //      }
 //    } 
     
-    for(int i = data_forDisplay_uV[ourChan].length - 1235678; i < data_forDisplay_uV[ourChan].length; i++){
+    for(int i = data_forDisplay_uV[ourChan].length - averagePeriod; i < data_forDisplay_uV[ourChan].length; i++){
        if(data_forDisplay_uV[ourChan][i] <= acceptableLimitUV){ //prevent BIG spikes from effecting the average
          myAverage += abs(data_forDisplay_uV[ourChan][i]);
        }
@@ -96,7 +96,7 @@ class EEG_Processing_User {
     }
     
     println("inMoov_output: | " + inMoov_output + " |");
-    inMoov_serial.write((char)inMoov_output);
+    // inMoov_serial.write((char)inMoov_output);
     
 //    if(myAverage >= upperThreshold && isTriggered == false){
 //      isTriggered = true;
@@ -355,4 +355,3 @@ class EEG_Processing {
     }    
   }
 }
-
