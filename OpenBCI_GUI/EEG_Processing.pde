@@ -20,7 +20,7 @@ class EEG_Processing_User {
   float inMoov_output = 0; //value between 0-255 that is the relative position of the current uV average between the rolling lower and upper uV thresholds
   float inMoov_output_normalized = 0;
   
-  float lastDrumTime = 0;
+  boolean drum1Active = true;
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz, InMoov _inMoov) {
@@ -103,11 +103,18 @@ class EEG_Processing_User {
     //   drum1.trigger();
     // }
     
-    if(inMoov_output >= 50 && (millis() - lastDrumTime) >= 300){
+    if(inMoov_output >= 50 && drum1Active == true){
       println("DRUM!!!!");
       drum1.trigger();
-      lastDrumTime = millis();
+      drum1Active = false;
     }
+    
+    if(drum1Active == false && inMoov_output <= 40){
+      drum1Active = true;
+      println("READY!");
+    }
+    
+    
     
     // drum1.play();
     // inMoov_serial.write((char)inMoov_output);
