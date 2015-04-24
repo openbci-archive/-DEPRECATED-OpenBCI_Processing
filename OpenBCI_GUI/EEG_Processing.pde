@@ -11,7 +11,7 @@ class EEG_Processing_User {
   boolean isTriggered = false;
   float upperThreshold = 25;
   float lowerThreshold = 0;
-  int averagePeriod = 25;
+  int averagePeriod = 3;
   int thresholdPeriod = 1250;
   int ourChan = 4 - 1;
   float myAverage = 0.0;  
@@ -19,6 +19,8 @@ class EEG_Processing_User {
   
   float inMoov_output = 0; //value between 0-255 that is the relative position of the current uV average between the rolling lower and upper uV thresholds
   float inMoov_output_normalized = 0;
+  
+  float lastDrumTime = 0;
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz, InMoov _inMoov) {
@@ -96,6 +98,18 @@ class EEG_Processing_User {
     }
     
     println("inMoov_output: | " + inMoov_output + " |");
+    // if(inMoov_output >= 100){
+    //   println("DRUM!!!!");
+    //   drum1.trigger();
+    // }
+    
+    if(inMoov_output >= 50 && (millis() - lastDrumTime) >= 300){
+      println("DRUM!!!!");
+      drum1.trigger();
+      lastDrumTime = millis();
+    }
+    
+    // drum1.play();
     // inMoov_serial.write((char)inMoov_output);
     
 //    if(myAverage >= upperThreshold && isTriggered == false){

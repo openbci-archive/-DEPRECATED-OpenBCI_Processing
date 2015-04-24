@@ -19,7 +19,9 @@
 ///////////////////////////////////////////////
 
 import ddf.minim.analysis.*; //for FFT
-//import ddf.minim.*;  // commented because too broad.. contains "Controller" class which is also contained in ControlP5... need to be more specific // To make sound.  Following minim example "frequencyModulation"
+//import ddf.minim.;  // commented because too broad.. contains "Controller" class which is also contained in ControlP5... need to be more specific // To make sound.  Following minim example "frequencyModulation"
+import ddf.minim.Minim;
+import ddf.minim.AudioSample;
 import ddf.minim.ugens.*;  // To make sound.  Following minim example "frequencyModulation"
 import java.lang.Math; //for exp, log, sqrt...they seem better than Processing's built-in
 import processing.core.PApplet;
@@ -27,6 +29,10 @@ import java.util.*; //for Array.copyOfRange()
 import java.util.Map.Entry;
 import processing.serial.*;  //for serial communication to Arduino/OpenBCI
 import java.awt.event.*; //to allow for event listener on screen resize
+
+//AUDIO IMPORTS
+Minim minim;
+AudioSample drum1;
 
 boolean isVerbose = false; //set true if you want more verbosity in console
 
@@ -224,6 +230,11 @@ void setup() {
   catch (RuntimeException e) {
     println("OpenBCI_GUI: *** ERROR ***: Could not open " + inMoov_portName);
   }
+  
+  //Importing SOUND files
+  minim = new Minim(this);
+  drum1 = minim.loadSample("drum1.mp3");
+  
 }
 //====================== END--OF ==========================//
 //========================SETUP============================//
@@ -1341,4 +1352,3 @@ void delay(int delay)
 //    )
 //  );
 // }  
-
