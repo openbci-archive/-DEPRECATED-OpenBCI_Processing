@@ -137,7 +137,9 @@ class Gui_Manager {
     }; //from left, from top, width, height
     axes_x = float(win_x)*axisMontage_relPos[2];  //width of the axis in pixels
     axes_y = float(win_y)*axisMontage_relPos[3];  //height of the axis in pixels
+    println("haha I'm here 1");
     gMontage = new Graph2D(parent, int(axes_x), int(axes_y), false);  //last argument is whether the axes cross at zero
+    println("haha I'm here 2");
     setupMontagePlot(gMontage, win_x, win_y, axisMontage_relPos,displayTime_sec,fontInfo,filterDescription);
 
     println("Gui_Manager: Buttons: " + int(float(win_x)*axisMontage_relPos[0]) + ", " + (int(float(win_y)*axisMontage_relPos[1])-40));
@@ -924,7 +926,3 @@ class Gui_Manager {
   }
  
 };
-
-
-
-
