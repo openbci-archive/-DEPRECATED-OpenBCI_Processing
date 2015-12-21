@@ -13,7 +13,7 @@ public class OutputFile_rawtxt {
   OutputFile_rawtxt(float fs_Hz) {
 
     //build up the file name
-    fname = "SavedData\\OpenBCI-RAW-";
+    fname = "SavedData"+System.getProperty("file.separator")+"OpenBCI-RAW-";
 
     //add year month day to the file name
     fname = fname + year() + "-";
@@ -46,7 +46,7 @@ public class OutputFile_rawtxt {
 
   //variation on constructor to have custom name
   OutputFile_rawtxt(float fs_Hz, String _fileName) {
-    fname = "SavedData\\OpenBCI-RAW-";
+    fname = "SavedData"+System.getProperty("file.separator")+"OpenBCI-RAW-";
     fname += _fileName;
     fname += ".txt";
     output = createWriter(fname);        //open the file
