@@ -12,7 +12,7 @@
 // with the ControlP5 library that is included with this GitHub repository
 //
 // No warranty.  Use at your own risk.  Use for whatever you'd like.
-// 
+//
 ///////////////////////////////////////////////
 
 import ddf.minim.analysis.*; //for FFT
@@ -59,7 +59,7 @@ int newPacketCounter = 0;
 long timeOfInit;
 long timeSinceStopRunning = 1000;
 int prev_time_millis = 0;
-final int nPointsPerUpdate = 50; //update the GUI after this many data points have been received 
+final int nPointsPerUpdate = 50; //update the GUI after this many data points have been received
 
 /////Define variables related to OpenBCI board operations
 //define number of channels from openBCI...first EEG channels, then aux channels
@@ -153,9 +153,9 @@ PFont f3;
 //========================SETUP============================//
 //========================SETUP============================//
 void setup() {
-  
+
   //open window
-  size(win_x, win_y, P2D);
+  size(1024, 768, P2D);
   // size(displayWidth, displayHeight, P2D);
   //if (frame != null) frame.setResizable(true);  //make window resizable
   //attach exit handler
@@ -163,22 +163,22 @@ void setup() {
   frameRate(16);
   // smooth(); //turn this off if it's too slow
 
-  frame.setResizable(true); 
+  frame.setResizable(true);
 
   f1 = createFont("Raleway-SemiBold.otf", 16);
   f2 = createFont("Raleway-Regular.otf", 15);
   f3 = createFont("Raleway-SemiBold.otf", 15);
 
   //listen for window resize ... used to adjust elements in application
-  frame.addComponentListener(new ComponentAdapter() { 
-    public void componentResized(ComponentEvent e) { 
-      if(e.getSource()==frame) { 
+  frame.addComponentListener(new ComponentAdapter() {
+    public void componentResized(ComponentEvent e) {
+      if(e.getSource()==frame) {
        println("OpenBCI_GUI: setup: RESIZED");
        screenHasBeenResized = true;
        timeOfLastScreenResize = millis();
        // initializeGUI();
-      } 
-    } 
+      }
+    }
   }
   );
 
@@ -193,11 +193,11 @@ void setup() {
 
   controlPanelCollapser.setIsActive(true);
   controlPanelCollapser.makeDropdownButton(true);
-  
+
   //from the user's perspective, the program hangs out on the ControlPanel until the user presses "Start System".
-  controlPanel = new ControlPanel(this);  
+  controlPanel = new ControlPanel(this);
   //The effect of "Start System" is that initSystem() gets called, which starts up the conneciton to the OpenBCI
-  //hardware (via the "updateSyncState()" process) as well as initializing the rest of the GUI elements.  
+  //hardware (via the "updateSyncState()" process) as well as initializing the rest of the GUI elements.
   //Once the hardware is synchronized, the main GUI is drawn and the user switches over to the main GUI.
 
   logo = loadImage("logo2.png");
@@ -210,7 +210,7 @@ void setup() {
 //========================SETUP============================//
 
 int pointCounter = 0;
-int prevBytes = 0; 
+int prevBytes = 0;
 int prevMillis=millis();
 int byteRate_perSec = 0;
 int drawLoop_counter = 0;
@@ -230,7 +230,7 @@ void initSystem(){
   data_elec_imp_ohm = new float[nchan];
   is_railed = new DataStatus[nchan];
   for (int i=0; i<nchan;i++) is_railed[i] = new DataStatus(threshold_railed,threshold_railed_warn);
-  for (int i=0; i<nDataBackBuff;i++) { 
+  for (int i=0; i<nDataBackBuff;i++) {
     //dataPacketBuff[i] = new DataPacket_ADS1299(nchan+n_aux_ifEnabled);
     // dataPacketBuff[i] = new DataPacket_ADS1299(OpenBCI_Nchannels+n_aux_ifEnabled);
     dataPacketBuff[i] = new DataPacket_ADS1299(nchan,n_aux_ifEnabled);
@@ -244,7 +244,7 @@ void initSystem(){
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 1 --");
 
   //initialize the FFT objects
-  for (int Ichan=0; Ichan < nchan; Ichan++) { 
+  for (int Ichan=0; Ichan < nchan; Ichan++) {
     println("a--"+Ichan);
     fftBuff[Ichan] = new FFT(Nfft, openBCI.get_fs_Hz());
   };  //make the FFT objects
@@ -259,7 +259,7 @@ void initSystem(){
   //prepare the source of the input data
   switch (eegDataSource) {
     case DATASOURCE_NORMAL: case DATASOURCE_NORMAL_W_AUX:
-      
+
       // int nDataValuesPerPacket = OpenBCI_Nchannels;
       int nEEDataValuesPerPacket = nchan;
       boolean useAux = false;
@@ -280,18 +280,18 @@ void initSystem(){
         exit();
       }
       println("OpenBCI_GUI: initSystem: loading complete.  " + playbackData_table.getRowCount() + " rows of data, which is " + round(float(playbackData_table.getRowCount())/openBCI.get_fs_Hz()) + " seconds of EEG data");
-      
+
       //removing first column of data from data file...the first column is a time index and not eeg data
       playbackData_table.removeColumn(0);
       break;
-    default: 
+    default:
   }
 
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 3 --");
 
   //initilize the GUI
   initializeGUI();
-  
+
   //final config
   // setBiasState(openBCI.isBiasAuto);
   verbosePrint("OpenBCI_GUI: initSystem: -- Init 4 --");
@@ -300,7 +300,7 @@ void initSystem(){
   if ((eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX)) openNewLogFile(fileName);  //open a new log file
 
   nextPlayback_millis = millis(); //used for synthesizeData and readFromFile.  This restarts the clock that keeps the playback at the right pace.
-  
+
   if(eegDataSource != DATASOURCE_NORMAL && eegDataSource != DATASOURCE_NORMAL_W_AUX){
     systemMode = 10; //tell system it's ok to leave control panel and start interfacing GUI
   }
@@ -315,7 +315,7 @@ void prepareData(float[] dataBuffX, float[][] dataBuffY_uV, float fs_Hz) {
   int xoffset = dataBuffX.length - 1;
   for (int i=0; i < dataBuffX.length; i++) {
     dataBuffX[i] = ((float)(i-xoffset)) / fs_Hz; //x data goes from minus time up to zero
-    for (int Ichan = 0; Ichan < nchan; Ichan++) { 
+    for (int Ichan = 0; Ichan < nchan; Ichan++) {
       dataBuffY_uV[Ichan][i] = 0f;  //make the y data all zeros
     }
   }
@@ -331,7 +331,7 @@ void initializeFFTObjects(FFT[] fftBuff, float[][] dataBuffY_uV, int N, float fs
 
     //do the FFT on the initial data
     fooData = dataBuffY_uV[Ichan];
-    fooData = Arrays.copyOfRange(fooData, fooData.length-Nfft, fooData.length); 
+    fooData = Arrays.copyOfRange(fooData, fooData.length-Nfft, fooData.length);
     fftBuff[Ichan].forward(fooData); //compute FFT on this channel of data
   }
 }
@@ -345,7 +345,7 @@ void haltSystem(){
   curDataPacketInd = -1;
   lastReadDataPacketInd = -1;
   pointCounter = 0;
-  prevBytes = 0; 
+  prevBytes = 0;
   prevMillis=millis();
   byteRate_perSec = 0;
   drawLoop_counter = 0;
@@ -396,7 +396,7 @@ void systemUpdate(){ // for updating data values and variables
   //prepare for updating the GUI
   win_x = width;
   win_y = height;
-  
+
   //updates while in intro screen
   if(systemMode == 0){
 
@@ -406,19 +406,19 @@ void systemUpdate(){ // for updating data values and variables
       //get the data, if it is available
 
       pointCounter = getDataIfAvailable(pointCounter);
-      
+
       //has enough data arrived to process it and update the GUI?
       if (pointCounter >= nPointsPerUpdate) {
         pointCounter = 0;  //reset for next time
-  
+
         //process the data
         processNewData();
-  
+
         //try to detect the desired signals, do it in frequency space...for OpenBCI_GUI_Simpler
         //detectInFreqDomain(fftBuff,inband_Hz,guard_Hz,detData_freqDomain);
         //gui.setDetectionData_freqDomain(detData_freqDomain);
         //tell the GUI that it has received new data via dumping new data into arrays that the GUI has pointers to
-        
+
         // println("packet counter = " + newPacketCounter);
         // for(int i = 0; i < eegProcessing.data_std_uV.length; i++){
         //   println("eegProcessing.data_std_uV[" + i + "] = " + eegProcessing.data_std_uV[i]);
@@ -435,7 +435,7 @@ void systemUpdate(){ // for updating data values and variables
         else{
           println("OpenBCI_GUI: systemUpdate: reinitializing GUI after resize... not updating GUI");
         }
-        
+
         ///add raw data to spectrogram...if the correct channel...
         //...look for the first channel that is active (meaning button is not active) or, if it
         //     hasn't yet sent any data, send the last channel even if the channel is off
@@ -447,9 +447,9 @@ void systemUpdate(){ // for updating data values and variables
   //          //gui.spectrogram.addDataPoint(100.0f+(float)Idata);
   //        }
   //      }
-          
+
         redrawScreenNow=true;
-      } 
+      }
       else {
         //not enough data has arrived yet... only update the channel controller
       }
@@ -474,8 +474,8 @@ void systemUpdate(){ // for updating data values and variables
 }
 
 void systemDraw(){ //for drawing to the screen
-    
-  //redraw the screen...not every time, get paced by when data is being plotted    
+
+  //redraw the screen...not every time, get paced by when data is being plotted
   background(bgColor);  //clear the screen
 
   if(systemMode == 10){
@@ -484,7 +484,7 @@ void systemDraw(){ //for drawing to the screen
       //if (drawLoop_counter >= drawLoopCounter_thresh) println("OpenBCI_GUI: redrawing based on loop counter...");
       drawLoop_counter=0; //reset for next time
       redrawScreenNow = false;  //reset for next time
-      
+
       //update the title of the figure;
       switch (eegDataSource) {
         case DATASOURCE_NORMAL: case DATASOURCE_NORMAL_W_AUX:
@@ -496,11 +496,11 @@ void systemDraw(){ //for drawing to the screen
         case DATASOURCE_PLAYBACKFILE:
           frame.setTitle(int(frameRate) + " fps, Playing " + int(float(currentTableRowIndex)/openBCI.get_fs_Hz()) + " of " + int(float(playbackData_table.getRowCount())/openBCI.get_fs_Hz()) + " secs, Reading from: " + playbackData_fname);
           break;
-      } 
+      }
     }
 
     //wait 1 second for GUI to reinitialize
-    if((millis() - timeOfGUIreinitialize) > reinitializeGUIdelay){ 
+    if((millis() - timeOfGUIreinitialize) > reinitializeGUIdelay){
       // println("attempting to draw GUI...");
       try{
         // println("GUI DRAW!!! " + millis());
@@ -555,25 +555,25 @@ void systemDraw(){ //for drawing to the screen
 
 //called from systemUpdate when mode=10 and isRunning = true
 int getDataIfAvailable(int pointCounter) {
-  
+
   if ( (eegDataSource == DATASOURCE_NORMAL) || (eegDataSource == DATASOURCE_NORMAL_W_AUX) ) {
     //get data from serial port as it streams in
 
       //first, get the new data (if any is available)
       // openBCI.finalizeCOMINIT(); //this is trying to listen to the openBCI hardware.  New data is put into dataPacketBuff and increments curDataPacketInd.
-      
+
       //next, gather any new data into the "little buffer"
       while ( (curDataPacketInd != lastReadDataPacketInd) && (pointCounter < nPointsPerUpdate)) {
         lastReadDataPacketInd = (lastReadDataPacketInd+1) % dataPacketBuff.length;  //increment to read the next packet
         for (int Ichan=0; Ichan < nchan; Ichan++) {   //loop over each cahnnel
           //scale the data into engineering units ("microvolts") and save to the "little buffer"
           yLittleBuff_uV[Ichan][pointCounter] = dataPacketBuff[lastReadDataPacketInd].values[Ichan] * openBCI.get_scale_fac_uVolts_per_count();
-        } 
+        }
         pointCounter++; //increment counter for "little buffer"
       }
   } else {
     // make or load data to simulate real time
-        
+
     //has enough time passed?
     int current_millis = millis();
     if (current_millis >= nextPlayback_millis) {
@@ -588,10 +588,10 @@ int getDataIfAvailable(int pointCounter) {
         // println();
         dataPacketBuff[lastReadDataPacketInd].sampleIndex++;
         switch (eegDataSource) {
-          case DATASOURCE_SYNTHETIC: //use synthetic data (for GUI debugging)   
+          case DATASOURCE_SYNTHETIC: //use synthetic data (for GUI debugging)
             synthesizeData(nchan, openBCI.get_fs_Hz(), openBCI.get_scale_fac_uVolts_per_count(), dataPacketBuff[lastReadDataPacketInd]);
             break;
-          case DATASOURCE_PLAYBACKFILE: 
+          case DATASOURCE_PLAYBACKFILE:
             currentTableRowIndex=getPlaybackDataFromTable(playbackData_table,currentTableRowIndex,openBCI.get_scale_fac_uVolts_per_count(), dataPacketBuff[lastReadDataPacketInd]);
             break;
           default:
@@ -607,7 +607,7 @@ int getDataIfAvailable(int pointCounter) {
       //if (eegDataSource==DATASOURCE_PLAYBACKFILE) println("OpenBCI_GUI: getDataIfAvailable: currentTableRowIndex = " + currentTableRowIndex);
       //println("OpenBCI_GUI: getDataIfAvailable: pointCounter = " + pointCounter);
     } // close "has enough time passed"
-  } 
+  }
   return pointCounter;
 }
 
@@ -622,7 +622,7 @@ void processNewData() {
 
   prevMillis=millis();           //store for next time
   prevBytes = openBCI_byteCount; //store for next time
-  
+
   //compute smoothed byte rate
   avgBitRate.addValue(inst_byteRate_perSec);
   byteRate_perSec = (int)avgBitRate.calcMean();
@@ -637,31 +637,31 @@ void processNewData() {
     //append the new data to the larger data buffer...because we want the plotting routines
     //to show more than just the most recent chunk of data.  This will be our "raw" data.
     appendAndShift(dataBuffY_uV[Ichan], yLittleBuff_uV[Ichan]);
-    
+
     //make a copy of the data that we'll apply processing to.  This will be what is displayed on the full montage
     dataBuffY_filtY_uV[Ichan] = dataBuffY_uV[Ichan].clone();
   }
-    
+
   //if you want to, re-reference the montage to make it be a mean-head reference
   if (false) rereferenceTheMontage(dataBuffY_filtY_uV);
-  
+
   //update the FFT (frequency spectrum)
-  for (int Ichan=0;Ichan < nchan; Ichan++) {  
+  for (int Ichan=0;Ichan < nchan; Ichan++) {
 
     //copy the previous FFT data...enables us to apply some smoothing to the FFT data
     for (int I=0; I < fftBuff[Ichan].specSize(); I++) prevFFTdata[I] = fftBuff[Ichan].getBand(I); //copy the old spectrum values
-    
+
     //prepare the data for the new FFT
     float[] fooData_raw = dataBuffY_uV[Ichan];  //use the raw data for the FFT
     fooData_raw = Arrays.copyOfRange(fooData_raw, fooData_raw.length-Nfft, fooData_raw.length);   //trim to grab just the most recent block of data
     float meanData = mean(fooData_raw);  //compute the mean
     for (int I=0; I < fooData_raw.length; I++) fooData_raw[I] -= meanData; //remove the mean (for a better looking FFT
-    
+
     //compute the FFT
     fftBuff[Ichan].forward(fooData_raw); //compute FFT on this channel of data
-    
-    
-    
+
+
+
 //    //convert units on fft data
 //    if (false) {
 //      //convert units to uV_per_sqrtHz...is this still correct?? CHIP 2014-10-24
@@ -675,49 +675,49 @@ void processNewData() {
 //        //if ((Ichan==0) & (I > 5) & (I < 15)) println("processFreqDomain: uV/rtHz = " + I + " " + foo);
 //      }
 //    } else {
-      //convert to uV_per_bin...still need to confirm the accuracy of this code.  
+      //convert to uV_per_bin...still need to confirm the accuracy of this code.
       //Do we need to account for the power lost in the windowing function?   CHIP  2014-10-24
         for (int I=0; I < fftBuff[Ichan].specSize(); I++) {  //loop over each FFT bin
           fftBuff[Ichan].setBand(I,(float)(fftBuff[Ichan].getBand(I) / fftBuff[Ichan].specSize()));
-        }       
+        }
 //    }
-    
+
     //average the FFT with previous FFT data so that it makes it smoother in time
     double min_val = 0.01d;
     for (int I=0; I < fftBuff[Ichan].specSize(); I++) {   //loop over each fft bin
       if (prevFFTdata[I] < min_val) prevFFTdata[I] = (float)min_val; //make sure we're not too small for the log calls
       foo = fftBuff[Ichan].getBand(I); if (foo < min_val) foo = min_val; //make sure this value isn't too small
-      
+
        if (true) {
         //smooth in dB power space
         foo =   (1.0d-smoothFac[smoothFac_ind]) * java.lang.Math.log(java.lang.Math.pow(foo,2));
-        foo += smoothFac[smoothFac_ind] * java.lang.Math.log(java.lang.Math.pow((double)prevFFTdata[I],2)); 
+        foo += smoothFac[smoothFac_ind] * java.lang.Math.log(java.lang.Math.pow((double)prevFFTdata[I],2));
         foo = java.lang.Math.sqrt(java.lang.Math.exp(foo)); //average in dB space
-      } else { 
+      } else {
         //smooth (average) in linear power space
         foo =   (1.0d-smoothFac[smoothFac_ind]) * java.lang.Math.pow(foo,2);
-        foo+= smoothFac[smoothFac_ind] * java.lang.Math.pow((double)prevFFTdata[I],2); 
+        foo+= smoothFac[smoothFac_ind] * java.lang.Math.pow((double)prevFFTdata[I],2);
         // take sqrt to be back into uV_rtHz
         foo = java.lang.Math.sqrt(foo);
       }
       fftBuff[Ichan].setBand(I,(float)foo); //put the smoothed data back into the fftBuff data holder for use by everyone else
     } //end loop over FFT bins
   } //end the loop over channels.
-  
+
   //apply additional processing for the time-domain montage plot (ie, filtering)
   eegProcessing.process(yLittleBuff_uV,dataBuffY_uV,dataBuffY_filtY_uV,fftBuff);
-  
+
   //apply user processing
   // ...yLittleBuff_uV[Ichan] is the most recent raw data since the last call to this processing routine
   // ...dataBuffY_filtY_uV[Ichan] is the full set of filtered data as shown in the time-domain plot in the GUI
   // ...fftBuff[Ichan] is the FFT data structure holding the frequency spectrum as shown in the freq-domain plot in the GUI
   eegProcessing_user.process(yLittleBuff_uV,dataBuffY_uV,dataBuffY_filtY_uV,fftBuff);
-  
+
   //look to see if the latest data is railed so that we can notify the user on the GUI
   for (int Ichan=0;Ichan < nchan; Ichan++) is_railed[Ichan].update(dataPacketBuff[lastReadDataPacketInd].values[Ichan]);
 
   //compute the electrode impedance. Do it in a very simple way [rms to amplitude, then uVolt to Volt, then Volt/Amp to Ohm]
-  for (int Ichan=0;Ichan < nchan; Ichan++) data_elec_imp_ohm[Ichan] = (sqrt(2.0)*eegProcessing.data_std_uV[Ichan]*1.0e-6) / openBCI.get_leadOffDrive_amps();     
+  for (int Ichan=0;Ichan < nchan; Ichan++) data_elec_imp_ohm[Ichan] = (sqrt(2.0)*eegProcessing.data_std_uV[Ichan]*1.0e-6) / openBCI.get_leadOffDrive_amps();
 }
 
 //helper function in handling the EEG data
@@ -733,14 +733,14 @@ void appendAndShift(float[] data, float[] newData) {
 }
 
 //here is the routine that listens to the serial port.
-//if any data is waiting, get it, parse it, and stuff it into our vector of 
+//if any data is waiting, get it, parse it, and stuff it into our vector of
 //pre-allocated dataPacketBuff
 void serialEvent(Serial port) {
   //check to see which serial port it is
   if (openBCI.isOpenBCISerial(port)) {
     // println("OpenBCI_GUI: serialEvent: millis = " + millis());
 
-    // boolean echoBytes = !openBCI.isStateNormal(); 
+    // boolean echoBytes = !openBCI.isStateNormal();
     boolean echoBytes;
 
     if(openBCI.isStateNormal() != true){  // || printingRegisters == true){
@@ -755,7 +755,7 @@ void serialEvent(Serial port) {
       //copy packet into buffer of data packets
       curDataPacketInd = (curDataPacketInd+1) % dataPacketBuff.length; //this is also used to let the rest of the code that it may be time to do something
       openBCI.copyDataPacketTo(dataPacketBuff[curDataPacketInd]);  //resets isNewDataPacketAvailable to false
-      
+
       // //write this chunk of data to file
       // println("-------------------------------------------------------------------------");
       // println("New Packet Available [" + tempCounter + "]");
@@ -766,7 +766,7 @@ void serialEvent(Serial port) {
 
       fileoutput.writeRawData_dataPacket(dataPacketBuff[curDataPacketInd],openBCI.get_scale_fac_uVolts_per_count(),openBCI.get_scale_fac_accel_G_per_count());
     }
-  } 
+  }
   else {
     println("OpenBCI_GUI: serialEvent: received serial data NOT from OpenBCI.");
     inByte = port.read();
@@ -778,8 +778,8 @@ String getDateString() {
     if (month() < 10) fname=fname+"0";
     fname = fname + month() + "-";
     if (day() < 10) fname = fname + "0";
-    fname = fname + day(); 
-    
+    fname = fname + day();
+
     fname = fname + "_";
     if (hour() < 10) fname = fname + "0";
     fname = fname + hour() + "-";
@@ -789,12 +789,12 @@ String getDateString() {
     fname = fname + second();
     return fname;
 }
-  
+
 //swtich yard if a click is detected
 void mousePressed() {
 
   verbosePrint("OpenBCI_GUI: mousePressed: mouse pressed");
-  
+
   //if not in initial setup...
   if(systemMode >= 10){
 
@@ -805,11 +805,11 @@ void mousePressed() {
       gui.mousePressed(); // trigger mousePressed function in GUI
       //most of the logic below should be migrated into the Gui_manager specific function above
 
-      if (gui.stopButton.isMouseHere()) { 
+      if (gui.stopButton.isMouseHere()) {
         gui.stopButton.setIsActive(true);
-        stopButtonWasPressed(); 
+        stopButtonWasPressed();
       }
-      
+
       // //was the gui page button pressed?
       // if (gui.guiPageButton.isMouseHere()) {
       //   gui.guiPageButton.setIsActive(true);
@@ -821,32 +821,32 @@ void mousePressed() {
         case Gui_Manager.GUI_PAGE_CHANNEL_ONOFF:
           //check the channel buttons
           // for (int Ibut = 0; Ibut < gui.chanButtons.length; Ibut++) {
-          //   if (gui.chanButtons[Ibut].isMouseHere()) { 
+          //   if (gui.chanButtons[Ibut].isMouseHere()) {
           //     toggleChannelState(Ibut);
           //   }
           // }
 
           //check the detection button
-          //if (gui.detectButton.updateIsMouseHere()) toggleDetectionState();      
+          //if (gui.detectButton.updateIsMouseHere()) toggleDetectionState();
           //check spectrogram button
           //if (gui.spectrogramButton.updateIsMouseHere()) toggleSpectrogramState();
-          
+
           break;
         case Gui_Manager.GUI_PAGE_IMPEDANCE_CHECK:
           // ============ DEPRECATED ============== //
           // //check the impedance buttons
           // for (int Ibut = 0; Ibut < gui.impedanceButtonsP.length; Ibut++) {
-          //   if (gui.impedanceButtonsP[Ibut].isMouseHere()) { 
+          //   if (gui.impedanceButtonsP[Ibut].isMouseHere()) {
           //     toggleChannelImpedanceState(gui.impedanceButtonsP[Ibut],Ibut,0);
           //   }
-          //   if (gui.impedanceButtonsN[Ibut].isMouseHere()) { 
+          //   if (gui.impedanceButtonsN[Ibut].isMouseHere()) {
           //     toggleChannelImpedanceState(gui.impedanceButtonsN[Ibut],Ibut,1);
           //   }
           // }
-          // if (gui.biasButton.isMouseHere()) { 
+          // if (gui.biasButton.isMouseHere()) {
           //   gui.biasButton.setIsActive(true);
           //   setBiasState(!openBCI.isBiasAuto);
-          // }      
+          // }
           // break;
         case Gui_Manager.GUI_PAGE_HEADPLOT_SETUP:
           if (gui.intensityFactorButton.isMouseHere()) {
@@ -877,12 +877,12 @@ void mousePressed() {
             gui.maxDisplayFreqButton.setIsActive(true);
             gui.incrementMaxDisplayFreq();
           }
-          
+
     //      //check the detection button
     //      if (gui.detectButton.updateIsMouseHere()) {
     //       gui.detectButton.setIsActive(true);
     //       toggleDetectionState();
-    //      }      
+    //      }
     //      //check spectrogram button
     //      if (gui.spectrogramButton.updateIsMouseHere()) {
     //        gui.spectrogramButton.setIsActive(true);
@@ -892,7 +892,7 @@ void mousePressed() {
           break;
         //default:
       }
-      
+
       //check the graphs
       if (gui.isMouseOnFFT(mouseX,mouseY)) {
         GraphDataPoint dataPoint = new GraphDataPoint();
@@ -909,7 +909,7 @@ void mousePressed() {
 
     }
 
-    
+
   }
 
   //=============================//
@@ -1028,7 +1028,7 @@ void stopButtonWasPressed() {
   if (isRunning) {
     println("openBCI_GUI: stopButton was pressed...stopping data transfer...");
     stopRunning();
-  } 
+  }
   else { //not running
     println("openBCI_GUI: startButton was pressed...starting data transfer...");
     startRunning();
@@ -1041,9 +1041,9 @@ void updateButtons(){
   //gui.stopButton.setActive(isRunning);
   if (isRunning) {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStop_txt);
-    gui.stopButton.setString(Gui_Manager.stopButton_pressToStop_txt); 
+    gui.stopButton.setString(Gui_Manager.stopButton_pressToStop_txt);
     gui.stopButton.setColorNotPressed(color(224, 56, 45));
-  } 
+  }
   else {
     //println("OpenBCI_GUI: stopButtonWasPressed (a): changing string to " + Gui_Manager.stopButton_pressToStart_txt);
     gui.stopButton.setString(Gui_Manager.stopButton_pressToStart_txt);
@@ -1056,11 +1056,11 @@ float[] sine_phase_rad = new float[nchan];
 void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, DataPacket_ADS1299 curDataPacket) {
   float val_uV;
   for (int Ichan=0; Ichan < nchan; Ichan++) {
-    if (isChannelActive(Ichan)) { 
+    if (isChannelActive(Ichan)) {
       val_uV = randomGaussian()*sqrt(fs_Hz/2.0f); // ensures that it has amplitude of one unit per sqrt(Hz) of signal bandwidth
       //val_uV = random(1)*sqrt(fs_Hz/2.0f); // ensures that it has amplitude of one unit per sqrt(Hz) of signal bandwidth
       if (Ichan==0) val_uV*= 10f;  //scale one channel higher
-      
+
       if (Ichan==1) {
         //add sine wave at 10 Hz at 10 uVrms
         sine_phase_rad[Ichan] += 2.0f*PI * sine_freq_Hz / fs_Hz;
@@ -1075,7 +1075,7 @@ void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, Da
         //60 Hz interference at 50 uVrms
         sine_phase_rad[Ichan] += 2.0f*PI * 60.0f / fs_Hz;  //50 Hz
         if (sine_phase_rad[Ichan] > 2.0f*PI) sine_phase_rad[Ichan] -= 2.0f*PI;
-        val_uV += 50.0f * sqrt(2.0)*sin(sine_phase_rad[Ichan]);  //20 uVrms  
+        val_uV += 50.0f * sqrt(2.0)*sin(sine_phase_rad[Ichan]);  //20 uVrms
       }
     } else {
       val_uV = 0.0f;
@@ -1086,7 +1086,7 @@ void synthesizeData(int nchan, float fs_Hz, float scale_fac_uVolts_per_count, Da
 
 int getPlaybackDataFromTable(Table datatable, int currentTableRowIndex, float scale_fac_uVolts_per_count, DataPacket_ADS1299 curDataPacket) {
   float val_uV = 0.0f;
-  
+
   //check to see if we can load a value from the table
   if (currentTableRowIndex >= datatable.getRowCount()) {
     //end of file
@@ -1097,7 +1097,7 @@ int getPlaybackDataFromTable(Table datatable, int currentTableRowIndex, float sc
     //get the row
     TableRow row = datatable.getRow(currentTableRowIndex);
     currentTableRowIndex++; //increment to the next row
-    
+
     //get each value
     for (int Ichan=0; Ichan < nchan; Ichan++) {
       if (isChannelActive(Ichan) && (Ichan < datatable.getColumnCount())) {
@@ -1118,8 +1118,8 @@ int getPlaybackDataFromTable(Table datatable, int currentTableRowIndex, float sc
 // void toggleChannelState(int Ichan) {
 //   if ((Ichan >= 0) && (Ichan < gui.chanButtons.length)) {
 //     if (isChannelActive(Ichan)) {
-//       deactivateChannel(Ichan);      
-//     } 
+//       deactivateChannel(Ichan);
+//     }
 //     else {
 //       activateChannel(Ichan);
 //     }
@@ -1147,10 +1147,10 @@ void activateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length){
-    channelSettingValues[Ichan][0] = '0'; 
+    channelSettingValues[Ichan][0] = '0';
     gui.cc.update();
   }
-}  
+}
 void deactivateChannel(int Ichan) {
   println("OpenBCI_GUI: deactivating channel " + (Ichan+1));
   if(eegDataSource == DATASOURCE_NORMAL || eegDataSource == DATASOURCE_NORMAL_W_AUX){
@@ -1160,7 +1160,7 @@ void deactivateChannel(int Ichan) {
     }
   }
   if (Ichan < gui.chanButtons.length) {
-    channelSettingValues[Ichan][0] = '1'; 
+    channelSettingValues[Ichan][0] = '1';
     gui.cc.update();
   }
 }
@@ -1197,7 +1197,7 @@ void deactivateChannel(int Ichan) {
 //   if ((Ichan >= 0) && (Ichan < gui.impedanceButtonsP.length)) {
 //     //change the state of the OpenBCI channel itself
 //     if (openBCI != null) openBCI.changeImpedanceState(Ichan,newstate,code_P_N_Both);
-    
+
 //     //now update the button state
 //     if ((code_P_N_Both == 0) || (code_P_N_Both == 2)) {
 //       //set the P channel
@@ -1213,10 +1213,10 @@ void deactivateChannel(int Ichan) {
 //=========== DEPRECATED w/ CHANNEL CONTROLLER ===========//
 // void setBiasState(boolean state) {
 //   openBCI.isBiasAuto = state;
-  
+
 //   //send message to openBCI
 //   if (openBCI != null) openBCI.setBiasAutoState(state);
-  
+
 //   //change button text
 //   if (openBCI.isBiasAuto) {
 //     gui.biasButton.but_txt = "Bias\nAuto";
@@ -1231,7 +1231,7 @@ void openNewLogFile(String _fileName) {
     println("OpenBCI_GUI: closing log file");
     closeLogFile();
   }
-  
+
   //open the new file
   fileoutput = new OutputFile_rawtxt(openBCI.get_fs_Hz(), _fileName);
   output_fname = fileoutput.fname;
@@ -1245,34 +1245,34 @@ void closeLogFile() {
 
 void incrementFilterConfiguration() {
   eegProcessing.incrementFilterConfiguration();
-  
+
   //update the button strings
   gui.filtBPButton.but_txt = "BP Filt\n" + eegProcessing.getShortFilterDescription();
-  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
+  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")";
 }
 
 void incrementNotchConfiguration() {
   eegProcessing.incrementNotchConfiguration();
-  
+
   //update the button strings
   gui.filtNotchButton.but_txt = "Notch\n" + eegProcessing.getShortNotchDescription();
-  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")"; 
+  gui.titleMontage.string = "EEG Data (" + eegProcessing.getFilterDescription() + ")";
 }
-  
+
 void incrementSmoothing() {
   smoothFac_ind++;
   if (smoothFac_ind >= smoothFac.length) smoothFac_ind = 0;
-  
+
   //tell the GUI
   gui.setSmoothFac(smoothFac[smoothFac_ind]);
-  
+
   //update the button
   gui.smoothingButton.but_txt = "Smooth\n" + smoothFac[smoothFac_ind];
 }
 
 void toggleShowPolarity() {
   gui.headPlot1.use_polarity = !gui.headPlot1.use_polarity;
-  
+
   //update the button
   gui.showPolarityButton.but_txt = "Polarity\n" + gui.headPlot1.getUsePolarityTrueFalse();
 }
@@ -1302,7 +1302,7 @@ void delay(int delay)
 // it stops OpenBCI
 // from: http://forum.processing.org/one/topic/run-code-on-exit.html
 
-// must add "prepareExitHandler();" in setup() for Processing sketches 
+// must add "prepareExitHandler();" in setup() for Processing sketches
 // private void prepareExitHandler () {
 //  Runtime.getRuntime().addShutdownHook(
 //    new Thread(new Runnable() {
@@ -1322,6 +1322,4 @@ void delay(int delay)
 //      }
 //    )
 //  );
-// }  
-
-
+// }
