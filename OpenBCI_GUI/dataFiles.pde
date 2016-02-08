@@ -178,4 +178,3 @@ class Table_CSV extends Table {
     }
   }
 }
-
