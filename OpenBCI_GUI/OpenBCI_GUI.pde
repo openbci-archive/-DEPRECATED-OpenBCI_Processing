@@ -103,6 +103,11 @@ String fileName = "N/A";
 EEG_Processing eegProcessing;
 EEG_Processing_User eegProcessing_user;
 
+// Serial output
+String serial_output_portName = "/dev/tty.usbmodem1411";  //must edit this based on the name of the serial/COM port
+Serial serial_output;
+int serial_output_baud = 115200; //baud rate from the Arduino
+
 //fft constants
 int Nfft = 256; //set resolution of the FFT.  Use N=256 for normal, N=512 for MU waves
 FFT fftBuff[] = new FFT[nchan];   //from the minim library
@@ -202,6 +207,16 @@ void setup() {
   logo = loadImage("logo2.png");
 
   playground = new Playground(navBarHeight);
+  
+  //attempt to open a serial port for "output"
+  try {
+    println("OpenBCI_GUI:  attempting to open serial port for data output = " + serial_output_portName);
+    serial_output = new Serial(this, serial_output_portName, serial_output_baud); //open the com port
+    serial_output.clear(); // clear anything in the com port's buffer
+  } 
+  catch (RuntimeException e) {
+    println("OpenBCI_GUI: *** ERROR ***: Could not open " + serial_output_portName);
+  }
 
 }
 //====================== END--OF ==========================//
@@ -524,6 +539,9 @@ void systemDraw(){ //for drawing to the screen
     }
 
     playground.draw();
+    if(drawUser){
+      eegProcessing_user.draw();
+    }
 
   }
 

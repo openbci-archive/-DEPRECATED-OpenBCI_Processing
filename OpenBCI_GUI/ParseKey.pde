@@ -31,6 +31,10 @@ void parseKey(char val) {
   
   //assumes that val is a usual printable ASCII character (ASCII 32 through 126)
   switch (val) {
+    case '.':
+      drawUser = !drawUser; 
+      break;
+    
     case '1':
       deactivateChannel(1-1); 
       break;

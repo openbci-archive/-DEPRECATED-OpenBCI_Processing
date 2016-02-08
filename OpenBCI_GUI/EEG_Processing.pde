@@ -1,15 +1,29 @@
 //import ddf.minim.analysis.*; //for FFT
 
+boolean drawUser = true; //if true... toggles on EEG_Processing_User.draw and toggles off the headplot in Gui_Manager
+
 class EEG_Processing_User {
   private float fs_Hz;  //sample rate
   private int nchan;  
   
   //add your own variables here
+  boolean isTriggered = false;  //boolean to keep track of when the trigger condition is met
+  float upperThreshold = 25;  //default uV upper threshold value ... this will automatically change over time
+  float lowerThreshold = 0;  //default uV lower threshold value ... this will automatically change over time
+  int averagePeriod = 250;  //number of data packets to average over (250 = 1 sec)
+  int thresholdPeriod = 1250;  //number of packets
+  int ourChan = 3 - 1;  //channel being monitored ... "3 - 1" means channel 3 (with a 0 index)
+  float myAverage = 0.0;   //this will change over time ... used for calculations below
+  float acceptableLimitUV = 255;  //uV values above this limit are excluded, as a result of them almost certainly being noise...
   
+  //if writing to a serial port
+  int output = 0; //value between 0-255 that is the relative position of the current uV average between the rolling lower and upper uV thresholds
+  float output_normalized = 0;  //converted to between 0-1
+  float output_adjusted = 0;  //adjusted depending on range that is expected on the other end, ie 0-255?
  
   //class constructor
   EEG_Processing_User(int NCHAN, float sample_rate_Hz) {
-      nchan = NCHAN;
+    nchan = NCHAN;
     fs_Hz = sample_rate_Hz;
   }
   
@@ -24,17 +38,48 @@ class EEG_Processing_User {
     //for example, you could loop over each EEG channel to do some sort of time-domain processing 
     //using the sample values that have already been filtered, as will be plotted on the display
     float EEG_value_uV;
-    for (int Ichan=0;Ichan < nchan; Ichan++) {
-      //loop over each NEW sample
-      int indexOfNewData = data_forDisplay_uV[Ichan].length - data_newest_uV[Ichan].length;
-      for (int Isamp=indexOfNewData; Isamp < data_forDisplay_uV[Ichan].length; Isamp++) {
-        EEG_value_uV = data_forDisplay_uV[Ichan][Isamp];  // again, this is from the filtered data that is ready for display
-        
-        //add your processing here...
-        
-        
-        //println("EEG_Processing_User: Ichan = " + Ichan + ", Isamp = " + Isamp + ", EEG Value = " + EEG_value_uV + " uV");
-      }
+    
+    for(int i = data_forDisplay_uV[ourChan].length - averagePeriod; i < data_forDisplay_uV[ourChan].length; i++){
+       if(data_forDisplay_uV[ourChan][i] <= acceptableLimitUV){ //prevent BIG spikes from effecting the average
+         myAverage += abs(data_forDisplay_uV[ourChan][i]);  //add value to average ... we will soon divide by # of packets
+       }
+    }
+
+    myAverage = myAverage / float(averagePeriod); //finishing the average
+    
+    //--------------------- some conditionals -------------------------
+    
+    if(myAverage >= upperThreshold && myAverage <= acceptableLimitUV){ // 
+       upperThreshold = myAverage; 
+    }
+    
+    if(myAverage <= lowerThreshold){
+       lowerThreshold = myAverage; 
+    }
+    
+    if(upperThreshold >= myAverage){
+      upperThreshold -= (upperThreshold - 25)/(frameRate * 5); //have upper threshold creep downwards to keep range tight
+    }
+    
+    if(lowerThreshold <= myAverage){
+      lowerThreshold += (25 - lowerThreshold)/(frameRate * 5); //have lower threshold creep upwards to keep range tight
+    }
+    
+    output = (int)map(myAverage, lowerThreshold, upperThreshold, 0, 255);
+    output_normalized = map(myAverage, lowerThreshold, upperThreshold, 0, 1);
+    output_adjusted = ((-0.1/(output_normalized*255.0)) + 255.0);
+    
+    //trip the output to a value between 0-255
+    if(output < 0) output = 0;
+    if(output > 255) output = 255;
+    
+    //attempt to write to serial_output. If this serial port does not exist, do nothing.
+    try {
+      println("inMoov_output: | " + output + " |");
+      serial_output.write(output);
+    }
+    catch(RuntimeException e){
+      println("serial not present");
     }
         
     //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
@@ -53,9 +98,40 @@ class EEG_Processing_User {
       }
     }  
   }
-}
-   
 
+  //Draw function added to render EMG feedback visualizer
+  public void draw(){
+    pushStyle();
+
+      //circle for outer threshold
+      noFill();
+      stroke(0,255,0);
+      strokeWeight(2);
+      float scaleFactor = 1.25;
+      ellipse(3*(width/4), height/4, scaleFactor * upperThreshold, scaleFactor * upperThreshold);
+
+      //circle for inner threshold
+      stroke(0,255,255);
+      ellipse(3*(width/4), height/4, scaleFactor * lowerThreshold, scaleFactor * lowerThreshold);
+  
+      //realtime 
+      fill(255,0,0, 125);
+      noStroke();
+      ellipse(3*(width/4), height/4, scaleFactor * myAverage, scaleFactor * myAverage);
+      
+      //draw background bar for mapped uV value indication
+      fill(0,255,255,125);
+      rect(7*(width/8), height/8, (width/32), (height/4));
+      
+      //draw real time bar of actually mapped value
+      fill(0,255,255);
+      rect(7*(width/8), 3*(height/8), (width/32), map(output_normalized, 0, 1, 0, (-1) * (height/4)));
+
+    popStyle();
+  }
+  
+  myAverage = 0.0;
+}
 
 class EEG_Processing {
   private float fs_Hz;  //sample rate
@@ -249,4 +325,3 @@ class EEG_Processing {
     }    
   }
 }
-
