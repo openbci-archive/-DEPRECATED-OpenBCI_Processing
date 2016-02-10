@@ -11,21 +11,24 @@
 ////////////////////
 
 class Button {
-  
+
   int but_x, but_y, but_dx, but_dy;      // Position of square button
   //int rectSize = 90;     // Diameter of rect
-  color color_pressed = color(200);
+
+  color currentColor;
+  color color_hover = color(127, 134, 143);//color(252, 221, 198); 
+  color color_pressed = color(227,118,37); //bgColor;
   color color_highlight = color(102);
-  color color_notPressed = color(255);
+  color color_notPressed = color(255); //color(227,118,37);
   color buttonStrokeColor = bgColor;
   color textColorActive = color(255);
   color textColorNotActive = bgColor;
   color rectHighlight;
+  boolean drawHand = false;
   //boolean isMouseHere = false;
   boolean buttonHasStroke = true;
   boolean isActive = false;
   boolean isDropdownButton = false;
-  boolean drawHand = false;
   boolean wasPressed = false;
   public String but_txt;
   PFont buttonFont = f2;
@@ -46,54 +49,60 @@ class Button {
     but_dy = h;
     setString(txt);
   }
-  
+
   public void setString(String txt) {
     but_txt = txt;
     //println("Button: setString: string = " + txt);
   }
-  
+
   public boolean isActive() {
     return isActive;
   }
-  
+
   public void setIsActive(boolean val) {
     isActive = val;
   }
 
-  public void makeDropdownButton(boolean val){
+  public void makeDropdownButton(boolean val) {
     isDropdownButton = val;
   }
-  
+
   public boolean isMouseHere() {
     if ( overRect(but_x, but_y, but_dx, but_dy) ) {
-      // cursor(HAND);
+      cursor(HAND);
       return true;
-    } 
-    else {
+    } else {
       return false;
     }
   }
 
   color getColor() {
     if (isActive) {
-      return color_pressed;
+     currentColor = color_pressed;
+    } else if (isMouseHere()) {
+     currentColor = color_hover;
     } else {    
-      return color_notPressed;
+     currentColor = color_notPressed;
     }
+    return currentColor;
+  }
+  
+  public void setCurrentColor(color _color){
+    currentColor = _color; 
   }
 
-  public void setColorPressed(color _color){
+  public void setColorPressed(color _color) {
     color_pressed = _color;
   }
-  public void setColorNotPressed(color _color){
+  public void setColorNotPressed(color _color) {
     color_notPressed = _color;
   }
 
-  public void setStrokeColor(color _color){
+  public void setStrokeColor(color _color) {
     buttonStrokeColor = _color;
   }
 
-  public void hasStroke(boolean _trueORfalse){
+  public void hasStroke(boolean _trueORfalse) {
     buttonHasStroke = _trueORfalse;
   }
 
@@ -101,13 +110,12 @@ class Button {
     if (mouseX >= x && mouseX <= x+width && 
       mouseY >= y && mouseY <= y+height) {
       return true;
-    } 
-    else {
+    } else {
       return false;
     }
   }
 
-  public void draw(int _x, int _y){
+  public void draw(int _x, int _y) {
     but_x = _x;
     but_y = _y;
     draw();
@@ -116,18 +124,18 @@ class Button {
   public void draw() {
     //draw the button
     fill(getColor());
-    if(buttonHasStroke){
+    if (buttonHasStroke) {
       stroke(buttonStrokeColor); //button border
-    }else{
+    } else {
       noStroke();
     }
     // noStroke();
-    rect(but_x,but_y,but_dx,but_dy);
-    
+    rect(but_x, but_y, but_dx, but_dy);
+
     //draw the text
-    if(isActive){
+    if (isActive) {
       fill(textColorActive);
-    }else{
+    } else {
       fill(textColorNotActive);
     }
     stroke(255);
@@ -135,66 +143,54 @@ class Button {
     textSize(12);
     textAlign(CENTER, CENTER);
     textLeading(round(0.9*(textAscent()+textDescent())));
-//    int x1 = but_x+but_dx/2;
-//    int y1 = but_y+but_dy/2;
+    //    int x1 = but_x+but_dx/2;
+    //    int y1 = but_y+but_dy/2;
     int x1, y1;
-    if (false) {
-      //auto wrap
-      x1 = but_x;
-      y1 = but_y;
-      int w = but_dx-2*2; //use a 2 pixel buffer on the left and right sides 
-      int h = but_dy;
-      text(but_txt,x1,y1,w,h);
-    } else {
-      //no auto wrap
-      x1 = but_x+but_dx/2;
-      y1 = but_y+but_dy/2;
-      text(but_txt,x1,y1);
-    }
+    //no auto wrap
+    x1 = but_x+but_dx/2;
+    y1 = but_y+but_dy/2;
+    text(but_txt, x1, y1);
 
     //draw open/close arrow if it's a dropdown button
-    if(isDropdownButton){
+    if (isDropdownButton) {
       pushStyle();
-        fill(255);
-        noStroke();
-        // smooth();
-        // stroke(255);
-        // strokeWeight(1);
-        if(isActive){
-          float point1x = but_x + (but_dx - ((3f*but_dy)/4f));
-          float point1y = but_y + but_dy/3f;
-          float point2x = but_x + (but_dx-(but_dy/4f));
-          float point2y = but_y + but_dy/3f;
-          float point3x = but_x + (but_dx - (but_dy/2f));
-          float point3y = but_y + (2f*but_dy)/3f;
-          triangle(point1x, point1y, point2x, point2y, point3x, point3y); //downward triangle, indicating open
-        } else{
-          float point1x = but_x + (but_dx - ((3f*but_dy)/4f));
-          float point1y = but_y + (2f*but_dy)/3f;
-          float point2x = but_x + (but_dx-(but_dy/4f));
-          float point2y = but_y + (2f*but_dy)/3f;
-          float point3x = but_x + (but_dx - (but_dy/2f));
-          float point3y = but_y + but_dy/3f;
-          triangle(point1x, point1y, point2x, point2y, point3x, point3y); //upward triangle, indicating closed
-        }
+      fill(255);
+      noStroke();
+      // smooth();
+      // stroke(255);
+      // strokeWeight(1);
+      if (isActive) {
+        float point1x = but_x + (but_dx - ((3f*but_dy)/4f));
+        float point1y = but_y + but_dy/3f;
+        float point2x = but_x + (but_dx-(but_dy/4f));
+        float point2y = but_y + but_dy/3f;
+        float point3x = but_x + (but_dx - (but_dy/2f));
+        float point3y = but_y + (2f*but_dy)/3f;
+        triangle(point1x, point1y, point2x, point2y, point3x, point3y); //downward triangle, indicating open
+      } else {
+        float point1x = but_x + (but_dx - ((3f*but_dy)/4f));
+        float point1y = but_y + (2f*but_dy)/3f;
+        float point2x = but_x + (but_dx-(but_dy/4f));
+        float point2y = but_y + (2f*but_dy)/3f;
+        float point3x = but_x + (but_dx - (but_dy/2f));
+        float point3y = but_y + but_dy/3f;
+        triangle(point1x, point1y, point2x, point2y, point3x, point3y); //upward triangle, indicating closed
+      }
       popStyle();
     }
 
-    if(systemMode == 0){
-      if(!isMouseHere() && drawHand){
+    if (true) {
+      if (!isMouseHere() && drawHand) {
         cursor(ARROW);
         drawHand = false;
         verbosePrint("don't draw hand");
       }
       //if cursor is over button change cursor icon to hand!
-      if(isMouseHere() && !drawHand){
+      if (isMouseHere() && !drawHand) {
         cursor(HAND);
         drawHand = true;
         verbosePrint("draw hand");
-      } 
+      }
     }
   }
 };
-
-
-

@@ -237,7 +237,7 @@ public class ControlP5 extends ControlP5Base {
 	static int welcome = 0;
 
 	private void welcome( ) {
-		System.out.println( "ControlP5 " + VERSION + " " + "infos, comments, questions at http://www.sojamo.de/libraries/controlP5" );
+		// System.out.println( "ControlP5 " + VERSION + " " + "infos, comments, questions at http://www.sojamo.de/libraries/controlP5" );
 	}
 
 	public ControlP5 setGraphics( PApplet theApplet , int theX , int theY ) {

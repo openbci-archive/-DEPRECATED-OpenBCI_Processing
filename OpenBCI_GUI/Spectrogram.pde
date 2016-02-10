@@ -163,21 +163,16 @@ class Spectrogram {
   }
   
   public void draw(int x, int y, int w, int h,float max_freq_Hz) {
-    if (false) {
-      //draw the whole image
-      image(img,x,y,w,h);
-    } else {
-      //float max_freq_Hz = freq_lim_Hz[1];
-      int max_ind = 0;
-      while ((localFftData.indexToFreq(max_ind) <= max_freq_Hz) & (max_ind < localFftData.specSize()-1)) max_ind++;
-      //println("Spectrogram.draw(): max_ind = " + max_ind);
-      //PImage foo = (PImage)(img.get(0,localFftData.specSize()-1-max_ind,Nslices,localFftData.specSize()-1)).clone();
-      //println("spectrogram.draw() max freq = " + localFftData.indexToFreq(max_ind));
-      int img_x = 0; 
-      int img_y = localFftData.specSize()-1-max_ind; 
-      int img_w = Nslices - img_x + 1;
-      int img_h = localFftData.specSize()-1 - img_y + 1;
-      image(img.get(img_x,img_y,img_w,img_h),x,y,w,h); //plot a subset
-    }
+    //float max_freq_Hz = freq_lim_Hz[1];
+    int max_ind = 0;
+    while ((localFftData.indexToFreq(max_ind) <= max_freq_Hz) & (max_ind < localFftData.specSize()-1)) max_ind++;
+    //println("Spectrogram.draw(): max_ind = " + max_ind);
+    //PImage foo = (PImage)(img.get(0,localFftData.specSize()-1-max_ind,Nslices,localFftData.specSize()-1)).clone();
+    //println("spectrogram.draw() max freq = " + localFftData.indexToFreq(max_ind));
+    int img_x = 0; 
+    int img_y = localFftData.specSize()-1-max_ind; 
+    int img_w = Nslices - img_x + 1;
+    int img_h = localFftData.specSize()-1 - img_y + 1;
+    image(img.get(img_x,img_y,img_w,img_h),x,y,w,h); //plot a subset
   }
 }

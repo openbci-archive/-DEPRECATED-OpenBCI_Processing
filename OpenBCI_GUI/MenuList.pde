@@ -24,6 +24,7 @@ public class MenuList extends Controller {
   List< Map<String, Object>> items = new ArrayList< Map<String, Object>>();
   PGraphics menu;
   boolean updateMenu;
+  boolean drawHand;
   int hoverItem = -1;
   int activeItem = -1;
   PFont menuFont = f2; 
@@ -45,6 +46,10 @@ public class MenuList extends Controller {
           updateMenu();
         }
         if (inside()) {
+          if(!drawHand){
+            cursor(HAND);
+            drawHand = true;
+          }
           menu.beginDraw();
           int len = -(itemHeight * items.size()) + getHeight();
           int ty;
@@ -58,6 +63,12 @@ public class MenuList extends Controller {
             menu.rect(getWidth()-scrollerWidth-2, ty, scrollerWidth, scrollerLength );
           }
           menu.endDraw();
+        } 
+        else {
+          if(drawHand){
+            drawHand = false;
+            cursor(ARROW);
+          }
         }
         pg.image(menu, 0, 0);
       }

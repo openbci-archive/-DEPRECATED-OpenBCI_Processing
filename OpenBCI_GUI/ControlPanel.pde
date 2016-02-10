@@ -35,7 +35,6 @@ String[] serialPorts = new String[Serial.list().length];
 MenuList sdTimes;
 
 color boxColor = color(200);
-// color boxStrokeColor = color(173,183,192);
 color boxStrokeColor = color(138, 146, 153);
 color isSelected_color = color(184, 220, 105);
 
@@ -260,13 +259,13 @@ class ControlPanel {
           chanButton8.setIsActive(true);
           chanButton8Pressed = true;
           chanButton8.color_notPressed = isSelected_color;
-          chanButton16.color_notPressed = color(255);
+          chanButton16.color_notPressed = autoFileName.color_notPressed; //default color of button
         }
 
         if (chanButton16.isMouseHere()) {
           chanButton16.setIsActive(true);
           chanButton16Pressed = true;
-          chanButton8.color_notPressed = color(255);
+          chanButton8.color_notPressed = autoFileName.color_notPressed; //default color of button
           chanButton16.color_notPressed = isSelected_color;
         }
       }
@@ -331,6 +330,7 @@ class ControlPanel {
         initSystemButton.setString("START SYSTEM");
         haltSystem();
       }
+      //cursor(ARROW); //this this back to ARROW
     }
 
     //open or close serial port if serial port button is pressed (left button in serial widget)
@@ -401,10 +401,12 @@ public void controlEvent(ControlEvent theEvent) {
 
   if (theEvent.isFrom("sourceList")) {
     Map bob = ((MenuList)theEvent.getController()).getItem(int(theEvent.getValue()));
-    output("Data Source = " + (String)bob.get("headline"));
+    String str = (String)bob.get("headline");
+    str = str.substring(0, str.length()-5);
+    //output("Data Source = " + str);
     int newDataSource = int(theEvent.getValue());
     eegDataSource = newDataSource; // reset global eegDataSource to the selected value from the list
-    output("The new data source is " + (String)bob.get("headline"));
+    output("The new data source is " + str);
   }
 
   if (theEvent.isFrom("serialList")) {
@@ -454,6 +456,7 @@ class DataSourceBox {
   }
 
   public void update() {
+
   }
 
   public void draw() {
@@ -758,8 +761,8 @@ class InitBox {
 
     //init button
     initSystemButton = new Button (padding, y + padding, w-padding*2, h - padding*2, "START SYSTEM", fontInfo.buttonLabel_size);
-    initSystemButton.color_notPressed = color(boxColor);
-    initSystemButton.buttonStrokeColor = color(boxColor);
+    //initSystemButton.color_notPressed = color(boolor);
+    //initSystemButton.buttonStrokeColor = color(boxColor);
     initButtonPressed = false;
   }
 
@@ -769,7 +772,7 @@ class InitBox {
   public void draw() {
 
     pushStyle();
-    fill(255);
+    fill(boxColor);
     stroke(boxStrokeColor);
     strokeWeight(1);
     rect(x, y, w, h);
@@ -787,7 +790,3 @@ void playbackSelected(File selection) {
     playbackData_fname = selection.getAbsolutePath();
   }
 }
-
-
-
-

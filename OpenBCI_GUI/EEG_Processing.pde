@@ -1,6 +1,6 @@
 //import ddf.minim.analysis.*; //for FFT
 
-boolean drawUser = true; //if true... toggles on EEG_Processing_User.draw and toggles off the headplot in Gui_Manager
+boolean drawUser = false; //if true... toggles on EEG_Processing_User.draw and toggles off the headplot in Gui_Manager
 
 class EEG_Processing_User {
   private float fs_Hz;  //sample rate
@@ -75,11 +75,11 @@ class EEG_Processing_User {
     
     //attempt to write to serial_output. If this serial port does not exist, do nothing.
     try {
-      println("inMoov_output: | " + output + " |");
+      //println("inMoov_output: | " + output + " |");
       serial_output.write(output);
     }
     catch(RuntimeException e){
-      println("serial not present");
+      if(isVerbose) println("serial not present");
     }
         
     //OR, you could loop over each EEG channel and do some sort of frequency-domain processing from the FFT data
@@ -129,8 +129,7 @@ class EEG_Processing_User {
 
     popStyle();
   }
-  
-  myAverage = 0.0;
+
 }
 
 class EEG_Processing {
