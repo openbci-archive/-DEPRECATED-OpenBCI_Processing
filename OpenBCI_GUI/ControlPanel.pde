@@ -311,11 +311,11 @@ class ControlPanel {
           initSystemButton.setIsActive(false);
           return;
         } else { //otherwise, initiate system!	
-          println("ControlPanel: CPmouseReleased: init");
+          verbosePrint("ControlPanel: CPmouseReleased: init");
           initSystemButton.setString("STOP SYSTEM");
           //global steps to START SYSTEM
           // prepare the serial port
-          println("ControlPanel: CPmouseReleased: port is open? ... " + openBCI.isSerialPortOpen());
+          verbosePrint("ControlPanel — port is open: " + openBCI.isSerialPortOpen());
           if (openBCI.isSerialPortOpen() == true) {
             openBCI.closeSerialPort();
           }

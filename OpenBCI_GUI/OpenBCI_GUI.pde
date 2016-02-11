@@ -25,7 +25,7 @@ import java.util.Map.Entry;
 import processing.serial.*;  //for serial communication to Arduino/OpenBCI
 import java.awt.event.*; //to allow for event listener on screen resize
 
-boolean isVerbose = false; //set true if you want more verbosity in console
+boolean isVerbose = false; //set true if you want more verbosity in console.. verbosePrint("print_this_thing") is used to output feedback when isVerbose = true
 
 //used to switch between application states
 int systemMode = 0; /* Modes: 0 = system stopped/control panel setings / 10 = gui / 20 = help guide */
@@ -172,9 +172,15 @@ void setup() {
 
   surface.setResizable(true);  //updated from frame.setResizable in Processing 2
 
-  f1 = createFont("Raleway-SemiBold.otf", 16);
-  f2 = createFont("Raleway-Regular.otf", 15);
-  f3 = createFont("Raleway-SemiBold.otf", 15);
+  //V1 FONTS
+  f1 = createFont("fonts/Raleway-SemiBold.otf", 16);
+  f2 = createFont("fonts/Raleway-Regular.otf", 15);
+  f3 = createFont("fonts/Raleway-SemiBold.otf", 15);
+  
+  //V2 FONTS
+  //f1 = createFont("fonts/Montserrat-SemiBold.otf", 16);
+  //f2 = createFont("fonts/Montserrat-Light.otf", 15);
+  //f3 = createFont("fonts/Montserrat-SemiBold.otf", 15);
 
   //listen for window resize ... used to adjust elements in application
   frame.addComponentListener(new ComponentAdapter() { 
@@ -214,12 +220,12 @@ void setup() {
 
   //attempt to open a serial port for "output"
   try {
-    println("OpenBCI_GUI:  attempting to open serial port for data output = " + serial_output_portName);
+    verbosePrint("OpenBCI_GUI.pde:  attempting to open serial port for data output = " + serial_output_portName);
     serial_output = new Serial(this, serial_output_portName, serial_output_baud); //open the com port
     serial_output.clear(); // clear anything in the com port's buffer
   } 
   catch (RuntimeException e) {
-    println("OpenBCI_GUI: *** ERROR ***: Could not open " + serial_output_portName);
+    verbosePrint("OpenBCI_GUI.pde: *** ERROR ***: Could not open " + serial_output_portName);
   }
 }
 //====================== END--OF ==========================//
@@ -1054,10 +1060,10 @@ void startRunning() {
 void stopButtonWasPressed() {
   //toggle the data transfer state of the ADS1299...stop it or start it...
   if (isRunning) {
-    println("openBCI_GUI: stopButton was pressed...stopping data transfer...");
+    verbosePrint("openBCI_GUI: stopButton was pressed...stopping data transfer...");
     stopRunning();
   } else { //not running
-    println("openBCI_GUI: startButton was pressed...starting data transfer...");
+    verbosePrint("openBCI_GUI: startButton was pressed...starting data transfer...");
     startRunning();
     nextPlayback_millis = millis();  //used for synthesizeData and readFromFile.  This restarts the clock that keeps the playback at the right pace.
   }
