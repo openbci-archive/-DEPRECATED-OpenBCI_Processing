@@ -32,7 +32,7 @@ void parseKey(char val) {
   //assumes that val is a usual printable ASCII character (ASCII 32 through 126)
   switch (val) {
     case '.':
-      drawUser = !drawUser; 
+      drawEMG = !drawEMG; 
       break;
     
     case '1':
@@ -276,7 +276,8 @@ void parseKeycode(int val) {
       // gui.incrementGUIpage(); //deprecated with new channel controller
       break;    
     case 10:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received ENTER keypress.  Ignoring...");
+      println("Entering Presentation Mode");
+      drawPresentation = !drawPresentation;
       break;
     case 16:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received SHIFT keypress.  Ignoring...");
@@ -307,13 +308,21 @@ void parseKeycode(int val) {
       println("OpenBCI_GUI: parseKeycode(" + val + "): received HOME keypress.  Ignoring...");
       break; 
     case 37:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received LEFT ARROW keypress.  Ignoring...");
+      println("Slide Back!");
+      if (millis() - myPresentation.timeOfLastSlideChange >= 250) {
+        myPresentation.slideBack();
+        myPresentation.timeOfLastSlideChange = millis();
+      }
       break;  
     case 38:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received UP ARROW keypress.  Ignoring...");
       break;  
     case 39:
-      println("OpenBCI_GUI: parseKeycode(" + val + "): received RIGHT ARROW keypress.  Ignoring...");
+      println("Forward!");
+      if (millis() - myPresentation.timeOfLastSlideChange >= 250) {
+        myPresentation.slideForward();
+        myPresentation.timeOfLastSlideChange = millis();
+      }
       break;  
     case 40:
       println("OpenBCI_GUI: parseKeycode(" + val + "): received DOWN ARROW keypress.  Ignoring...");

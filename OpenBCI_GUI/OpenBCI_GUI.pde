@@ -153,6 +153,8 @@ PFont f1;
 PFont f2;
 PFont f3;
 
+Presentation myPresentation;
+
 //========================SETUP============================//
 //========================SETUP============================//
 //========================SETUP============================//
@@ -176,7 +178,7 @@ void setup() {
   f1 = createFont("fonts/Raleway-SemiBold.otf", 16);
   f2 = createFont("fonts/Raleway-Regular.otf", 15);
   f3 = createFont("fonts/Raleway-SemiBold.otf", 15);
-  
+
   //V2 FONTS
   //f1 = createFont("fonts/Montserrat-SemiBold.otf", 16);
   //f2 = createFont("fonts/Montserrat-Light.otf", 15);
@@ -227,6 +229,8 @@ void setup() {
   catch (RuntimeException e) {
     verbosePrint("OpenBCI_GUI.pde: *** ERROR ***: Could not open " + serial_output_portName);
   }
+
+  myPresentation = new Presentation();
 }
 //====================== END--OF ==========================//
 //========================SETUP============================//
@@ -553,9 +557,8 @@ void systemDraw() { //for drawing to the screen
     }
 
     playground.draw();
-    if (drawUser) {
-      eegProcessing_user.draw();
-    }
+
+    eegProcessing_user.draw();
   } else { //systemMode != 10
     //still print title information about fps
     surface.setTitle(int(frameRate) + " fps — OpenBCI GUI");
@@ -565,6 +568,7 @@ void systemDraw() { //for drawing to the screen
   if (controlPanel.isOpen) {
     controlPanel.draw();
   }
+
   controlPanelCollapser.draw();
   helpWidget.draw();
 
@@ -583,13 +587,14 @@ void systemDraw() { //for drawing to the screen
     }
   }
 
+  if (drawPresentation) {
+    myPresentation.draw();
+    eegProcessing_user.drawTriggerFeedback();
+  }
+
   // use commented code below to verify frameRate and check latency
   // println("Time since start: " + millis() + " || Time since last frame: " + str(millis()-timeOfLastFrame));
   // timeOfLastFrame = millis();
-  
-  //if(!drawHand) {
-  //  cursor(ARROW); 
-  //}
 }
 
 //called from systemUpdate when mode=10 and isRunning = true

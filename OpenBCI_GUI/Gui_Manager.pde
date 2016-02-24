@@ -777,7 +777,7 @@ class Gui_Manager {
   }
   
   public void draw() {
-    if(!drawUser){
+    if(!drawEMG){
       headPlot1.draw();
     }
     
