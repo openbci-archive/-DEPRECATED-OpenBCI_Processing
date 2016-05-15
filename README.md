@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/OpenBCI/OpenBCI_Processing.png?label=ready&title=Ready)](https://waffle.io/OpenBCI/OpenBCI_Processing)
 For the full getting started guide, go to [our Docs page](http://docs.openbci.com/tutorials/01-GettingStarted).
 
 ### 1. Download Processing for your operating system
