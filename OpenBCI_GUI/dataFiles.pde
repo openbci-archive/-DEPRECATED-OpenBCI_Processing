@@ -56,7 +56,6 @@ public class OutputFile_rawtxt {
 
   public void writeHeader(float fs_Hz) {
     output.println("%OpenBCI Raw EEG Data");
-    output.println("%");
     output.println("%Sample Rate = " + fs_Hz + " Hz");
     output.println("%First Column = SampleIndex");
     output.println("%Other Columns = EEG data in microvolts followed by Accel Data (in G) interleaved with Aux Data");

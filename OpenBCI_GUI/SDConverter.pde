@@ -14,7 +14,8 @@ PrintWriter dataWriter;
 String convertedLine;
 String thisLine;
 String h;
-float[] intData = new float[20];
+String[] hexNums;
+float[] floatData = new float[20];
 String logFileName;
 long thisTime;
 long thatTime;
@@ -39,50 +40,18 @@ public void convertSDFile() {
     dataWriter.close();
   } else {
     //        println(dataLine);
-    String[] hexNums = splitTokens(dataLine, ",");
+    hexNums = splitTokens(dataLine, ",");
 
     if (hexNums[0].charAt(0) == '%') {
       //          println(dataLine);
       dataWriter.println(dataLine);
       println(dataLine);
     } else {
-      for (int i=0; i<hexNums.length; i++) {
-        h = hexNums[i];
-        if (i > 0) {
-          if (h.charAt(0) > '7') {  // if the number is negative 
-            h = "FF" + hexNums[i];   // keep it negative
-          } else {                  // if the number is positive
-            h = "00" + hexNums[i];   // keep it positive
-          }
-          if (i > 8) { // accelerometer data needs another byte
-            if (h.charAt(0) == 'F') {
-              h = "FF" + h;
-            } else {
-              h = "00" + h;
-            }
-          }
+      if (hexNums.length < 13){
+          convert8channelLine();
+        }else{
+          convert16channelLine();
         }
-        // println(h); // use for debugging
-        if (h.length()%2 == 0) {  // make sure this is a real number
-          intData[i] = unhex(h);
-        } else {
-          intData[i] = 0;
-        }
-
-        //if not first column(sample #) or columns 9-11 (accelerometer), convert to uV
-        if (i>=1 && i<=8) {
-          intData[i] *= openBCI.get_scale_fac_uVolts_per_count();
-        }
-
-        //print the current channel value
-        dataWriter.print(intData[i]);
-        if (i < hexNums.length-1) {
-          //print "," separator
-          dataWriter.print(",");
-        }
-      }
-      //println();
-      dataWriter.println();
     }
   }
 }
@@ -105,3 +74,92 @@ void sdFileSelected(File selection) {
   }
 }
 
+
+
+void convert16channelLine() {
+  for (int i=0; i<hexNums.length; i++) {
+    h = hexNums[i];
+    if (i > 0) {
+      if (h.charAt(0) > '7') {  // if the number is negative 
+        h = "FF" + hexNums[i];   // keep it negative
+      } else {                  // if the number is positive
+        h = "00" + hexNums[i];   // keep it positive
+      }
+      if (i > 16) { // accelerometer data needs another byte
+        if (h.charAt(0) == 'F') {
+          h = "FF" + h;
+        } else {
+          h = "00" + h;
+        }
+      }
+    }
+    // println(h); // use for debugging
+    if (h.length()%2 == 0) {  // make sure this is a real number
+      floatData[i] = unhex(h);
+    } else {
+      floatData[i] = 0;
+    }
+
+
+    //if not first column(sample #) or columns 9-11 (accelerometer), convert to uV
+    if (i>=1 && i<=16) {
+      floatData[i] *= openBCI.get_scale_fac_uVolts_per_count();
+    }else if(i != 0){
+      floatData[i] *= openBCI.get_scale_fac_accel_G_per_count();
+    }
+
+    if(i == 0){  
+      dataWriter.print(int(floatData[i]));  // print the sample counter
+    }else{
+      dataWriter.print(floatData[i]);  // print the current channel value
+    }
+    if (i < hexNums.length-1) {  // print the current channel value
+      dataWriter.print(",");  // print "," separator
+    }
+  }
+  dataWriter.println();
+}
+
+void convert8channelLine() {
+  for (int i=0; i<hexNums.length; i++) {
+    h = hexNums[i];
+    if (i > 0) {
+      if (h.charAt(0) > '7') {  // if the number is negative 
+        h = "FF" + hexNums[i];   // keep it negative
+      } else {                  // if the number is positive
+        h = "00" + hexNums[i];   // keep it positive
+      }
+      if (i > 8) { // accelerometer data needs another byte
+        if (h.charAt(0) == 'F') {
+          h = "FF" + h;
+        } else {
+          h = "00" + h;
+        }
+      }
+    }
+    // println(h); // use for debugging
+    if (h.length()%2 == 0) {  // make sure this is a real number
+      floatData[i] = unhex(h);
+    } else {
+      floatData[i] = 0;
+    }
+
+
+    //if not first column(sample #) or columns 9-11 (accelerometer), convert to uV
+    if (i>=1 && i<=8) {
+      floatData[i] *= openBCI.get_scale_fac_uVolts_per_count();
+    }else if(i != 0){
+      floatData[i] *= openBCI.get_scale_fac_accel_G_per_count();
+    }
+
+    if(i == 0){  
+      dataWriter.print(int(floatData[i]));  // print the sample counter
+    }else{
+      dataWriter.print(floatData[i]);  // print the current channel value
+    }
+    if (i < hexNums.length-1) {  
+      dataWriter.print(",");  // print "," separator
+    }
+  }
+  dataWriter.println();
+}
