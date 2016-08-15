@@ -648,12 +648,14 @@ class Gui_Manager {
   public void initDataTraces(float[] dataBuffX,float[][] dataBuffY,FFT[] fftBuff,float[] dataBuffY_std, DataStatus[] is_railed, float[] dataBuffY_polarity) {      
     //initialize the time-domain montage-plot traces
     montageTrace = new ScatterTrace();
+    montageTrace.setRenderer(PApplet.JAVA2D);
     montage_yoffsets = new float[nchan];
     initializeMontageTraces(dataBuffX,dataBuffY);
     montageTrace.set_isRailed(is_railed);
   
     //initialize the FFT traces
     fftTrace = new ScatterTrace_FFT(fftBuff); //can't put this here...must be in setup()
+    fftTrace.setRenderer(PApplet.JAVA2D);
     fftYOffset = new float[nchan];
     initializeFFTTraces(fftTrace,fftBuff,fftYOffset,gFFT);
     
