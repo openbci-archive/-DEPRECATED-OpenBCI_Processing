@@ -80,7 +80,7 @@ public class OutputFile_rawtxt {
     int nVal = values.length;
     for (int Ival = 0; Ival < nVal; Ival++) {
       output.print(", ");
-      output.print(String.format("%.2f", scale_fac * float(values[Ival])));
+      output.print(String.format(Locale.US, "%.2f", scale_fac * float(values[Ival])));
     }
   }
 
@@ -139,11 +139,11 @@ class Table_CSV extends Table {
           setRowCount(row << 1);
         }
         if (row == 0 && header) {
-          setColumnTitles(tsv ? PApplet.split(line, '\t') : splitLineCSV(line));
+          setColumnTitles(tsv ? PApplet.split(line, '\t') : splitLineCSV(line, reader));
           header = false;
         } 
         else {
-          setRow(row, tsv ? PApplet.split(line, '\t') : splitLineCSV(line));
+          setRow(row, tsv ? PApplet.split(line, '\t') : splitLineCSV(line, reader));
           row++;
         }
 
