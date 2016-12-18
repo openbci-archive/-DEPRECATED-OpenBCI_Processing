@@ -372,7 +372,7 @@ void saveScreenshot() {
       recordingTime = "@" + (int)((float)fileoutput.getRowsWritten()/openBCI.get_fs_Hz()) + "s";
       break;
     case DATASOURCE_PLAYBACKFILE:
-      recordingTime = "@" + (int)((float)playbackData_table.getRowCount()/openBCI.get_fs_Hz()) + "s";
+      recordingTime = "@" + (int)((float)currentTableRowIndex/openBCI.get_fs_Hz()) + "s";
       break;
   }
   String picfname = "OpenBCI-" + getDateString() + recordingTime + ".png";
