@@ -249,10 +249,8 @@ void parseKey(char val) {
 
       
     case 'm':
-     String picfname = "OpenBCI-" + getDateString() + ".jpg";
-     println("OpenBCI_GUI: 'm' was pressed...taking screenshot:" + picfname);
-     saveFrame("./SavedData/" + picfname);    // take a shot of that!
-     break;
+      saveScreenshot();
+      break;
 
     default:
      println("OpenBCI_GUI: '" + key + "' Pressed...sending to OpenBCI...");
@@ -364,4 +362,20 @@ void parseKeycode(int val) {
       println("OpenBCI_GUI: parseKeycode(" + val + "): value is not known.  Ignoring...");
       break;
   }
+}
+
+void saveScreenshot() {
+  String recordingTime = "";
+  switch (eegDataSource) {
+    case DATASOURCE_NORMAL: 
+    case DATASOURCE_NORMAL_W_AUX:
+      recordingTime = "@" + (int)((float)fileoutput.getRowsWritten()/openBCI.get_fs_Hz()) + "s";
+      break;
+    case DATASOURCE_PLAYBACKFILE:
+      recordingTime = "@" + (int)((float)currentTableRowIndex/openBCI.get_fs_Hz()) + "s";
+      break;
+  }
+  String picfname = "OpenBCI-" + getDateString() + recordingTime + ".png";
+  println("OpenBCI_GUI: 'm' was pressed...taking screenshot:" + picfname);
+  saveFrame("./SavedData/" + picfname);    // take a shot of that!
 }
